@@ -32,17 +32,30 @@ public sealed class SqliteVectorStore : IVectorStore, ICollectionManageable, ICh
     /// <param name="databasePath">The SQLite file. Created with its schema if it does not exist.</param>
     /// <param name="dimensions">The length of every vector this store accepts.</param>
     /// <param name="modelId">The embedding model whose vectors this store holds and searches.</param>
-    public SqliteVectorStore(string databasePath, int dimensions, string modelId)
+    /// <param name="table">
+    /// The table that holds the vectors. Documents use the default; conversation memory uses its own
+    /// table in the same file, so memory never comes back as a document chunk.
+    /// </param>
+    public SqliteVectorStore(string databasePath, int dimensions, string modelId, string table = "vec_chunks")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(databasePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(modelId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(dimensions);
+        if (table is not { Length: > 0 } || !table.All(c => char.IsAsciiLetterOrDigit(c) || c == '_'))
+        {
+            throw new ArgumentException("Table names may contain only letters, digits and underscores.", nameof(table));
+        }
 
         _databasePath = databasePath;
         _modelId = modelId;
         _dimensions = dimensions;
+        _chunks = table;
+        _collections = table + "_collections";
         _matrix = new VectorMatrix(dimensions);
     }
+
+    private readonly string _chunks;
+    private readonly string _collections;
 
     /// <summary>The embedding model this store searches.</summary>
     public string ModelId => _modelId;
@@ -93,8 +106,8 @@ public sealed class SqliteVectorStore : IVectorStore, ICollectionManageable, ICh
 
             using var upsert = connection.CreateCommand();
             upsert.Transaction = transaction;
-            upsert.CommandText = """
-                INSERT INTO vec_chunks (document_id, chunk_index, text, metadata, embedding, model_id)
+            upsert.CommandText = $"""
+                INSERT INTO {_chunks} (document_id, chunk_index, text, metadata, embedding, model_id)
                 VALUES ($document_id, $chunk_index, $text, $metadata, $embedding, $model_id)
                 ON CONFLICT (document_id, chunk_index) DO UPDATE SET
                     text = excluded.text,
@@ -203,7 +216,7 @@ public sealed class SqliteVectorStore : IVectorStore, ICollectionManageable, ICh
             using var transaction = connection.BeginTransaction();
             using var delete = connection.CreateCommand();
             delete.Transaction = transaction;
-            delete.CommandText = "DELETE FROM vec_chunks WHERE document_id = $document_id";
+            delete.CommandText = $"DELETE FROM {_chunks} WHERE document_id = $document_id";
             delete.Parameters.AddWithValue("$document_id", documentId);
             delete.ExecuteNonQuery();
             transaction.Commit();
@@ -306,7 +319,7 @@ public sealed class SqliteVectorStore : IVectorStore, ICollectionManageable, ICh
             using (var deleteChunks = connection.CreateCommand())
             {
                 deleteChunks.Transaction = transaction;
-                deleteChunks.CommandText = "DELETE FROM vec_chunks WHERE model_id = $model_id";
+                deleteChunks.CommandText = $"DELETE FROM {_chunks} WHERE model_id = $model_id";
                 deleteChunks.Parameters.AddWithValue("$model_id", name);
                 deleteChunks.ExecuteNonQuery();
             }
@@ -314,7 +327,7 @@ public sealed class SqliteVectorStore : IVectorStore, ICollectionManageable, ICh
             using (var deleteCollection = connection.CreateCommand())
             {
                 deleteCollection.Transaction = transaction;
-                deleteCollection.CommandText = "DELETE FROM vec_collections WHERE model_id = $model_id";
+                deleteCollection.CommandText = $"DELETE FROM {_collections} WHERE model_id = $model_id";
                 deleteCollection.Parameters.AddWithValue("$model_id", name);
                 deleteCollection.ExecuteNonQuery();
             }
@@ -342,7 +355,7 @@ public sealed class SqliteVectorStore : IVectorStore, ICollectionManageable, ICh
 
         using var connection = OpenDatabase();
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT EXISTS (SELECT 1 FROM vec_collections WHERE model_id = $model_id)";
+        command.CommandText = $"SELECT EXISTS (SELECT 1 FROM {_collections} WHERE model_id = $model_id)";
         command.Parameters.AddWithValue("$model_id", name);
         return Task.FromResult(Convert.ToInt64(command.ExecuteScalar()) == 1);
     }
@@ -361,7 +374,7 @@ public sealed class SqliteVectorStore : IVectorStore, ICollectionManageable, ICh
         var connection = SqliteStorage.Open(_databasePath);
         if (!_schemaReady)
         {
-            SqliteSchema.Ensure(connection);
+            SqliteSchema.Ensure(connection, _chunks);
             _schemaReady = true;
         }
 
@@ -404,7 +417,7 @@ public sealed class SqliteVectorStore : IVectorStore, ICollectionManageable, ICh
             _matrix.Clear();
 
             using var command = connection.CreateCommand();
-            command.CommandText = "SELECT document_id, chunk_index, embedding FROM vec_chunks WHERE model_id = $model_id";
+            command.CommandText = $"SELECT document_id, chunk_index, embedding FROM {_chunks} WHERE model_id = $model_id";
             command.Parameters.AddWithValue("$model_id", _modelId);
 
             using var reader = command.ExecuteReader();
@@ -431,7 +444,7 @@ public sealed class SqliteVectorStore : IVectorStore, ICollectionManageable, ICh
 
     private int[] FilteredRows(SqliteConnection connection, IDictionary<string, MetadataValue> filter)
     {
-        var sql = new StringBuilder("SELECT document_id, chunk_index FROM vec_chunks WHERE model_id = $model_id");
+        var sql = new StringBuilder($"SELECT document_id, chunk_index FROM {_chunks} WHERE model_id = $model_id");
         using var command = connection.CreateCommand();
         command.Parameters.AddWithValue("$model_id", _modelId);
 
@@ -465,8 +478,8 @@ public sealed class SqliteVectorStore : IVectorStore, ICollectionManageable, ICh
     private TextChunk? ReadChunk(SqliteConnection connection, ChunkKey key, bool includeEmbedding)
     {
         using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT text, metadata FROM vec_chunks
+        command.CommandText = $"""
+            SELECT text, metadata FROM {_chunks}
             WHERE document_id = $document_id AND chunk_index = $chunk_index AND model_id = $model_id
             """;
         command.Parameters.AddWithValue("$document_id", key.DocumentId);
@@ -507,11 +520,11 @@ public sealed class SqliteVectorStore : IVectorStore, ICollectionManageable, ICh
         return result;
     }
 
-    private static void EnsureCollection(SqliteConnection connection, SqliteTransaction transaction, string name, int dimensions)
+    private void EnsureCollection(SqliteConnection connection, SqliteTransaction transaction, string name, int dimensions)
     {
         using var existing = connection.CreateCommand();
         existing.Transaction = transaction;
-        existing.CommandText = "SELECT dims FROM vec_collections WHERE model_id = $model_id";
+        existing.CommandText = $"SELECT dims FROM {_collections} WHERE model_id = $model_id";
         existing.Parameters.AddWithValue("$model_id", name);
         if (existing.ExecuteScalar() is long storedDims && storedDims != dimensions)
         {
@@ -521,7 +534,7 @@ public sealed class SqliteVectorStore : IVectorStore, ICollectionManageable, ICh
 
         using var insert = connection.CreateCommand();
         insert.Transaction = transaction;
-        insert.CommandText = "INSERT OR IGNORE INTO vec_collections (model_id, dims) VALUES ($model_id, $dims)";
+        insert.CommandText = $"INSERT OR IGNORE INTO {_collections} (model_id, dims) VALUES ($model_id, $dims)";
         insert.Parameters.AddWithValue("$model_id", name);
         insert.Parameters.AddWithValue("$dims", dimensions);
         insert.ExecuteNonQuery();

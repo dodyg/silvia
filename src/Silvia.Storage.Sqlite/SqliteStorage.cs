@@ -3,7 +3,7 @@ using Microsoft.Data.Sqlite;
 namespace Silvia.Storage.Sqlite;
 
 /// <summary>Opens connections to a project database with the PRAGMAs every connection needs.</summary>
-internal static class SqliteStorage
+public static class SqliteStorage
 {
     /// <summary>
     /// Opens (and creates, if missing) a database file. Every connection waits up to five seconds
