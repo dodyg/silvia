@@ -251,21 +251,47 @@ public sealed class ProjectRuntime : IAsyncDisposable
     /// </summary>
     public async Task<ChatAnswer> AskAsync(string? conversationId, string question, CancellationToken cancellationToken = default)
     {
-        var conversation = conversationId is null
-            ? _conversations.Create(question)
-            : _conversations.Find(conversationId) ?? throw new KeyNotFoundException("Conversation not found in this project.");
-
+        var conversation = FindOrCreateConversation(conversationId, question);
         _conversations.Append(conversation.Id, "user", question);
 
-        if (Settings.CloudPolicy == CloudPolicies.SearchOnly || _chat is null)
+        if (!CanAnswer)
         {
-            var hits = await SearchAsync(question, cancellationToken: cancellationToken);
-            var cited = hits.Select(ToCited).ToList();
-            _conversations.Append(conversation.Id, "assistant", string.Empty, cited);
+            var cited = await AnswerFromSearchAsync(conversation.Id, question, cancellationToken);
             return new ChatAnswer(conversation.Id, string.Empty, cited);
         }
 
-        var history = _conversations.Messages(conversation.Id, last: 10)
+        var options = await AnswerOptionsAsync(conversation.Id, question, cancellationToken);
+        var response = await _pipeline.AskAsync(question, options, cancellationToken);
+
+        var sources = response.Sources.Select(CitedChunk.From).ToList();
+        await SaveAnswerAsync(conversation.Id, question, response.Answer, sources, cancellationToken);
+        return new ChatAnswer(conversation.Id, response.Answer, sources);
+    }
+
+    /// <summary>False under the <c>search-only</c> policy or with no chat model: answers are citations only.</summary>
+    private bool CanAnswer => Settings.CloudPolicy != CloudPolicies.SearchOnly && _chat is not null;
+
+    private Conversation FindOrCreateConversation(string? conversationId, string question) =>
+        conversationId is null
+            ? _conversations.Create(question)
+            : _conversations.Find(conversationId) ?? throw new KeyNotFoundException("Conversation not found in this project.");
+
+    /// <summary>Answers with the cited chunks only, saved as an empty assistant message.</summary>
+    private async Task<List<CitedChunk>> AnswerFromSearchAsync(string conversationId, string question, CancellationToken cancellationToken)
+    {
+        var hits = await SearchAsync(question, cancellationToken: cancellationToken);
+        var cited = hits.Select(CitedChunk.From).ToList();
+        _conversations.Append(conversationId, "assistant", string.Empty, cited);
+        return cited;
+    }
+
+    /// <summary>
+    /// The pipeline options for an answer: the recent turns of the conversation, without the question
+    /// just appended, preceded by any recalled earlier exchange.
+    /// </summary>
+    private async Task<RagOptions> AnswerOptionsAsync(string conversationId, string question, CancellationToken cancellationToken)
+    {
+        var history = _conversations.Messages(conversationId, last: 10)
             .Where(m => m.Role is "user" or "assistant")
             .Select(m => new ChatMessage(m.Role == "user" ? ChatRole.User : ChatRole.Assistant, m.Content))
             .SkipLast(1)
@@ -277,7 +303,7 @@ public sealed class ProjectRuntime : IAsyncDisposable
             history.Insert(0, recalled);
         }
 
-        var response = await _pipeline.AskAsync(question, new RagOptions
+        return new RagOptions
         {
             ConversationHistory = history,
             SystemPrompt = Settings.SystemPrompt,
@@ -285,15 +311,15 @@ public sealed class ProjectRuntime : IAsyncDisposable
             UseHybridSearch = true,
             UseLostInTheMiddleReordering = true,
             UseRedundancyFilter = true,
-        }, cancellationToken);
+        };
+    }
 
-        var sources = response.Sources.Select(ToCited).ToList();
-        _conversations.Append(conversation.Id, "assistant", response.Answer, sources);
-
-        var exchange = _conversations.Messages(conversation.Id).Count(m => m.Role == "user") - 1;
-        await RememberAsync(conversation.Id, exchange, question, response.Answer, cancellationToken);
-
-        return new ChatAnswer(conversation.Id, response.Answer, sources);
+    /// <summary>Saves the answer, then stores the exchange in conversation memory.</summary>
+    private async Task SaveAnswerAsync(string conversationId, string question, string answer, IReadOnlyList<CitedChunk> sources, CancellationToken cancellationToken)
+    {
+        _conversations.Append(conversationId, "assistant", answer, sources);
+        var exchange = _conversations.Messages(conversationId).Count(m => m.Role == "user") - 1;
+        await RememberAsync(conversationId, exchange, question, answer, cancellationToken);
     }
 
     /// <summary>
@@ -338,45 +364,23 @@ public sealed class ProjectRuntime : IAsyncDisposable
         string question,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var conversation = conversationId is null
-            ? _conversations.Create(question)
-            : _conversations.Find(conversationId) ?? throw new KeyNotFoundException("Conversation not found in this project.");
+        var conversation = FindOrCreateConversation(conversationId, question);
         yield return new AnswerUpdate("conversation", ConversationId: conversation.Id);
 
         _conversations.Append(conversation.Id, "user", question);
 
-        if (Settings.CloudPolicy == CloudPolicies.SearchOnly || _chat is null)
+        if (!CanAnswer)
         {
-            var hits = await SearchAsync(question, cancellationToken: cancellationToken);
-            var cited = hits.Select(ToCited).ToList();
-            _conversations.Append(conversation.Id, "assistant", string.Empty, cited);
+            var cited = await AnswerFromSearchAsync(conversation.Id, question, cancellationToken);
             yield return new AnswerUpdate("sources", Sources: cited);
             yield return new AnswerUpdate("done", ConversationId: conversation.Id);
             yield break;
         }
 
-        var history = _conversations.Messages(conversation.Id, last: 10)
-            .Where(m => m.Role is "user" or "assistant")
-            .Select(m => new ChatMessage(m.Role == "user" ? ChatRole.User : ChatRole.Assistant, m.Content))
-            .SkipLast(1)
-            .ToList();
-        var recalled = await RecallAsync(question, cancellationToken);
-        if (recalled is not null)
-        {
-            history.Insert(0, recalled);
-        }
-
+        var options = await AnswerOptionsAsync(conversation.Id, question, cancellationToken);
         var answer = new StringBuilder();
         IReadOnlyList<CitedChunk> sources = [];
-        var stream = _pipeline.AskStreamingAsync(question, new RagOptions
-        {
-            ConversationHistory = history,
-            SystemPrompt = Settings.SystemPrompt,
-            TopK = Settings.TopK,
-            UseHybridSearch = true,
-            UseLostInTheMiddleReordering = true,
-            UseRedundancyFilter = true,
-        }, cancellationToken);
+        var stream = _pipeline.AskStreamingAsync(question, options, cancellationToken);
 
         await foreach (var update in stream.WithCancellation(cancellationToken))
         {
@@ -388,14 +392,12 @@ public sealed class ProjectRuntime : IAsyncDisposable
 
             if (update.Sources is { } found)
             {
-                sources = found.Select(ToCited).ToList();
+                sources = found.Select(CitedChunk.From).ToList();
                 yield return new AnswerUpdate("sources", Sources: sources);
             }
         }
 
-        _conversations.Append(conversation.Id, "assistant", answer.ToString(), sources);
-        var exchange = _conversations.Messages(conversation.Id).Count(m => m.Role == "user") - 1;
-        await RememberAsync(conversation.Id, exchange, question, answer.ToString(), cancellationToken);
+        await SaveAnswerAsync(conversation.Id, question, answer.ToString(), sources, cancellationToken);
         yield return new AnswerUpdate("done", ConversationId: conversation.Id);
     }
 
@@ -493,12 +495,6 @@ public sealed class ProjectRuntime : IAsyncDisposable
         UseLostInTheMiddleReordering = true,
         UseRedundancyFilter = true,
     };
-
-    private static CitedChunk ToCited(SearchResult result) => new(
-        result.Chunk.DocumentId.Value,
-        result.Chunk.ChunkIndex,
-        result.Chunk.Metadata.TryGetValue("file_name", out var name) ? name.ToString() : result.Chunk.DocumentId.Value,
-        result.Chunk.Text);
 
     /// <summary>Tunables for opening a runtime. Defaults match the app; tests shorten the timers.</summary>
     public sealed record RuntimeOptions

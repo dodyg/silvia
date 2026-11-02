@@ -102,24 +102,16 @@ public sealed class ProjectManager : IDisposable
     /// <summary>Copies a project's file to a new project under <paramref name="newName"/>.</summary>
     public ProjectRecord Duplicate(string id, string newName)
     {
-        Get(id);
+        var source = Get(id);
         EnsureNameFree(newName);
         var newId = Ulid.New();
-        var directory = ProjectDirectory(newId);
-        Directory.CreateDirectory(directory);
+        Directory.CreateDirectory(ProjectDirectory(newId));
 
-        using (var source = SqliteStorage.Open(DatabasePath(id)))
-        using (var vacuum = source.CreateCommand())
-        {
-            vacuum.CommandText = "VACUUM INTO $target";
-            vacuum.Parameters.AddWithValue("$target", DatabasePath(newId));
-            vacuum.ExecuteNonQuery();
-        }
-
+        CopyDatabase(id, DatabasePath(newId));
         _options.Faults.Step("duplicate:copied");
         ProjectDatabase.SetIdentity(DatabasePath(newId), newId, newName);
 
-        var record = new ProjectRecord(newId, newName, Get(id).Description, DateTimeOffset.UtcNow, null, ProjectStatus.Ready);
+        var record = new ProjectRecord(newId, newName, source.Description, DateTimeOffset.UtcNow, null, ProjectStatus.Ready);
         Catalog.Insert(record);
         return record;
     }
@@ -132,11 +124,7 @@ public sealed class ProjectManager : IDisposable
         var safeName = string.Concat(record.Name.Select(c => char.IsLetterOrDigit(c) ? c : '-'));
         var target = Path.Combine(ExportRoot, $"{safeName}-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.silvia");
 
-        using var source = SqliteStorage.Open(DatabasePath(id));
-        using var vacuum = source.CreateCommand();
-        vacuum.CommandText = "VACUUM INTO $target";
-        vacuum.Parameters.AddWithValue("$target", target);
-        vacuum.ExecuteNonQuery();
+        CopyDatabase(id, target);
         return target;
     }
 
@@ -278,11 +266,7 @@ public sealed class ProjectManager : IDisposable
 
     public void Dispose()
     {
-        foreach (var id in _open.Keys.ToList())
-        {
-            Close(id);
-        }
-
+        CloseAll();
         _catalog?.Dispose();
         SqliteConnection.ClearAllPools();
     }
@@ -296,6 +280,16 @@ public sealed class ProjectManager : IDisposable
     private string DatabasePath(string id) => Path.Combine(ProjectDirectory(id), "project.db");
 
     private ProjectSettings DefaultSettings() => new();
+
+    /// <summary>Writes a compacted copy of a project's file to <paramref name="target"/>.</summary>
+    private void CopyDatabase(string id, string target)
+    {
+        using var source = SqliteStorage.Open(DatabasePath(id));
+        using var vacuum = source.CreateCommand();
+        vacuum.CommandText = "VACUUM INTO $target";
+        vacuum.Parameters.AddWithValue("$target", target);
+        vacuum.ExecuteNonQuery();
+    }
 
     private void EnsureNameFree(string name, string? except = null)
     {
@@ -392,7 +386,7 @@ public sealed record ProjectManagerOptions
 
     public Uri DeepSeekEndpoint { get; init; } = new("https://api.deepseek.com/v1");
 
-    /// <summary>Supplies the chat API key. M5 replaces the environment default with Credential Manager.</summary>
+    /// <summary>Supplies the chat API key. The app passes its secret store; this environment default serves tests and scripts.</summary>
     public Func<string?>? ApiKeyProvider { get; init; } = () => Environment.GetEnvironmentVariable("DEEPSEEK_API_KEY");
 
     public ProjectRuntime.RuntimeOptions RuntimeOptions { get; init; } = new();

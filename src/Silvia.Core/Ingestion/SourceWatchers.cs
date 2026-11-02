@@ -79,32 +79,31 @@ internal sealed class SourceWatchers(IngestQueue queue, TimeSpan debounce) : IDi
 
     private void Schedule(SourceRow source, string path)
     {
+        // A newer event for the same path cancels the older wait. The sources hold no timer or wait
+        // handle, so they are left to the collector rather than disposed while a wait may still observe them.
         var cancellation = new CancellationTokenSource();
-        var previous = _pending.AddOrUpdate(path, cancellation, (_, old) =>
+        _pending.AddOrUpdate(path, cancellation, (_, old) =>
         {
             old.Cancel();
             return cancellation;
         });
-        if (!ReferenceEquals(previous, cancellation))
-        {
-            previous.Dispose();
-        }
 
-        _ = FireAfterDebounceAsync(source, path, cancellation.Token);
+        _ = FireAfterDebounceAsync(source, path, cancellation);
     }
 
-    private async Task FireAfterDebounceAsync(SourceRow source, string path, CancellationToken cancellationToken)
+    private async Task FireAfterDebounceAsync(SourceRow source, string path, CancellationTokenSource cancellation)
     {
         try
         {
-            await Task.Delay(debounce, cancellationToken);
+            await Task.Delay(debounce, cancellation.Token);
         }
         catch (OperationCanceledException)
         {
             return;
         }
 
-        _pending.TryRemove(path, out _);
+        // Remove only this wait's entry; a newer event may already have replaced it.
+        _pending.TryRemove(KeyValuePair.Create(path, cancellation));
 
         var kind = Decide(source, path);
         if (kind is not { } decided)

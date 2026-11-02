@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
+using Rag.NET.Models;
 using Silvia.Core.Projects;
 using Silvia.Storage.Sqlite;
 
@@ -12,7 +13,15 @@ public sealed record Conversation(string Id, string Title, DateTimeOffset Create
 public sealed record StoredMessage(string Role, string Content, IReadOnlyList<CitedChunk> Sources, DateTimeOffset CreatedUtc);
 
 /// <summary>A chunk cited by an answer, kept so the citation still resolves after the chat is reopened.</summary>
-public sealed record CitedChunk(string DocumentId, int ChunkIndex, string FileName, string Text);
+public sealed record CitedChunk(string DocumentId, int ChunkIndex, string FileName, string Text)
+{
+    /// <summary>The citation for a retrieved chunk, named by its file when the parser recorded one.</summary>
+    public static CitedChunk From(SearchResult result) => new(
+        result.Chunk.DocumentId.Value,
+        result.Chunk.ChunkIndex,
+        result.Chunk.Metadata.TryGetValue("file_name", out var name) ? name.ToString() : result.Chunk.DocumentId.Value,
+        result.Chunk.Text);
+}
 
 /// <summary>Reads and writes conversations and their messages in <c>project.db</c>.</summary>
 public sealed class ConversationStore(string databasePath)

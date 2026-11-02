@@ -80,12 +80,11 @@ public sealed class ChatService(AppHost host)
         }
 
         var hits = await runtime.SearchAsync(request.Query, request.TopK is > 0 and <= 50 ? request.TopK : null, cancellationToken);
-        return hits.Select(h => new HitDto(
-            h.Chunk.DocumentId.Value,
-            h.Chunk.ChunkIndex,
-            h.Chunk.Metadata.TryGetValue("file_name", out var name) ? name.ToString() : h.Chunk.DocumentId.Value,
-            h.Chunk.Text,
-            (int)Math.Round(h.Score * 1000))).ToArray();
+        return hits.Select(h =>
+        {
+            var cited = CitedChunk.From(h);
+            return new HitDto(cited.DocumentId, cited.ChunkIndex, cited.FileName, cited.Text, (int)Math.Round(h.Score * 1000));
+        }).ToArray();
     }
 
     private static AskUpdateDto Map(AnswerUpdate update) => new(

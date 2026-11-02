@@ -62,6 +62,11 @@ public sealed class SecretStore(string path)
             return new Dictionary<string, string>(StringComparer.Ordinal);
         }
 
+        if (!OperatingSystem.IsWindows())
+        {
+            throw NotWindows();
+        }
+
         var protectedBytes = File.ReadAllBytes(path);
         var clear = ProtectedData.Unprotect(protectedBytes, Entropy, DataProtectionScope.CurrentUser);
         try
@@ -76,6 +81,11 @@ public sealed class SecretStore(string path)
 
     private void Save(Dictionary<string, string> all)
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            throw NotWindows();
+        }
+
         var clear = JsonSerializer.SerializeToUtf8Bytes(all);
         try
         {
@@ -92,6 +102,9 @@ public sealed class SecretStore(string path)
             CryptographicOperations.ZeroMemory(clear);
         }
     }
+
+    private static PlatformNotSupportedException NotWindows() =>
+        new("Secrets are protected with DPAPI, which needs Windows.");
 
     // Entropy ties the blob to this application, so another DPAPI user of the same account cannot misuse it.
     private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("Silvia.SecretStore.v1");

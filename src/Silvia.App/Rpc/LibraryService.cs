@@ -14,9 +14,7 @@ public sealed class LibraryService(AppHost host)
     public ValueTask<SourceDto[]> ListSourcesAsync(ProjectIdScoped request, CancellationToken cancellationToken)
     {
         var runtime = Scope.Runtime(host.Manager, request.ProjectId);
-        return ValueTask.FromResult(runtime.Sources()
-            .Select(s => new SourceDto(s.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), s.Path, s.IncludeGlobs, s.ExcludeGlobs, s.Enabled))
-            .ToArray());
+        return ValueTask.FromResult(runtime.Sources().Select(ToDto).ToArray());
     }
 
     [NeoRpcMethod("addSource")]
@@ -26,8 +24,7 @@ public sealed class LibraryService(AppHost host)
         try
         {
             var id = runtime.AddSource(request.Path, request.IncludeGlobs ?? "**/*", request.ExcludeGlobs ?? string.Empty);
-            var source = runtime.Sources().Single(s => s.Id == id);
-            return ValueTask.FromResult(new SourceDto(id.ToString(System.Globalization.CultureInfo.InvariantCulture), source.Path, source.IncludeGlobs, source.ExcludeGlobs, source.Enabled));
+            return ValueTask.FromResult(ToDto(runtime.Sources().Single(s => s.Id == id)));
         }
         catch (DirectoryNotFoundException)
         {
@@ -102,6 +99,9 @@ public sealed class LibraryService(AppHost host)
         Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true });
         return ValueTask.FromResult(new ShellResult(true, "Revealed."));
     }
+
+    private static SourceDto ToDto(SourceRow s) =>
+        new(s.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), s.Path, s.IncludeGlobs, s.ExcludeGlobs, s.Enabled);
 
     private static string AllowedPath(Silvia.Core.Runtime.ProjectRuntime runtime, string documentId)
     {
