@@ -106,7 +106,71 @@ export const chat = Object.freeze({
   },
 });
 
-const factRows: Array<{ id: string; text: string; createdUtc: string }> = [
+const passageTexts = [
+  "The Lumen pilot launches on 14 March 2027 in two cities: Lisbon and Nairobi.",
+  "Each field kit holds a solar panel, a 20 Ah battery pack, two lamps and a phone charger. Kits ship from the Porto warehouse six weeks before launch and are checked against the packing list on arrival.",
+  "Support runs from 08:00 to 20:00 local time. Escalations go to the on-call engineer listed in the runbook.",
+];
+
+// A seeded spread of dots in three loose clusters, so the map looks the same on every load.
+function mockPoints() {
+  const files = ["handbook.md", "travel.md", "kit-list.md", "support.md", "budget.xlsx"];
+  const centers = [[2500, 6500], [7000, 7500], [5200, 2500], [3000, 3000], [7500, 3500]];
+  let seed = 7;
+  const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  return files.flatMap((file, f) =>
+    Array.from({ length: 6 + f * 4 }, (_, i) => ({
+      documentId: `C:/Documents/Lumen/${file}`,
+      fileName: file,
+      chunkIndex: i,
+      x: Math.round(Math.min(10000, Math.max(0, centers[f][0] + (random() - 0.5) * 3200))),
+      y: Math.round(Math.min(10000, Math.max(0, centers[f][1] + (random() - 0.5) * 3200))),
+      preview: passageTexts[i % passageTexts.length],
+    })));
+}
+
+export const inspect = Object.freeze({
+  document: (request: { documentId: string }) => delay({
+    documentId: request.documentId,
+    fileName: request.documentId.split("/").pop()!,
+    folder: "C:/Documents/Lumen",
+    overview: sample.overview.text,
+    indexedUtc: now,
+    passages: [...passageTexts, passageTexts[1].repeat(4)].map((text, chunkIndex) => ({
+      chunkIndex,
+      text,
+      metadata: [{ key: "page", value: String(chunkIndex + 1) }, { key: "file_name", value: "handbook.md" }],
+    })),
+  }),
+  trace: () => delay({
+    mode: "vector",
+    reranked: true,
+    hits: [
+      { documentId: sample.citation.documentId, chunkIndex: 0, fileName: "handbook.md", text: passageTexts[0], score: 912, position: 1, similarity: 781, vectorRank: 1 },
+      { documentId: "C:/Documents/Lumen/kit-list.md", chunkIndex: 3, fileName: "kit-list.md", text: passageTexts[1], score: 604, position: 3, similarity: 512, vectorRank: 14 },
+      { documentId: "C:/Documents/Lumen/support.md", chunkIndex: 1, fileName: "support.md", text: passageTexts[2], score: 455, position: 2, similarity: 301, vectorRank: null },
+    ],
+    closeCalls: [
+      { documentId: "C:/Documents/Lumen/travel.md", chunkIndex: 0, fileName: "travel.md", text: passageTexts[2], score: 700, position: 0, similarity: 700, vectorRank: 2 },
+    ],
+  }),
+  map: () => {
+    const points = mockPoints();
+    return delay({ available: true, total: points.length, firstShare: 214, secondShare: 131, points });
+  },
+  coverage: () => delay({
+    mode: "vector",
+    embedModel: "bge-small-en-v1.5",
+    overviewsOn: true,
+    documents: [
+      { documentId: "C:/Documents/Lumen/handbook.md", fileName: "handbook.md", passages: 6, characters: 9120, hasOverview: true, indexedUtc: now },
+      { documentId: "C:/Documents/Lumen/travel.md", fileName: "travel.md", passages: 2, characters: 2410, hasOverview: true, indexedUtc: now },
+      { documentId: "C:/Documents/Lumen/scan.pdf", fileName: "scan.pdf", passages: 1, characters: 42, hasOverview: false, indexedUtc: null },
+    ],
+  }),
+});
+
+const factRows:Array<{ id: string; text: string; createdUtc: string }> = [
   { id: "1", text: "The Lumen pilot is funded until the end of 2027.", createdUtc: now },
 ];
 

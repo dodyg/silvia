@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { describeError, library, type DocumentDto, type SourceDto } from "../api";
 import { Banner, Button, Card, Empty, Field, Icon, PageHeader, Section } from "../ui";
+import { DocumentView } from "./DocumentView";
 
 interface Props {
   projectId: string;
@@ -15,6 +16,7 @@ export function LibraryScreen({ projectId, onError }: Props) {
   const [folder, setFolder] = useState("");
   const [manualEntry, setManualEntry] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
   const changed = useRef(false);
 
   useEffect(() => {
@@ -117,6 +119,10 @@ export function LibraryScreen({ projectId, onError }: Props) {
     }
   }
 
+  if (selected) {
+    return <DocumentView projectId={projectId} documentId={selected} onBack={() => setSelected(null)} onError={onError} />;
+  }
+
   return (
     <div>
       <PageHeader
@@ -191,7 +197,9 @@ export function LibraryScreen({ projectId, onError }: Props) {
               <li key={document.documentId}>
                 <span className="list-icon"><Icon name="file" /></span>
                 <div className="grow">
-                  <div className="list-title">{document.fileName}</div>
+                  <div className="list-title">
+                    <button type="button" className="link-button" onClick={() => setSelected(document.documentId)}>{document.fileName}</button>
+                  </div>
                   <div className="path">{document.folder}</div>
                 </div>
                 <span className="badge">{document.chunks} {document.chunks === 1 ? "passage" : "passages"}</span>

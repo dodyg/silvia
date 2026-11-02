@@ -52,6 +52,24 @@ public sealed class RpcServicesTests
             Assert.NotEmpty(hits);
             Assert.Empty(await chat.SearchAsync(new SearchRequest(beta.Id, "solar charger", 3), ct));
 
+            var inspect = new InspectService(host);
+            var field = Path.Combine(folder, "field.md");
+            var detail = await inspect.DocumentAsync(new DocumentRequest(alpha.Id, field), ct);
+            Assert.Equal("field.md", detail.FileName);
+            Assert.Contains(detail.Passages, p => p.Text.Contains("solar charger", StringComparison.Ordinal));
+            var hidden = await Assert.ThrowsAsync<NeoRpcException>(() => inspect.DocumentAsync(new DocumentRequest(beta.Id, field), ct).AsTask());
+            Assert.Equal("not_found", hidden.Code);
+            var trace = await inspect.TraceAsync(new SearchRequest(alpha.Id, "solar charger", 3), ct);
+            Assert.Equal("vector", trace.Mode);
+            Assert.Equal(hits.Select(h => (h.DocumentId, h.ChunkIndex)), trace.Hits.Select(h => (h.DocumentId, h.ChunkIndex)));
+            Assert.NotNull(trace.Hits[0].Similarity);
+            var map = await inspect.MapAsync(new ProjectIdScoped(alpha.Id), ct);
+            Assert.True(map.Available);
+            Assert.All(map.Points, p => Assert.InRange(p.X, 0, 10_000));
+            Assert.Empty((await inspect.MapAsync(new ProjectIdScoped(beta.Id), ct)).Points);
+            Assert.Equal("field.md", Assert.Single((await inspect.CoverageAsync(new ProjectIdScoped(alpha.Id), ct)).Documents).FileName);
+            Assert.Empty((await inspect.CoverageAsync(new ProjectIdScoped(beta.Id), ct)).Documents);
+
             var answer = await host.Manager.Open(alpha.Id).AskAsync(null, "What does the kit carry?", ct);
             var mine = await chat.MessagesAsync(new ConversationIdRequest(alpha.Id, answer.ConversationId), ct);
             Assert.NotEmpty(mine);

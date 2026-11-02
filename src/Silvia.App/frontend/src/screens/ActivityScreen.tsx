@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { describeError, formatWhen, library, type JobSummaryDto } from "../api";
 import { Empty, Icon, PageHeader, Section, Spinner, Stat } from "../ui";
+import { Coverage } from "./Coverage";
 
 interface Props {
   projectId: string;
@@ -74,6 +75,8 @@ export function ActivityScreen({ projectId, onError }: Props) {
           <Empty title="Nothing has failed">Every file in this project was indexed.</Empty>
         )}
       </Section>
+
+      <Coverage projectId={projectId} onError={onError} />
     </div>
   );
 }

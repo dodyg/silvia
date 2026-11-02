@@ -26,7 +26,7 @@ namespace Silvia.Core.Runtime;
 /// <c>project.db</c>, its ingest queue and folder watchers, and its conversations. Two runtimes
 /// share nothing except the stateless models in <see cref="ModelPool"/>.
 /// </summary>
-public sealed class ProjectRuntime : IAsyncDisposable
+public sealed partial class ProjectRuntime : IAsyncDisposable
 {
     private readonly string _databasePath;
     private readonly ServiceProvider _services;

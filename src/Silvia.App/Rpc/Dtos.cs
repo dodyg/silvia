@@ -117,6 +117,51 @@ public sealed record ChatProviderDto(string State, string Message, IReadOnlyList
 
 public sealed record ModelDownloadStatusDto(string State, string? File, int Percent, string? Message);
 
+public sealed record DocumentRequest(string ProjectId, string DocumentId);
+
+public sealed record MetadataEntryDto(string Key, string Value);
+
+public sealed record PassageDto(int ChunkIndex, string Text, IReadOnlyList<MetadataEntryDto> Metadata);
+
+/// <summary>One document as the index holds it: its overview, when it was last indexed, and every passage.</summary>
+public sealed record DocumentDetailDto(
+    string DocumentId,
+    string FileName,
+    string Folder,
+    string? Overview,
+    string? IndexedUtc,
+    IReadOnlyList<PassageDto> Passages);
+
+/// <summary>
+/// A retrieved passage and why it ranked there. Score and similarity are thousandths. Position is its place
+/// in the final list, zero for a close call; similarity and vector rank are null in keyword mode.
+/// </summary>
+public sealed record TracedHitDto(
+    string DocumentId,
+    int ChunkIndex,
+    string FileName,
+    string Text,
+    int Score,
+    int Position,
+    int? Similarity,
+    int? VectorRank);
+
+/// <summary>How a search was answered: <c>vector</c> or <c>keyword</c> mode, whether it was reranked, the hits, and close calls.</summary>
+public sealed record TraceDto(string Mode, bool Reranked, IReadOnlyList<TracedHitDto> Hits, IReadOnlyList<TracedHitDto> CloseCalls);
+
+/// <summary>One passage on the embedding map. X and Y run from 0 to 10000.</summary>
+public sealed record MapPointDto(string DocumentId, string FileName, int ChunkIndex, int X, int Y, string Preview);
+
+/// <summary>
+/// The embedding map, or <c>Available</c> false when the project has no embedder. Total counts every passage;
+/// the shares are thousandths of the spread each axis shows.
+/// </summary>
+public sealed record MapDto(bool Available, int Total, int FirstShare, int SecondShare, IReadOnlyList<MapPointDto> Points);
+
+public sealed record DocumentCoverageDto(string DocumentId, string FileName, int Passages, int Characters, bool HasOverview, string? IndexedUtc);
+
+public sealed record CoverageDto(string Mode, string? EmbedModel, bool OverviewsOn, IReadOnlyList<DocumentCoverageDto> Documents);
+
 [JsonSerializable(typeof(EmptyRequest))]
 [JsonSerializable(typeof(ProjectDto))]
 [JsonSerializable(typeof(ProjectDto[]))]
@@ -165,5 +210,15 @@ public sealed record ModelDownloadStatusDto(string State, string? File, int Perc
 [JsonSerializable(typeof(SetDeepSeekKeyRequest))]
 [JsonSerializable(typeof(ChatProviderDto))]
 [JsonSerializable(typeof(ModelDownloadStatusDto))]
+[JsonSerializable(typeof(DocumentRequest))]
+[JsonSerializable(typeof(MetadataEntryDto))]
+[JsonSerializable(typeof(PassageDto))]
+[JsonSerializable(typeof(DocumentDetailDto))]
+[JsonSerializable(typeof(TracedHitDto))]
+[JsonSerializable(typeof(TraceDto))]
+[JsonSerializable(typeof(MapPointDto))]
+[JsonSerializable(typeof(MapDto))]
+[JsonSerializable(typeof(DocumentCoverageDto))]
+[JsonSerializable(typeof(CoverageDto))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 internal sealed partial class AppJsonContext : JsonSerializerContext;

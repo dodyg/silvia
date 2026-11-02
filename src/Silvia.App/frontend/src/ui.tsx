@@ -107,6 +107,8 @@ const ICONS = {
   send: "M5 12h14M13 6l6 6-6 6",
   stop: "M7 7h10v10H7z",
   fact: "M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z",
+  back: "M19 12H5M11 6l-6 6 6 6",
+  map: "M6 7.5a1.5 1.5 0 1 0 0-.01M17 6a1.5 1.5 0 1 0 0-.01M12 12.5a1.5 1.5 0 1 0 0-.01M7 17.5a1.5 1.5 0 1 0 0-.01M18 17a1.5 1.5 0 1 0 0-.01",
 } as const;
 
 export type IconName = keyof typeof ICONS;

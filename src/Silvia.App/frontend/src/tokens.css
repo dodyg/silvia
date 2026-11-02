@@ -43,6 +43,11 @@
   --radius-lg: 12px;
   --space: 0.75rem;
   --sidebar-width: 15rem;
+  /* Map colors: three categorical hues that stay apart for every reader, and a neutral for the rest. */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-other: #b4b7bd;
   color-scheme: light;
 }
 
@@ -73,6 +78,10 @@
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
   --shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px rgb(0 0 0 / 0.25);
   --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.35), 0 12px 32px rgb(0 0 0 / 0.45);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-other: #6b6f79;
   color-scheme: dark;
 }
 
@@ -104,6 +113,10 @@
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
     --shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px rgb(0 0 0 / 0.25);
     --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.35), 0 12px 32px rgb(0 0 0 / 0.45);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-other: #6b6f79;
     color-scheme: dark;
   }
 }
