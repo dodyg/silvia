@@ -74,7 +74,16 @@ public sealed record ProjectSettingsDto(
     int TopK,
     int MemoryTopK,
     int MemoryMinPercent,
-    string SystemPrompt);
+    string SystemPrompt,
+    bool DocumentOverviews);
+
+public sealed record FactDto(string Id, string Text, string CreatedUtc);
+
+public sealed record AddFactRequest(string ProjectId, string Text);
+
+public sealed record UpdateFactRequest(string ProjectId, string Id, string Text);
+
+public sealed record FactIdRequest(string ProjectId, string Id);
 
 public sealed record UpdateProjectSettingsRequest(string ProjectId, ProjectSettingsDto Settings);
 
@@ -140,6 +149,11 @@ public sealed record ModelDownloadStatusDto(string State, string? File, int Perc
 [JsonSerializable(typeof(HitDto))]
 [JsonSerializable(typeof(HitDto[]))]
 [JsonSerializable(typeof(ProjectSettingsDto))]
+[JsonSerializable(typeof(FactDto))]
+[JsonSerializable(typeof(FactDto[]))]
+[JsonSerializable(typeof(AddFactRequest))]
+[JsonSerializable(typeof(UpdateFactRequest))]
+[JsonSerializable(typeof(FactIdRequest))]
 [JsonSerializable(typeof(UpdateProjectSettingsRequest))]
 [JsonSerializable(typeof(ModelDto))]
 [JsonSerializable(typeof(ModelDto[]))]

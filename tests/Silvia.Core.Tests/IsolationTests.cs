@@ -34,6 +34,8 @@ public sealed class IsolationTests
         Assert.Empty(runtimeB.Documents());
         Assert.Empty(await runtimeB.SearchAsync(marker, topK: 5, cancellationToken: ct));
 
+        // A's own overview request carried the marker; only what B sends is in question.
+        harness.Chat.Requests.Clear();
         var answer = await runtimeB.AskAsync(null, "What does the phrase in the secret note refer to?", ct);
         Assert.Empty(answer.Sources);
         Assert.DoesNotContain(

@@ -22,6 +22,12 @@ const sample = {
     fileName: "handbook.md",
     text: "The Lumen pilot launches on 14 March 2027 in two cities: Lisbon and Nairobi.",
   },
+  overview: {
+    documentId: "C:/Documents/Lumen/handbook.md",
+    chunkIndex: -1,
+    fileName: "handbook.md",
+    text: "The Lumen field handbook for the 2027 pilot.\nLisbon: first launch city.\nNairobi: second launch city.\nSections: launch plan, kit, support.",
+  },
 };
 
 const conversations: Array<{ id: string; title: string; createdUtc: string }> = [
@@ -87,8 +93,8 @@ export const chat = Object.freeze({
     const steps = [
       { kind: "conversation", conversationId: "01MOCKCONVERSATION", text: null, sources: null },
       { kind: "delta", conversationId: null, text: "The pilot launches on 14 March 2027 ", sources: null },
-      { kind: "delta", conversationId: null, text: "in Lisbon and Nairobi [1].", sources: null },
-      { kind: "sources", conversationId: null, text: null, sources: [sample.citation] },
+      { kind: "delta", conversationId: null, text: "in Lisbon and Nairobi [2].", sources: null },
+      { kind: "sources", conversationId: null, text: null, sources: [sample.overview, sample.citation] },
       { kind: "done", conversationId: "01MOCKCONVERSATION", text: null, sources: null },
     ];
     return (async function* () {
@@ -100,6 +106,29 @@ export const chat = Object.freeze({
   },
 });
 
+const factRows: Array<{ id: string; text: string; createdUtc: string }> = [
+  { id: "1", text: "The Lumen pilot is funded until the end of 2027.", createdUtc: now },
+];
+
+export const facts = Object.freeze({
+  list: () => delay(factRows.slice()),
+  add: (request: { text: string }) => {
+    const fact = { id: String(factRows.length + 1), text: request.text.trim(), createdUtc: now };
+    factRows.push(fact);
+    return delay(fact);
+  },
+  update: (request: { id: string; text: string }) => {
+    const fact = factRows.find((f) => f.id === request.id)!;
+    fact.text = request.text.trim();
+    return delay({ ...fact });
+  },
+  delete: (request: { id: string }) => {
+    const index = factRows.findIndex((f) => f.id === request.id);
+    if (index >= 0) factRows.splice(index, 1);
+    return delay({});
+  },
+});
+
 export const settings = Object.freeze({
   getAppearance: () => delay({ ...appearance }),
   updateAppearance: (request: typeof appearance) => {
@@ -107,7 +136,7 @@ export const settings = Object.freeze({
     return delay({ ...appearance });
   },
   listFonts: () => delay(fonts),
-  getProject: () => delay({ embedModel: "bge-small-en-v1.5", embedDims: 384, rerankModel: "ms-marco-MiniLM-L-6-v2", chatModel: "deepseek-chat", cloudPolicy: "deepseek", chunkTokens: 400, chunkOverlap: 60, topK: 6, memoryTopK: 3, memoryMinPercent: 70, systemPrompt: "Answer from the numbered context." }),
+  getProject: () => delay({ embedModel: "bge-small-en-v1.5", embedDims: 384, rerankModel: "ms-marco-MiniLM-L-6-v2", chatModel: "deepseek-chat", cloudPolicy: "deepseek", chunkTokens: 400, chunkOverlap: 60, topK: 6, memoryTopK: 3, memoryMinPercent: 70, systemPrompt: "Answer from the numbered context.", documentOverviews: true }),
   updateProject: (request: { settings: unknown }) => delay(request.settings),
   listModels: () => delay([
     { id: "bge-small-en-v1.5", kind: "embedder", dimensions: 384, installed: true, default: true },

@@ -59,6 +59,19 @@ public sealed class RpcServicesTests
                 chat.MessagesAsync(new ConversationIdRequest(beta.Id, answer.ConversationId), ct).AsTask());
             Assert.Equal("not_found", foreign.Code);
 
+            var facts = new FactsService(host);
+            var fact = await facts.AddAsync(new AddFactRequest(alpha.Id, "The kit ships in March."), ct);
+            Assert.Equal("The kit ships in March.", (await facts.UpdateAsync(new UpdateFactRequest(alpha.Id, fact.Id, "The kit ships in March."), ct)).Text);
+            Assert.Single(await facts.ListAsync(new ProjectIdScoped(alpha.Id), ct));
+            Assert.Empty(await facts.ListAsync(new ProjectIdScoped(beta.Id), ct));
+            var foreignFact = await Assert.ThrowsAsync<NeoRpcException>(() =>
+                facts.DeleteAsync(new FactIdRequest(beta.Id, fact.Id), ct).AsTask());
+            Assert.Equal("not_found", foreignFact.Code);
+            var emptyFact = await Assert.ThrowsAsync<NeoRpcException>(() =>
+                facts.AddAsync(new AddFactRequest(alpha.Id, "  "), ct).AsTask());
+            Assert.Equal("invalid_request", emptyFact.Code);
+            Assert.Equal("A fact needs some text.", emptyFact.Message);
+
             var rejected = await Assert.ThrowsAsync<NeoRpcException>(() =>
                 settings.UpdateAppearanceAsync(Appearance("Not A Real Font"), ct).AsTask());
             Assert.Equal("invalid_request", rejected.Code);

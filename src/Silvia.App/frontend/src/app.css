@@ -1021,6 +1021,54 @@ textarea {
   white-space: nowrap;
 }
 
+.message-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+  font-family: var(--font-ui);
+}
+
+.correction {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  font-family: var(--font-ui);
+}
+
+.evidence blockquote.overview {
+  white-space: pre-line;
+}
+
+.fact-text {
+  white-space: pre-line;
+}
+
+.fact-edit-actions {
+  margin-top: 0.5rem;
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  cursor: pointer;
+}
+
+.check > span {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.check input {
+  margin-top: 0.2rem;
+}
+
 .composer {
   padding: 0.75rem 2rem 1.5rem;
 }

@@ -26,6 +26,13 @@ public sealed record ProjectSettings
     /// </summary>
     public string CloudPolicy { get; init; } = CloudPolicies.DeepSeek;
 
+    /// <summary>
+    /// Whether the chat model writes an overview of each indexed document, which answers that cite the
+    /// document then include. Sends each document's text to the chat model once, when it is indexed or
+    /// changes. Only under the <c>deepseek</c> policy.
+    /// </summary>
+    public bool DocumentOverviews { get; init; } = true;
+
     public int ChunkTokens { get; init; } = 400;
 
     public int ChunkOverlap { get; init; } = 60;

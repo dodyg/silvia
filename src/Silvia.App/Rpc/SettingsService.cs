@@ -206,7 +206,8 @@ public sealed class SettingsService(AppHost host)
         s.TopK,
         s.MemoryTopK,
         (int)Math.Round(s.MemoryMinScore * 100),
-        s.SystemPrompt);
+        s.SystemPrompt,
+        s.DocumentOverviews);
 
     /// <summary>Applies the editable fields to the stored settings. The embedder keeps its dimension.</summary>
     private static ProjectSettings FromDto(ProjectSettingsDto dto, ProjectSettings current)
@@ -249,6 +250,7 @@ public sealed class SettingsService(AppHost host)
             MemoryTopK = dto.MemoryTopK,
             MemoryMinScore = dto.MemoryMinPercent / 100.0,
             SystemPrompt = dto.SystemPrompt,
+            DocumentOverviews = dto.DocumentOverviews,
         };
     }
 }

@@ -106,6 +106,7 @@ const ICONS = {
   refresh: "M20 11a8 8 0 0 0-14.9-3M4 4v4h4M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4",
   send: "M5 12h14M13 6l6 6-6 6",
   stop: "M7 7h10v10H7z",
+  fact: "M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z",
 } as const;
 
 export type IconName = keyof typeof ICONS;

@@ -29,18 +29,29 @@ internal sealed class IngestQueue : IAsyncDisposable
     private volatile Exception? _lastFault;
     private volatile string _step = "idle";
     private readonly KeywordIndex? _keywords;
+    private readonly DocumentOverviews? _overviews;
 
     /// <param name="keywords">
     /// When given, jobs index files for keyword search instead of embedding them: the project has no
     /// local embedder, and searches and answers run on this index.
     /// </param>
-    public IngestQueue(string databasePath, IRagPipeline pipeline, IServiceProvider services, IngestThrottle throttle, KeywordIndex? keywords = null)
+    /// <param name="overviews">
+    /// When given, every change to the index is followed by one overview job per new or changed document.
+    /// </param>
+    public IngestQueue(
+        string databasePath,
+        IRagPipeline pipeline,
+        IServiceProvider services,
+        IngestThrottle throttle,
+        KeywordIndex? keywords = null,
+        DocumentOverviews? overviews = null)
     {
         _databasePath = databasePath;
         _pipeline = pipeline;
         _services = services;
         _throttle = throttle;
         _keywords = keywords;
+        _overviews = overviews;
     }
 
     /// <summary>Starts the worker, after returning any interrupted jobs to the queue.</summary>
@@ -195,6 +206,10 @@ internal sealed class IngestQueue : IAsyncDisposable
         {
             await ExecuteAsync(job, cancellationToken);
             Finish(job.Id, "done", null);
+            if (job.Kind != JobKind.Overview)
+            {
+                QueueOverviews();
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -224,6 +239,16 @@ internal sealed class IngestQueue : IAsyncDisposable
         // Deletes still run, so the source's documents are cleared either way.
         if (job.Kind != JobKind.Delete && job.SourceId is { } sourceId && !IsSourceEnabled(sourceId))
         {
+            return;
+        }
+
+        if (job.Kind == JobKind.Overview)
+        {
+            if (_overviews is not null)
+            {
+                await _overviews.BuildAsync(job.Path, cancellationToken);
+            }
+
             return;
         }
 
@@ -322,6 +347,35 @@ internal sealed class IngestQueue : IAsyncDisposable
         {
             var hashStore = _services.GetRequiredService<IContentHashStore>();
             await hashStore.RemoveAsync(SourceProvider(id), new EntryId(documentId), cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Queues an overview job for each document whose overview is missing or out of date, unless one is
+    /// already waiting. A failed overview leaves its own failed job; the next change or scan tries again.
+    /// </summary>
+    private void QueueOverviews()
+    {
+        if (_overviews is null)
+        {
+            return;
+        }
+
+        var waiting = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using (var connection = SqliteStorage.Open(_databasePath))
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT path FROM ingest_jobs WHERE kind = 'overview' AND status IN ('pending', 'running')";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                waiting.Add(reader.GetString(0));
+            }
+        }
+
+        foreach (var documentId in _overviews.Stale().Where(id => !waiting.Contains(id)))
+        {
+            Enqueue(JobKind.Overview, documentId);
         }
     }
 
@@ -444,6 +498,7 @@ internal enum JobKind
     Delete,
     Scan,
     Reindex,
+    Overview,
 }
 
 /// <summary>A watched folder as stored in <c>sources</c>.</summary>

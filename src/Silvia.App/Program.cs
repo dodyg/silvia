@@ -34,6 +34,7 @@ internal static class Program
                 .AddProjectsService(new ProjectsService(host))
                 .AddLibraryService(new LibraryService(host))
                 .AddChatService(new ChatService(host))
+                .AddFactsService(new FactsService(host))
                 .AddSettingsService(new SettingsService(host)));
         });
     }

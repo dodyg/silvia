@@ -4,18 +4,20 @@ import { applyAppearance, stepReadingSize, type Appearance } from "./theme";
 import { Banner, Button, Empty, Icon, Spinner, type IconName } from "./ui";
 import { ActivityScreen } from "./screens/ActivityScreen";
 import { ChatScreen } from "./screens/ChatScreen";
+import { FactsScreen } from "./screens/FactsScreen";
 import { LibraryScreen } from "./screens/LibraryScreen";
 import { ProjectsScreen } from "./screens/ProjectsScreen";
 import { SearchScreen } from "./screens/SearchScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 
-type Screen = "chat" | "search" | "library" | "activity" | "projects" | "settings";
+type Screen = "chat" | "search" | "library" | "facts" | "activity" | "projects" | "settings";
 
 // Project screens need an open project; the app screens below them work without one.
 const PROJECT_SCREENS: Array<{ id: Screen; label: string; icon: IconName }> = [
   { id: "chat", label: "Chat", icon: "chat" },
   { id: "search", label: "Search", icon: "search" },
   { id: "library", label: "Library", icon: "library" },
+  { id: "facts", label: "Facts", icon: "fact" },
   { id: "activity", label: "Activity", icon: "activity" },
 ];
 
@@ -241,6 +243,8 @@ export function App() {
             <SearchScreen key={project.id} projectId={project.id} onError={setError} />
           ) : screen === "library" ? (
             <LibraryScreen key={project.id} projectId={project.id} onError={setError} />
+          ) : screen === "facts" ? (
+            <FactsScreen key={project.id} projectId={project.id} onError={setError} />
           ) : (
             <ActivityScreen key={project.id} projectId={project.id} onError={setError} />
           )}

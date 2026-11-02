@@ -167,6 +167,27 @@ function ProjectSettings({ projectId, onError }: { projectId: string; onError: (
         </Card>
       </Section>
 
+      <Section title="Document overviews" description="An outline of each document, so questions about a whole document, such as listing everything in it, are not limited to a few passages.">
+        <Card>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={draft.documentOverviews}
+              disabled={!usesCloud}
+              onChange={(event) => set("documentOverviews", event.target.checked)}
+            />
+            <span>
+              Write an overview of each document with the chat model
+              <span className="field-hint">
+                {usesCloud
+                  ? "Each document's text is sent to DeepSeek once when it is indexed or changes, not only the passages an answer uses."
+                  : "Needs the deepseek cloud policy."}
+              </span>
+            </span>
+          </label>
+        </Card>
+      </Section>
+
       <div className="form-actions">
         <Button variant="primary" onClick={() => void save()}>Save project settings</Button>
         <Button onClick={() => setDraft(current)} disabled={JSON.stringify(draft) === JSON.stringify(current)}>Discard changes</Button>

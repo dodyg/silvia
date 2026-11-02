@@ -1,13 +1,14 @@
 import { createDesktopClient, invoke, subscribe } from "@neoastra/client";
-import { chat, library, projects, settings } from "#neoastra";
+import { chat, facts, library, projects, settings } from "#neoastra";
 
-export { chat, library, projects, settings };
+export { chat, facts, library, projects, settings };
 export type {
   AppearanceDto,
   AskUpdateDto,
   CitationDto,
   ConversationDto,
   DocumentDto,
+  FactDto,
   FailureDto,
   FontListDto,
   GlobalSettingsDto,

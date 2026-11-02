@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { chat, consume, describeError, formatWhen, library, type CitationDto, type ConversationDto, type MessageDto } from "../api";
+import { chat, consume, describeError, facts, formatWhen, library, type CitationDto, type ConversationDto, type MessageDto } from "../api";
 import { renderMarkdown } from "../markdown";
 import { Button, Empty, Icon, Spinner } from "../ui";
 
@@ -9,7 +9,12 @@ interface Turn {
   sources: CitationDto[];
   /** Set when the person pressed Stop; such a turn is not saved by the host. */
   stopped?: boolean;
+  /** Set once the person saved a correction of this answer as a project fact. */
+  corrected?: boolean;
 }
+
+/** A document overview arrives as a citation with this chunk index; real passages count from zero. */
+const OVERVIEW_CHUNK = -1;
 
 interface Props {
   projectId: string;
@@ -25,6 +30,8 @@ export function ChatScreen({ projectId, onError }: Props) {
   const [picked, setPicked] = useState<{ turn: number; source: number } | null>(null);
   // Deleting takes a second click on the row itself, so a stray click on the icon never loses a chat.
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  // The answer being corrected, and the fact typed so far.
+  const [correcting, setCorrecting] = useState<{ turn: number; text: string } | null>(null);
   const abort = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
 
@@ -52,6 +59,7 @@ export function ChatScreen({ projectId, onError }: Props) {
     setBusy(false);
     setActiveId(conversation.id);
     setPicked(null);
+    setCorrecting(null);
     try {
       const rows: ReadonlyArray<MessageDto> = await chat.messages({ projectId, conversationId: conversation.id });
       setTurns(rows.map((row) => ({ role: row.role === "user" ? "user" : "assistant", content: row.content, sources: [...row.sources] })));
@@ -66,6 +74,7 @@ export function ChatScreen({ projectId, onError }: Props) {
     setActiveId(null);
     setTurns([]);
     setPicked(null);
+    setCorrecting(null);
   }
 
   async function remove(conversation: ConversationDto) {
@@ -82,13 +91,17 @@ export function ChatScreen({ projectId, onError }: Props) {
     }
   }
 
-  async function send() {
-    const question = draft.trim();
+  async function send(again?: string) {
+    const question = (again ?? draft).trim();
     if (!question || busy) {
       return;
     }
 
-    setDraft("");
+    if (again === undefined) {
+      setDraft("");
+    }
+
+    setCorrecting(null);
     setBusy(true);
     setPicked(null);
     onError(null);
@@ -124,6 +137,22 @@ export function ChatScreen({ projectId, onError }: Props) {
         setActiveId(conversationId);
         await loadConversations();
       }
+    }
+  }
+
+  async function saveCorrection() {
+    if (!correcting) {
+      return;
+    }
+
+    const turn = correcting.turn;
+    try {
+      await facts.add({ projectId, text: correcting.text });
+      setCorrecting(null);
+      setTurns((rows) => rows.map((row, index) => (index === turn ? { ...row, corrected: true } : row)));
+      onError(null);
+    } catch (failure) {
+      onError(describeError(failure));
     }
   }
 
@@ -244,10 +273,47 @@ export function ChatScreen({ projectId, onError }: Props) {
                               onClick={() => setPicked({ turn: index, source: sourceIndex })}
                             >
                               <span className="source-number">{sourceIndex + 1}</span>
-                              <span className="source-name">{source.fileName}</span>
+                              <span className="source-name">{sourceName(source)}</span>
                             </button>
                           ))}
                         </div>
+                      ) : null}
+                      {turn.content.length > 0 && !(busy && index === turns.length - 1) ? (
+                        correcting?.turn === index ? (
+                          <form className="correction" onSubmit={(event) => { event.preventDefault(); void saveCorrection(); }}>
+                            <label className="field">
+                              <span className="field-label">What is actually true?</span>
+                              <textarea
+                                rows={3}
+                                maxLength={2000}
+                                value={correcting.text}
+                                onChange={(event) => setCorrecting({ turn: index, text: event.target.value })}
+                                placeholder="State the fact the answer should have used."
+                                autoFocus
+                              />
+                              <span className="field-hint">Saved as a project fact. Every later answer in this project is given it.</span>
+                            </label>
+                            <div className="row">
+                              <Button size="sm" type="submit" variant="primary" disabled={correcting.text.trim().length === 0}>Save fact</Button>
+                              <Button size="sm" variant="quiet" onClick={() => setCorrecting(null)}>Cancel</Button>
+                            </div>
+                          </form>
+                        ) : turn.corrected ? (
+                          <div className="message-actions">
+                            <span className="message-note">Saved as a project fact.</span>
+                            {index > 0 && turns[index - 1].role === "user" ? (
+                              <Button size="sm" variant="quiet" disabled={busy} onClick={() => void send(turns[index - 1].content)}>
+                                <Icon name="refresh" /> Ask again
+                              </Button>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <div className="message-actions">
+                            <Button size="sm" variant="quiet" onClick={() => setCorrecting({ turn: index, text: "" })}>
+                              <Icon name="fact" /> Correct this
+                            </Button>
+                          </div>
+                        )
                       ) : null}
                     </>
                   )}
@@ -289,14 +355,17 @@ export function ChatScreen({ projectId, onError }: Props) {
           <div className="evidence-head">
             <h2>
               <span className="source-number">{evidence.index + 1}</span>
-              {evidence.source.fileName}
+              {sourceName(evidence.source)}
             </h2>
             <Button variant="quiet" className="icon-btn" onClick={() => setPicked(null)} aria-label="Close the cited passage" title="Close">
               <Icon name="close" />
             </Button>
           </div>
           <p className="path">{evidence.source.documentId}</p>
-          <blockquote>{evidence.source.text}</blockquote>
+          {evidence.source.chunkIndex === OVERVIEW_CHUNK ? (
+            <p className="muted small">Written by the chat model from the whole document when it was indexed.</p>
+          ) : null}
+          <blockquote className={evidence.source.chunkIndex === OVERVIEW_CHUNK ? "overview" : undefined}>{evidence.source.text}</blockquote>
           <div className="row">
             <Button size="sm" onClick={() => void openFile(projectId, evidence.source.documentId, onError)}>
               <Icon name="external" /> Open file
@@ -309,6 +378,10 @@ export function ChatScreen({ projectId, onError }: Props) {
       ) : null}
     </div>
   );
+}
+
+function sourceName(source: CitationDto): string {
+  return source.chunkIndex === OVERVIEW_CHUNK ? `Overview · ${source.fileName}` : source.fileName;
 }
 
 function patchLast(rows: Turn[], change: (turn: Turn) => Turn): Turn[] {
