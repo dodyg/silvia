@@ -1,0 +1,1782 @@
+{
+  "RecordedUtc": "2026-11-02T11:32:47.0234840\u002B00:00",
+  "Questions": 34,
+  "Results": [
+    {
+      "Config": {
+        "Chunk": 200,
+        "TopK": 3,
+        "Rerank": false,
+        "Label": "c200-k3-norr"
+      },
+      "HitRate": 1,
+      "Mrr": 0.9460784313725492,
+      "Outcomes": [
+        {
+          "Id": "lumen-launch-date",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-owner",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-training",
+          "Rank": 3
+        },
+        {
+          "Id": "lumen-battery",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-team-size",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-returns",
+          "Rank": 1
+        },
+        {
+          "Id": "security-reviewer",
+          "Rank": 1
+        },
+        {
+          "Id": "security-revocation",
+          "Rank": 1
+        },
+        {
+          "Id": "security-password",
+          "Rank": 2
+        },
+        {
+          "Id": "security-admin-signin",
+          "Rank": 1
+        },
+        {
+          "Id": "security-incident-time",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-hotel-cap",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-meals-abroad",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-economy",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-annual",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-sickness",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-parental",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-rotation",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-failover",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-status-page",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-log-retention",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-team-price",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-sso",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-budget",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-office",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-mileage",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-deadline",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-eu",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-backups",
+          "Rank": 3
+        },
+        {
+          "Id": "vendor-approver",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-soc2",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-approvals",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-coverage",
+          "Rank": 1
+        },
+        {
+          "Id": "onboarding-badge",
+          "Rank": 1
+        }
+      ]
+    },
+    {
+      "Config": {
+        "Chunk": 200,
+        "TopK": 3,
+        "Rerank": true,
+        "Label": "c200-k3-rr"
+      },
+      "HitRate": 0.9705882352941176,
+      "Mrr": 0.9705882352941176,
+      "Outcomes": [
+        {
+          "Id": "lumen-launch-date",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-owner",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-training",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-battery",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-team-size",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-returns",
+          "Rank": 1
+        },
+        {
+          "Id": "security-reviewer",
+          "Rank": 1
+        },
+        {
+          "Id": "security-revocation",
+          "Rank": 1
+        },
+        {
+          "Id": "security-password",
+          "Rank": 0
+        },
+        {
+          "Id": "security-admin-signin",
+          "Rank": 1
+        },
+        {
+          "Id": "security-incident-time",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-hotel-cap",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-meals-abroad",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-economy",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-annual",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-sickness",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-parental",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-rotation",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-failover",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-status-page",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-log-retention",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-team-price",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-sso",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-budget",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-office",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-mileage",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-deadline",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-eu",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-backups",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-approver",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-soc2",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-approvals",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-coverage",
+          "Rank": 1
+        },
+        {
+          "Id": "onboarding-badge",
+          "Rank": 1
+        }
+      ]
+    },
+    {
+      "Config": {
+        "Chunk": 200,
+        "TopK": 6,
+        "Rerank": false,
+        "Label": "c200-k6-norr"
+      },
+      "HitRate": 0.9705882352941176,
+      "Mrr": 0.9215686274509803,
+      "Outcomes": [
+        {
+          "Id": "lumen-launch-date",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-owner",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-training",
+          "Rank": 6
+        },
+        {
+          "Id": "lumen-battery",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-team-size",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-returns",
+          "Rank": 1
+        },
+        {
+          "Id": "security-reviewer",
+          "Rank": 1
+        },
+        {
+          "Id": "security-revocation",
+          "Rank": 1
+        },
+        {
+          "Id": "security-password",
+          "Rank": 0
+        },
+        {
+          "Id": "security-admin-signin",
+          "Rank": 1
+        },
+        {
+          "Id": "security-incident-time",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-hotel-cap",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-meals-abroad",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-economy",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-annual",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-sickness",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-parental",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-rotation",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-failover",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-status-page",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-log-retention",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-team-price",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-sso",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-budget",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-office",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-mileage",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-deadline",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-eu",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-backups",
+          "Rank": 6
+        },
+        {
+          "Id": "vendor-approver",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-soc2",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-approvals",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-coverage",
+          "Rank": 1
+        },
+        {
+          "Id": "onboarding-badge",
+          "Rank": 1
+        }
+      ]
+    },
+    {
+      "Config": {
+        "Chunk": 200,
+        "TopK": 6,
+        "Rerank": true,
+        "Label": "c200-k6-rr"
+      },
+      "HitRate": 0.9705882352941176,
+      "Mrr": 0.9705882352941176,
+      "Outcomes": [
+        {
+          "Id": "lumen-launch-date",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-owner",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-training",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-battery",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-team-size",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-returns",
+          "Rank": 1
+        },
+        {
+          "Id": "security-reviewer",
+          "Rank": 1
+        },
+        {
+          "Id": "security-revocation",
+          "Rank": 1
+        },
+        {
+          "Id": "security-password",
+          "Rank": 0
+        },
+        {
+          "Id": "security-admin-signin",
+          "Rank": 1
+        },
+        {
+          "Id": "security-incident-time",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-hotel-cap",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-meals-abroad",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-economy",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-annual",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-sickness",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-parental",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-rotation",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-failover",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-status-page",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-log-retention",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-team-price",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-sso",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-budget",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-office",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-mileage",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-deadline",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-eu",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-backups",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-approver",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-soc2",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-approvals",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-coverage",
+          "Rank": 1
+        },
+        {
+          "Id": "onboarding-badge",
+          "Rank": 1
+        }
+      ]
+    },
+    {
+      "Config": {
+        "Chunk": 400,
+        "TopK": 3,
+        "Rerank": false,
+        "Label": "c400-k3-norr"
+      },
+      "HitRate": 1,
+      "Mrr": 0.9460784313725492,
+      "Outcomes": [
+        {
+          "Id": "lumen-launch-date",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-owner",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-training",
+          "Rank": 3
+        },
+        {
+          "Id": "lumen-battery",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-team-size",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-returns",
+          "Rank": 1
+        },
+        {
+          "Id": "security-reviewer",
+          "Rank": 1
+        },
+        {
+          "Id": "security-revocation",
+          "Rank": 1
+        },
+        {
+          "Id": "security-password",
+          "Rank": 2
+        },
+        {
+          "Id": "security-admin-signin",
+          "Rank": 1
+        },
+        {
+          "Id": "security-incident-time",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-hotel-cap",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-meals-abroad",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-economy",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-annual",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-sickness",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-parental",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-rotation",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-failover",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-status-page",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-log-retention",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-team-price",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-sso",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-budget",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-office",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-mileage",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-deadline",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-eu",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-backups",
+          "Rank": 3
+        },
+        {
+          "Id": "vendor-approver",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-soc2",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-approvals",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-coverage",
+          "Rank": 1
+        },
+        {
+          "Id": "onboarding-badge",
+          "Rank": 1
+        }
+      ]
+    },
+    {
+      "Config": {
+        "Chunk": 400,
+        "TopK": 3,
+        "Rerank": true,
+        "Label": "c400-k3-rr"
+      },
+      "HitRate": 0.9705882352941176,
+      "Mrr": 0.9705882352941176,
+      "Outcomes": [
+        {
+          "Id": "lumen-launch-date",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-owner",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-training",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-battery",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-team-size",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-returns",
+          "Rank": 1
+        },
+        {
+          "Id": "security-reviewer",
+          "Rank": 1
+        },
+        {
+          "Id": "security-revocation",
+          "Rank": 1
+        },
+        {
+          "Id": "security-password",
+          "Rank": 0
+        },
+        {
+          "Id": "security-admin-signin",
+          "Rank": 1
+        },
+        {
+          "Id": "security-incident-time",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-hotel-cap",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-meals-abroad",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-economy",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-annual",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-sickness",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-parental",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-rotation",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-failover",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-status-page",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-log-retention",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-team-price",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-sso",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-budget",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-office",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-mileage",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-deadline",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-eu",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-backups",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-approver",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-soc2",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-approvals",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-coverage",
+          "Rank": 1
+        },
+        {
+          "Id": "onboarding-badge",
+          "Rank": 1
+        }
+      ]
+    },
+    {
+      "Config": {
+        "Chunk": 400,
+        "TopK": 6,
+        "Rerank": false,
+        "Label": "c400-k6-norr"
+      },
+      "HitRate": 0.9705882352941176,
+      "Mrr": 0.9215686274509803,
+      "Outcomes": [
+        {
+          "Id": "lumen-launch-date",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-owner",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-training",
+          "Rank": 6
+        },
+        {
+          "Id": "lumen-battery",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-team-size",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-returns",
+          "Rank": 1
+        },
+        {
+          "Id": "security-reviewer",
+          "Rank": 1
+        },
+        {
+          "Id": "security-revocation",
+          "Rank": 1
+        },
+        {
+          "Id": "security-password",
+          "Rank": 0
+        },
+        {
+          "Id": "security-admin-signin",
+          "Rank": 1
+        },
+        {
+          "Id": "security-incident-time",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-hotel-cap",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-meals-abroad",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-economy",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-annual",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-sickness",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-parental",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-rotation",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-failover",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-status-page",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-log-retention",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-team-price",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-sso",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-budget",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-office",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-mileage",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-deadline",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-eu",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-backups",
+          "Rank": 6
+        },
+        {
+          "Id": "vendor-approver",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-soc2",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-approvals",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-coverage",
+          "Rank": 1
+        },
+        {
+          "Id": "onboarding-badge",
+          "Rank": 1
+        }
+      ]
+    },
+    {
+      "Config": {
+        "Chunk": 400,
+        "TopK": 6,
+        "Rerank": true,
+        "Label": "c400-k6-rr"
+      },
+      "HitRate": 0.9705882352941176,
+      "Mrr": 0.9705882352941176,
+      "Outcomes": [
+        {
+          "Id": "lumen-launch-date",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-owner",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-training",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-battery",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-team-size",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-returns",
+          "Rank": 1
+        },
+        {
+          "Id": "security-reviewer",
+          "Rank": 1
+        },
+        {
+          "Id": "security-revocation",
+          "Rank": 1
+        },
+        {
+          "Id": "security-password",
+          "Rank": 0
+        },
+        {
+          "Id": "security-admin-signin",
+          "Rank": 1
+        },
+        {
+          "Id": "security-incident-time",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-hotel-cap",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-meals-abroad",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-economy",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-annual",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-sickness",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-parental",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-rotation",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-failover",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-status-page",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-log-retention",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-team-price",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-sso",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-budget",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-office",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-mileage",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-deadline",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-eu",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-backups",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-approver",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-soc2",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-approvals",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-coverage",
+          "Rank": 1
+        },
+        {
+          "Id": "onboarding-badge",
+          "Rank": 1
+        }
+      ]
+    },
+    {
+      "Config": {
+        "Chunk": 800,
+        "TopK": 3,
+        "Rerank": false,
+        "Label": "c800-k3-norr"
+      },
+      "HitRate": 1,
+      "Mrr": 0.9460784313725492,
+      "Outcomes": [
+        {
+          "Id": "lumen-launch-date",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-owner",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-training",
+          "Rank": 3
+        },
+        {
+          "Id": "lumen-battery",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-team-size",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-returns",
+          "Rank": 1
+        },
+        {
+          "Id": "security-reviewer",
+          "Rank": 1
+        },
+        {
+          "Id": "security-revocation",
+          "Rank": 1
+        },
+        {
+          "Id": "security-password",
+          "Rank": 2
+        },
+        {
+          "Id": "security-admin-signin",
+          "Rank": 1
+        },
+        {
+          "Id": "security-incident-time",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-hotel-cap",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-meals-abroad",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-economy",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-annual",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-sickness",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-parental",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-rotation",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-failover",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-status-page",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-log-retention",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-team-price",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-sso",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-budget",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-office",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-mileage",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-deadline",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-eu",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-backups",
+          "Rank": 3
+        },
+        {
+          "Id": "vendor-approver",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-soc2",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-approvals",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-coverage",
+          "Rank": 1
+        },
+        {
+          "Id": "onboarding-badge",
+          "Rank": 1
+        }
+      ]
+    },
+    {
+      "Config": {
+        "Chunk": 800,
+        "TopK": 3,
+        "Rerank": true,
+        "Label": "c800-k3-rr"
+      },
+      "HitRate": 0.9705882352941176,
+      "Mrr": 0.9705882352941176,
+      "Outcomes": [
+        {
+          "Id": "lumen-launch-date",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-owner",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-training",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-battery",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-team-size",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-returns",
+          "Rank": 1
+        },
+        {
+          "Id": "security-reviewer",
+          "Rank": 1
+        },
+        {
+          "Id": "security-revocation",
+          "Rank": 1
+        },
+        {
+          "Id": "security-password",
+          "Rank": 0
+        },
+        {
+          "Id": "security-admin-signin",
+          "Rank": 1
+        },
+        {
+          "Id": "security-incident-time",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-hotel-cap",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-meals-abroad",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-economy",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-annual",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-sickness",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-parental",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-rotation",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-failover",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-status-page",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-log-retention",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-team-price",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-sso",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-budget",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-office",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-mileage",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-deadline",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-eu",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-backups",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-approver",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-soc2",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-approvals",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-coverage",
+          "Rank": 1
+        },
+        {
+          "Id": "onboarding-badge",
+          "Rank": 1
+        }
+      ]
+    },
+    {
+      "Config": {
+        "Chunk": 800,
+        "TopK": 6,
+        "Rerank": false,
+        "Label": "c800-k6-norr"
+      },
+      "HitRate": 0.9705882352941176,
+      "Mrr": 0.9215686274509803,
+      "Outcomes": [
+        {
+          "Id": "lumen-launch-date",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-owner",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-training",
+          "Rank": 6
+        },
+        {
+          "Id": "lumen-battery",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-team-size",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-returns",
+          "Rank": 1
+        },
+        {
+          "Id": "security-reviewer",
+          "Rank": 1
+        },
+        {
+          "Id": "security-revocation",
+          "Rank": 1
+        },
+        {
+          "Id": "security-password",
+          "Rank": 0
+        },
+        {
+          "Id": "security-admin-signin",
+          "Rank": 1
+        },
+        {
+          "Id": "security-incident-time",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-hotel-cap",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-meals-abroad",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-economy",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-annual",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-sickness",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-parental",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-rotation",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-failover",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-status-page",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-log-retention",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-team-price",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-sso",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-budget",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-office",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-mileage",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-deadline",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-eu",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-backups",
+          "Rank": 6
+        },
+        {
+          "Id": "vendor-approver",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-soc2",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-approvals",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-coverage",
+          "Rank": 1
+        },
+        {
+          "Id": "onboarding-badge",
+          "Rank": 1
+        }
+      ]
+    },
+    {
+      "Config": {
+        "Chunk": 800,
+        "TopK": 6,
+        "Rerank": true,
+        "Label": "c800-k6-rr"
+      },
+      "HitRate": 0.9705882352941176,
+      "Mrr": 0.9705882352941176,
+      "Outcomes": [
+        {
+          "Id": "lumen-launch-date",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-owner",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-training",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-battery",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-team-size",
+          "Rank": 1
+        },
+        {
+          "Id": "lumen-returns",
+          "Rank": 1
+        },
+        {
+          "Id": "security-reviewer",
+          "Rank": 1
+        },
+        {
+          "Id": "security-revocation",
+          "Rank": 1
+        },
+        {
+          "Id": "security-password",
+          "Rank": 0
+        },
+        {
+          "Id": "security-admin-signin",
+          "Rank": 1
+        },
+        {
+          "Id": "security-incident-time",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-hotel-cap",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-meals-abroad",
+          "Rank": 1
+        },
+        {
+          "Id": "travel-economy",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-annual",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-sickness",
+          "Rank": 1
+        },
+        {
+          "Id": "leave-parental",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-rotation",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-failover",
+          "Rank": 1
+        },
+        {
+          "Id": "oncall-status-page",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-log-retention",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-team-price",
+          "Rank": 1
+        },
+        {
+          "Id": "faq-sso",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-budget",
+          "Rank": 1
+        },
+        {
+          "Id": "meeting-office",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-mileage",
+          "Rank": 1
+        },
+        {
+          "Id": "expense-deadline",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-eu",
+          "Rank": 1
+        },
+        {
+          "Id": "classification-backups",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-approver",
+          "Rank": 1
+        },
+        {
+          "Id": "vendor-soc2",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-approvals",
+          "Rank": 1
+        },
+        {
+          "Id": "engineering-coverage",
+          "Rank": 1
+        },
+        {
+          "Id": "onboarding-badge",
+          "Rank": 1
+        }
+      ]
+    }
+  ]
+}

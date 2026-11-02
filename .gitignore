@@ -66,3 +66,4 @@ nunit-*.xml
 node_modules/
 dist/
 dist-mock/
+/publish/
