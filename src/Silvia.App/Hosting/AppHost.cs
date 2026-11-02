@@ -21,7 +21,11 @@ public sealed class AppHost : IDisposable
         ModelsRoot = modelsRoot;
         // Open projects that started without the models reopen with them on their next use.
         Downloads = new ModelDownloadService(modelsRoot, _http, completed: manager.CloseAll);
+        ChatProvider = new ChatProvider(_http, manager.Options.DeepSeekEndpoint, () => ChatKey(secrets));
     }
+
+    /// <summary>Checks the DeepSeek key and lists the chat models it can use.</summary>
+    public ChatProvider ChatProvider { get; }
 
     public ProjectManager Manager { get; }
 

@@ -39,6 +39,10 @@ let appearance = {
   interfaceFont: "System default", readingFont: "System default", monoFont: "System default",
 };
 
+function providerOk(message: string) {
+  return { state: "ok", message, models: ["deepseek-flash", "deepseek-v4-pro"] };
+}
+
 export const projects = Object.freeze({
   list: () => delay(projectsState.slice()),
   create: (request: { name: string; description?: string }) => {
@@ -109,5 +113,9 @@ export const settings = Object.freeze({
     { id: "bge-small-en-v1.5", kind: "embedder", dimensions: 384, installed: true, default: true },
     { id: "ms-marco-MiniLM-L-6-v2", kind: "reranker", dimensions: 0, installed: false, default: true },
   ]),
-  getGlobal: () => delay({ dataRoot: "C:/Users/me/AppData/Local/Silvia", modelsRoot: "C:/Users/me/AppData/Local/Silvia/models", deepSeekKeyConfigured: false, maxOpenProjects: 3 }),
+  getGlobal: () => delay({ dataRoot: "C:/Users/me/AppData/Local/Silvia", modelsRoot: "C:/Users/me/AppData/Local/Silvia/models", deepSeekKeyConfigured: true, maxOpenProjects: 3 }),
+  setDeepSeekKey: () => delay(providerOk("Saved. DeepSeek accepted the key and offers 2 chat models.")),
+  verifyDeepSeekKey: () => delay(providerOk("The key works. DeepSeek offers 2 chat models.")),
+  listChatModels: () => delay(providerOk("The key works. DeepSeek offers 2 chat models.")),
+  removeDeepSeekKey: () => delay({}),
 });

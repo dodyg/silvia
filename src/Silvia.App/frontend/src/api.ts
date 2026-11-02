@@ -17,6 +17,7 @@ export type {
   ModelDto,
   ProjectDto,
   ProjectSettingsDto,
+  ChatProviderDto,
   SourceDto,
 } from "#neoastra";
 

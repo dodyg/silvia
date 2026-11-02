@@ -23,14 +23,29 @@ public sealed class SettingsService(AppHost host)
     /// Saves a project's settings. The project is reopened with them on its next use; changing the
     /// embedder marks its documents for re-embedding.
     /// </summary>
+    /// <remarks>
+    /// A newly chosen chat model must be one DeepSeek offers to the saved key. When DeepSeek cannot be
+    /// asked (no key, no connection), the name is saved as given.
+    /// </remarks>
     [NeoRpcMethod("updateProject")]
-    public ValueTask<ProjectSettingsDto> UpdateProjectAsync(UpdateProjectSettingsRequest request, CancellationToken cancellationToken)
+    public async ValueTask<ProjectSettingsDto> UpdateProjectAsync(UpdateProjectSettingsRequest request, CancellationToken cancellationToken)
     {
         Scope.Runtime(host.Manager, request.ProjectId);
         var current = host.Manager.ReadSettings(request.ProjectId);
         var next = FromDto(request.Settings, current);
+
+        var modelChosen = next.ChatModel != current.ChatModel || (next.CloudPolicy == CloudPolicies.DeepSeek && current.CloudPolicy != CloudPolicies.DeepSeek);
+        if (modelChosen && next.CloudPolicy == CloudPolicies.DeepSeek)
+        {
+            var check = await host.ChatProvider.CheckAsync(null, cancellationToken);
+            if (check.Offers(next.ChatModel) == false)
+            {
+                throw Scope.Invalid($"DeepSeek does not offer the model '{next.ChatModel}'. Choose one of: {string.Join(", ", check.Models)}.");
+            }
+        }
+
         host.Manager.UpdateSettings(request.ProjectId, next);
-        return ValueTask.FromResult(ToDto(next));
+        return ToDto(next);
     }
 
     [NeoRpcMethod("getGlobal")]
@@ -42,11 +57,12 @@ public sealed class SettingsService(AppHost host)
             host.Manager.Options.MaxOpenRuntimes));
 
     /// <summary>
-    /// Saves the DeepSeek key, protected for this Windows user. The key is write-only: no call returns it.
-    /// Open projects are closed so the next use picks it up.
+    /// Checks the key with DeepSeek, then saves it, protected for this Windows user. A key DeepSeek rejects
+    /// is not saved; one that cannot be checked (no connection) is saved and the reply says so. The key is
+    /// write-only: no call returns it. Open projects are closed so the next use picks it up.
     /// </summary>
     [NeoRpcMethod("setDeepSeekKey")]
-    public ValueTask<EmptyRequest> SetDeepSeekKeyAsync(SetDeepSeekKeyRequest request, CancellationToken cancellationToken)
+    public async ValueTask<ChatProviderDto> SetDeepSeekKeyAsync(SetDeepSeekKeyRequest request, CancellationToken cancellationToken)
     {
         var key = request.Key?.Trim() ?? string.Empty;
         if (key.Length is < 8 or > 512 || key.Any(char.IsControl))
@@ -54,17 +70,59 @@ public sealed class SettingsService(AppHost host)
             throw Scope.Invalid("The key does not look like an API key.");
         }
 
+        var check = await host.ChatProvider.CheckAsync(key, cancellationToken);
+        if (check.State == ProviderState.Rejected)
+        {
+            throw Scope.Invalid("DeepSeek rejected this key, so it was not saved. Check it and try again.");
+        }
+
         host.Secrets.Set(SecretStore.DeepSeekKey, key);
+        host.ChatProvider.Forget();
         host.Manager.CloseAll();
-        return ValueTask.FromResult(new EmptyRequest());
+        return ToDto(check, saved: true);
     }
+
+    /// <summary>Asks DeepSeek whether the saved key works, and which chat models it offers.</summary>
+    [NeoRpcMethod("verifyDeepSeekKey")]
+    public async ValueTask<ChatProviderDto> VerifyDeepSeekKeyAsync(EmptyRequest request, CancellationToken cancellationToken)
+    {
+        host.ChatProvider.Forget();
+        return ToDto(await host.ChatProvider.CheckAsync(null, cancellationToken), saved: false);
+    }
+
+    /// <summary>The chat models DeepSeek offers to the saved key, from a recent check when there is one.</summary>
+    [NeoRpcMethod("listChatModels")]
+    public async ValueTask<ChatProviderDto> ListChatModelsAsync(EmptyRequest request, CancellationToken cancellationToken) =>
+        ToDto(await host.ChatProvider.CheckAsync(null, cancellationToken), saved: false);
 
     [NeoRpcMethod("removeDeepSeekKey")]
     public ValueTask<EmptyRequest> RemoveDeepSeekKeyAsync(EmptyRequest request, CancellationToken cancellationToken)
     {
         host.Secrets.Remove(SecretStore.DeepSeekKey);
+        host.ChatProvider.Forget();
         host.Manager.CloseAll();
         return ValueTask.FromResult(new EmptyRequest());
+    }
+
+    private static ChatProviderDto ToDto(ProviderCheck check, bool saved)
+    {
+        var (state, message) = check.State switch
+        {
+            ProviderState.Ok => ("ok", saved
+                ? $"Saved. DeepSeek accepted the key and offers {Count(check.Models.Count)}."
+                : $"The key works. DeepSeek offers {Count(check.Models.Count)}."),
+            ProviderState.NoKey => ("no_key", "No key is saved."),
+            ProviderState.Rejected => ("rejected", "DeepSeek rejected the saved key. Save a new one."),
+            ProviderState.Unreachable => ("unreachable", saved
+                ? "Saved, but DeepSeek could not be reached to check it. Verify it once you are online."
+                : "DeepSeek could not be reached. Check the connection and try again."),
+            _ => ("failed", saved
+                ? "Saved, but DeepSeek answered with an error, so the key was not checked."
+                : "DeepSeek answered with an error. Try again in a moment."),
+        };
+        return new ChatProviderDto(state, message, check.Models);
+
+        static string Count(int n) => n == 1 ? "1 chat model" : $"{n} chat models";
     }
 
     [NeoRpcMethod("startModelDownload")]

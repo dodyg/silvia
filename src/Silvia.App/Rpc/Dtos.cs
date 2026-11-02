@@ -100,6 +100,12 @@ public sealed record ShellResult(bool Opened, string Message);
 
 public sealed record SetDeepSeekKeyRequest(string Key);
 
+/// <summary>
+/// What DeepSeek said about the key: <c>ok</c>, <c>no_key</c>, <c>rejected</c>, <c>unreachable</c> or
+/// <c>failed</c>, a sentence for the screen, and the chat models it offers when the key works.
+/// </summary>
+public sealed record ChatProviderDto(string State, string Message, IReadOnlyList<string> Models);
+
 public sealed record ModelDownloadStatusDto(string State, string? File, int Percent, string? Message);
 
 [JsonSerializable(typeof(EmptyRequest))]
@@ -143,6 +149,7 @@ public sealed record ModelDownloadStatusDto(string State, string? File, int Perc
 [JsonSerializable(typeof(OpenDocumentRequest))]
 [JsonSerializable(typeof(ShellResult))]
 [JsonSerializable(typeof(SetDeepSeekKeyRequest))]
+[JsonSerializable(typeof(ChatProviderDto))]
 [JsonSerializable(typeof(ModelDownloadStatusDto))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 internal sealed partial class AppJsonContext : JsonSerializerContext;

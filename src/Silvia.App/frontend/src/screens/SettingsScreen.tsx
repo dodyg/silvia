@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { describeError, settings, type FontListDto, type GlobalSettingsDto, type ModelDto, type ProjectSettingsDto } from "../api";
+import { describeError, settings, type ChatProviderDto, type FontListDto, type GlobalSettingsDto, type ModelDto, type ProjectSettingsDto } from "../api";
 import { INTERFACE_SIZE, READING_SIZE, SYSTEM_FONT, type Appearance, type LineHeightChoice, type ReadingWidthChoice, type ThemeChoice } from "../theme";
 import { renderMarkdown } from "../markdown";
 import { Banner, Button, Card, Field, PageHeader, Section } from "../ui";
@@ -42,6 +42,7 @@ function ProjectSettings({ projectId, onError }: { projectId: string; onError: (
   const [draft, setDraft] = useState<ProjectSettingsDto | null>(null);
   const [models, setModels] = useState<ModelDto[]>([]);
   const [saved, setSaved] = useState<string | null>(null);
+  const [provider, setProvider] = useState<ChatProviderDto | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -54,6 +55,8 @@ function ProjectSettings({ projectId, onError }: { projectId: string; onError: (
         onError(describeError(failure));
       }
     })();
+    // The provider's model list loads on its own; the form works without it.
+    settings.listChatModels({}).then(setProvider).catch(() => setProvider(null));
     // The screen is keyed by project, so this effect runs once per project.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -64,6 +67,10 @@ function ProjectSettings({ projectId, onError }: { projectId: string; onError: (
 
   const embedders = models.filter((m) => m.kind === "embedder");
   const embedderChanged = draft.embedModel !== current.embedModel;
+  // With a working key the choice is limited to what DeepSeek offers; otherwise the name is typed.
+  const offered = provider?.state === "ok" ? provider.models : null;
+  const usesCloud = draft.cloudPolicy === "deepseek";
+  const modelUnavailable = usesCloud && offered !== null && !offered.includes(draft.chatModel);
 
   function set<K extends keyof ProjectSettingsDto>(key: K, value: ProjectSettingsDto[K]) {
     setSaved(null);
@@ -94,6 +101,11 @@ function ProjectSettings({ projectId, onError }: { projectId: string; onError: (
         </Banner>
       ) : null}
       {saved ? <Banner tone="info">{saved}</Banner> : null}
+      {modelUnavailable ? (
+        <Banner tone="warn">
+          DeepSeek does not offer the chat model "{draft.chatModel}" to your key, so answers may fail. Choose one of the models it offers below.
+        </Banner>
+      ) : null}
 
       <Section title="Models" description="Embedding and reranking run on this computer; only answers may use the cloud.">
         <Card>
@@ -117,8 +129,17 @@ function ProjectSettings({ projectId, onError }: { projectId: string; onError: (
                 <option value="search-only">search-only: passages only</option>
               </select>
             </Field>
-            <Field label="Chat model" hint="Sent to DeepSeek when the cloud policy allows it.">
-              <input type="text" value={draft.chatModel} onChange={(event) => set("chatModel", event.target.value)} />
+            <Field label="Chat model" hint={chatModelHint(provider)}>
+              {offered ? (
+                <select value={draft.chatModel} onChange={(event) => set("chatModel", event.target.value)}>
+                  {offered.includes(draft.chatModel) ? null : <option value={draft.chatModel}>{draft.chatModel} (not offered by DeepSeek)</option>}
+                  {offered.map((model) => (
+                    <option key={model} value={model}>{model}</option>
+                  ))}
+                </select>
+              ) : (
+                <input type="text" value={draft.chatModel} onChange={(event) => set("chatModel", event.target.value)} />
+              )}
             </Field>
           </div>
         </Card>
@@ -154,6 +175,22 @@ function ProjectSettings({ projectId, onError }: { projectId: string; onError: (
   );
 }
 
+/** What the chat model field can promise, from the last word DeepSeek gave about the key. */
+function chatModelHint(provider: ChatProviderDto | null): string {
+  switch (provider?.state) {
+    case "ok":
+      return "The models DeepSeek offers to your key.";
+    case "no_key":
+      return "Save a DeepSeek key in Global to choose from the models it offers.";
+    case "rejected":
+      return "DeepSeek rejected the saved key; fix it in Global to list its models.";
+    case undefined:
+      return "Checking which models DeepSeek offers…";
+    default:
+      return "DeepSeek could not be asked which models it offers, so type the model name.";
+  }
+}
+
 function NumberField({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
   return (
     <Field label={label}>
@@ -175,6 +212,8 @@ function GlobalSettings({ onError }: { onError: (message: string | null) => void
   const [keyDraft, setKeyDraft] = useState("");
   const [download, setDownload] = useState<DownloadView>({ state: "idle", file: null, percent: 0, message: null });
   const [notice, setNotice] = useState<string | null>(null);
+  const [check, setCheck] = useState<ChatProviderDto | null>(null);
+  const [checking, setChecking] = useState(false);
   const timer = useRef<number | null>(null);
 
   async function reload() {
@@ -229,21 +268,37 @@ function GlobalSettings({ onError }: { onError: (message: string | null) => void
     }
   }
 
+  // A new key is checked with DeepSeek before it is saved; a rejected one stays unsaved and is reported here.
   async function saveKey(event: FormEvent) {
     event.preventDefault();
     setNotice(null);
+    setChecking(true);
     try {
-      await settings.setDeepSeekKey({ key: keyDraft.trim() });
+      setCheck(await settings.setDeepSeekKey({ key: keyDraft.trim() }));
       setKeyDraft("");
-      setNotice("Saved for this Windows account. Open projects reconnect with the new key on their next use.");
       await reload();
     } catch (failure) {
+      setCheck({ state: "rejected", message: describeError(failure), models: [] });
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  async function verifyKey() {
+    setNotice(null);
+    setChecking(true);
+    try {
+      setCheck(await settings.verifyDeepSeekKey({}));
+    } catch (failure) {
       onError(describeError(failure));
+    } finally {
+      setChecking(false);
     }
   }
 
   async function removeKey() {
     setNotice(null);
+    setCheck(null);
     try {
       await settings.removeDeepSeekKey({});
       setNotice("The key was removed.");
@@ -303,7 +358,7 @@ function GlobalSettings({ onError }: { onError: (message: string | null) => void
         description={global.deepSeekKeyConfigured
           ? "A key is configured. It is stored encrypted for this Windows account and is never shown again."
           : "No key is configured. Without one, projects answer with passages only."}
-        actions={global.deepSeekKeyConfigured ? <span className="badge badge-ready">Configured</span> : <span className="badge">Not set</span>}
+        actions={<KeyBadge configured={global.deepSeekKeyConfigured} check={check} />}
       >
         {notice ? <Banner tone="info">{notice}</Banner> : null}
         <Card>
@@ -311,13 +366,48 @@ function GlobalSettings({ onError }: { onError: (message: string | null) => void
             <Field label="API key">
               <input type="password" autoComplete="off" value={keyDraft} onChange={(event) => setKeyDraft(event.target.value)} placeholder="sk-…" />
             </Field>
-            <Button type="submit" variant="primary" disabled={keyDraft.trim().length < 8}>Save key</Button>
-            {global.deepSeekKeyConfigured ? <Button variant="danger" onClick={() => void removeKey()}>Remove key</Button> : null}
+            <Button type="submit" variant="primary" disabled={checking || keyDraft.trim().length < 8}>
+              {checking && keyDraft.trim().length >= 8 ? "Checking…" : "Save key"}
+            </Button>
+            {global.deepSeekKeyConfigured ? (
+              <>
+                <Button onClick={() => void verifyKey()} disabled={checking}>
+                  {checking && keyDraft.trim().length < 8 ? "Checking…" : "Verify key"}
+                </Button>
+                <Button variant="danger" onClick={() => void removeKey()}>Remove key</Button>
+              </>
+            ) : null}
           </form>
+          {check ? (
+            <div className="key-check">
+              <Banner tone={check.state === "ok" ? "info" : check.state === "rejected" ? "error" : "warn"}>{check.message}</Banner>
+              {check.state === "ok" && check.models.length > 0 ? (
+                <div className="row">
+                  <span className="muted small">Chat models:</span>
+                  {check.models.map((model) => (
+                    <span key={model} className="badge">{model}</span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </Card>
       </Section>
     </div>
   );
+}
+
+/** The key's state: verified or rejected once checked in this visit, otherwise whether one is saved. */
+function KeyBadge({ configured, check }: { configured: boolean; check: ChatProviderDto | null }) {
+  if (check?.state === "ok") {
+    return <span className="badge badge-ready">Verified</span>;
+  }
+
+  if (check?.state === "rejected") {
+    return <span className="badge badge-danger">Rejected</span>;
+  }
+
+  return configured ? <span className="badge badge-accent">Configured</span> : <span className="badge">Not set</span>;
 }
 
 function AppearanceSettings({

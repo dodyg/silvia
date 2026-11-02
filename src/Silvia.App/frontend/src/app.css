@@ -1553,3 +1553,11 @@ textarea {
     color: HighlightText;
   }
 }
+
+.key-check {
+  margin-top: 1rem;
+}
+
+.key-check .banner {
+  margin-bottom: 0.6rem;
+}
