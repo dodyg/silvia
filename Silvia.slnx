@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Silvia.Storage.Sqlite/Silvia.Storage.Sqlite.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Silvia.Storage.Sqlite.Tests/Silvia.Storage.Sqlite.Tests.csproj" />
+  </Folder>
+</Solution>
