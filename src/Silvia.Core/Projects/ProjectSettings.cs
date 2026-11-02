@@ -39,6 +39,15 @@ public sealed record ProjectSettings
     /// </summary>
     public bool DocumentOverviews { get; init; } = true;
 
+    /// <summary>
+    /// Whether the chat model builds a knowledge graph of the project (GraphRAG): the people,
+    /// organisations, products and systems in each document and how they relate, which answers then see
+    /// across documents. Off by default: it sends every passage to the chat model when a file is indexed
+    /// or changes, about one call per passage plus one per community of entities. Only under the
+    /// <c>deepseek</c> policy, and only with the local embedder installed. Turning it off deletes the graph.
+    /// </summary>
+    public bool GraphRag { get; init; }
+
     public int ChunkTokens { get; init; } = 400;
 
     public int ChunkOverlap { get; init; } = 60;

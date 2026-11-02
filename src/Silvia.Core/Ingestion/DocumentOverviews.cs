@@ -136,7 +136,7 @@ internal sealed class DocumentOverviews
     }
 
     // The same ETag the folder provider and the keyword index use.
-    private static string ETagOf(string path)
+    internal static string ETagOf(string path)
     {
         var info = new FileInfo(path);
         return $"{info.LastWriteTimeUtc.Ticks}-{info.Length}";

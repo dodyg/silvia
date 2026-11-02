@@ -162,6 +162,7 @@ export const inspect = Object.freeze({
     mode: "vector",
     embedModel: "bge-small-en-v1.5",
     overviewsOn: true,
+    graph: { documents: 3, entities: 42, relationships: 51, communities: 7 },
     documents: [
       { documentId: "C:/Documents/Lumen/handbook.md", fileName: "handbook.md", passages: 6, characters: 9120, hasOverview: true, indexedUtc: now },
       { documentId: "C:/Documents/Lumen/travel.md", fileName: "travel.md", passages: 2, characters: 2410, hasOverview: true, indexedUtc: now },
@@ -200,7 +201,7 @@ export const settings = Object.freeze({
     return delay({ ...appearance });
   },
   listFonts: () => delay(fonts),
-  getProject: () => delay({ embedModel: "bge-small-en-v1.5", embedDims: 384, rerankModel: "ms-marco-MiniLM-L-6-v2", chatModel: "deepseek-chat", cloudPolicy: "deepseek", chunkTokens: 400, chunkOverlap: 60, topK: 6, memoryTopK: 3, memoryMinPercent: 70, systemPrompt: "Answer from the numbered context.", documentOverviews: true, judgeModel: "" }),
+  getProject: () => delay({ embedModel: "bge-small-en-v1.5", embedDims: 384, rerankModel: "ms-marco-MiniLM-L-6-v2", chatModel: "deepseek-chat", cloudPolicy: "deepseek", chunkTokens: 400, chunkOverlap: 60, topK: 6, memoryTopK: 3, memoryMinPercent: 70, systemPrompt: "Answer from the numbered context.", documentOverviews: true, graphRag: false, judgeModel: "" }),
   updateProject: (request: { settings: unknown }) => delay(request.settings),
   listModels: () => delay([
     { id: "bge-small-en-v1.5", kind: "embedder", dimensions: 384, installed: true, default: true },

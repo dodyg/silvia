@@ -30,6 +30,7 @@ internal sealed class IngestQueue : IAsyncDisposable
     private volatile string _step = "idle";
     private readonly KeywordIndex? _keywords;
     private readonly DocumentOverviews? _overviews;
+    private readonly DocumentGraph? _graph;
 
     /// <param name="keywords">
     /// When given, jobs index files for keyword search instead of embedding them: the project has no
@@ -38,13 +39,18 @@ internal sealed class IngestQueue : IAsyncDisposable
     /// <param name="overviews">
     /// When given, every change to the index is followed by one overview job per new or changed document.
     /// </param>
+    /// <param name="graph">
+    /// When given, every change to the index is followed by one graph job per new or changed document,
+    /// and once none is left, by one job that rebuilds the graph's communities.
+    /// </param>
     public IngestQueue(
         string databasePath,
         IRagPipeline pipeline,
         IServiceProvider services,
         IngestThrottle throttle,
         KeywordIndex? keywords = null,
-        DocumentOverviews? overviews = null)
+        DocumentOverviews? overviews = null,
+        DocumentGraph? graph = null)
     {
         _databasePath = databasePath;
         _pipeline = pipeline;
@@ -52,6 +58,7 @@ internal sealed class IngestQueue : IAsyncDisposable
         _throttle = throttle;
         _keywords = keywords;
         _overviews = overviews;
+        _graph = graph;
     }
 
     /// <summary>Starts the worker, after returning any interrupted jobs to the queue.</summary>
@@ -206,9 +213,14 @@ internal sealed class IngestQueue : IAsyncDisposable
         {
             await ExecuteAsync(job, cancellationToken);
             Finish(job.Id, "done", null);
-            if (job.Kind != JobKind.Overview)
+            if (job.Kind is not (JobKind.Overview or JobKind.Graph or JobKind.Communities))
             {
                 QueueOverviews();
+                await QueueGraphAsync(cancellationToken);
+            }
+            else if (job.Kind == JobKind.Graph)
+            {
+                QueueCommunities();
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -247,6 +259,26 @@ internal sealed class IngestQueue : IAsyncDisposable
             if (_overviews is not null)
             {
                 await _overviews.BuildAsync(job.Path, cancellationToken);
+            }
+
+            return;
+        }
+
+        if (job.Kind == JobKind.Graph)
+        {
+            if (_graph is not null)
+            {
+                await _graph.BuildAsync(job.Path, cancellationToken);
+            }
+
+            return;
+        }
+
+        if (job.Kind == JobKind.Communities)
+        {
+            if (_graph is not null)
+            {
+                await _graph.RebuildCommunitiesAsync(cancellationToken);
             }
 
             return;
@@ -379,6 +411,58 @@ internal sealed class IngestQueue : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Queues a graph job for each document whose part of the knowledge graph is missing or out of date,
+    /// unless one is already waiting. A document that left the index leaves the graph here, and the
+    /// communities are then rebuilt even when nothing else is queued.
+    /// </summary>
+    private async Task QueueGraphAsync(CancellationToken cancellationToken)
+    {
+        if (_graph is null)
+        {
+            return;
+        }
+
+        var removed = false;
+        var stale = await _graph.StaleAsync(dropped => removed = dropped, cancellationToken);
+        var waiting = Waiting(JobKind.Graph);
+        foreach (var documentId in stale.Where(id => !waiting.Contains(id)))
+        {
+            Enqueue(JobKind.Graph, documentId);
+        }
+
+        if (removed)
+        {
+            QueueCommunities();
+        }
+    }
+
+    /// <summary>Queues one communities rebuild once no graph job is left, unless one is already waiting.</summary>
+    private void QueueCommunities()
+    {
+        if (Waiting(JobKind.Graph).Count == 0 && Waiting(JobKind.Communities).Count == 0)
+        {
+            Enqueue(JobKind.Communities, string.Empty);
+        }
+    }
+
+    /// <summary>The paths of the jobs of one kind that are pending or running.</summary>
+    private HashSet<string> Waiting(JobKind kind)
+    {
+        var waiting = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using var connection = SqliteStorage.Open(_databasePath);
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT path FROM ingest_jobs WHERE kind = $kind AND status IN ('pending', 'running')";
+        command.Parameters.AddWithValue("$kind", kind.ToString().ToLowerInvariant());
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            waiting.Add(reader.GetString(0));
+        }
+
+        return waiting;
+    }
+
     private static ProviderId SourceProvider(long sourceId) => new($"source-{sourceId}");
 
     private async Task ScanSourceAsync(long sourceId, CancellationToken cancellationToken)
@@ -499,6 +583,8 @@ internal enum JobKind
     Scan,
     Reindex,
     Overview,
+    Graph,
+    Communities,
 }
 
 /// <summary>A watched folder as stored in <c>sources</c>.</summary>

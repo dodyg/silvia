@@ -76,6 +76,7 @@ public sealed record ProjectSettingsDto(
     int MemoryMinPercent,
     string SystemPrompt,
     bool DocumentOverviews,
+    bool GraphRag,
     string? JudgeModel);
 
 public sealed record FactDto(string Id, string Text, string CreatedUtc);
@@ -161,7 +162,10 @@ public sealed record MapDto(bool Available, int Total, int FirstShare, int Secon
 
 public sealed record DocumentCoverageDto(string DocumentId, string FileName, int Passages, int Characters, bool HasOverview, string? IndexedUtc);
 
-public sealed record CoverageDto(string Mode, string? EmbedModel, bool OverviewsOn, IReadOnlyList<DocumentCoverageDto> Documents);
+/// <summary>How much the knowledge graph holds: documents read, entities, relationships and communities.</summary>
+public sealed record GraphSizeDto(int Documents, int Entities, int Relationships, int Communities);
+
+public sealed record CoverageDto(string Mode, string? EmbedModel, bool OverviewsOn, GraphSizeDto? Graph, IReadOnlyList<DocumentCoverageDto> Documents);
 
 /// <summary>A test question. FileName names the expected document, when the question has one.</summary>
 public sealed record EvalQuestionDto(
@@ -300,6 +304,7 @@ public sealed record RunComparisonDto(EvalRunDto Before, EvalRunDto After, IRead
 [JsonSerializable(typeof(MapDto))]
 [JsonSerializable(typeof(DocumentCoverageDto))]
 [JsonSerializable(typeof(CoverageDto))]
+[JsonSerializable(typeof(GraphSizeDto))]
 [JsonSerializable(typeof(EvalQuestionDto))]
 [JsonSerializable(typeof(EvalQuestionDto[]))]
 [JsonSerializable(typeof(AddEvalQuestionRequest))]

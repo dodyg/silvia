@@ -67,14 +67,16 @@ public sealed class InspectService(AppHost host)
     }
 
     [NeoRpcMethod("coverage")]
-    public ValueTask<CoverageDto> CoverageAsync(ProjectIdScoped request, CancellationToken cancellationToken)
+    public async ValueTask<CoverageDto> CoverageAsync(ProjectIdScoped request, CancellationToken cancellationToken)
     {
         var runtime = Scope.Runtime(host.Manager, request.ProjectId);
         var rows = runtime.Coverage();
-        return ValueTask.FromResult(new CoverageDto(
+        var graph = await runtime.GraphSizeAsync(cancellationToken);
+        return new CoverageDto(
             runtime.RetrievalMode,
             runtime.CanEmbed ? runtime.Settings.EmbedModel : null,
             runtime.Settings.DocumentOverviews,
+            graph is { } g ? new GraphSizeDto(g.Documents, g.Entities, g.Relationships, g.Communities) : null,
             rows.Select(r => new DocumentCoverageDto(
                     r.DocumentId,
                     Path.GetFileName(r.DocumentId),
@@ -82,7 +84,7 @@ public sealed class InspectService(AppHost host)
                     (int)Math.Min(r.Characters, int.MaxValue),
                     r.HasOverview,
                     r.IndexedUtc))
-                .ToArray()));
+                .ToArray());
     }
 
     private static TracedHitDto ToDto(TracedHit hit) => new(

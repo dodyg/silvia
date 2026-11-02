@@ -57,6 +57,8 @@ export function Coverage({ projectId, onError }: Props) {
         <div className="stat"><dt>Passages</dt><dd>{passages.toLocaleString()}</dd></div>
         <div className="stat"><dt>Average passage</dt><dd>{passages === 0 ? 0 : Math.round(characters / passages).toLocaleString()}</dd></div>
         {coverage.overviewsOn ? <div className="stat"><dt>With overview</dt><dd>{withOverview} / {rows.length}</dd></div> : null}
+        {coverage.graph ? <div className="stat"><dt>In the knowledge graph</dt><dd>{coverage.graph.documents} / {rows.length}</dd></div> : null}
+        {coverage.graph ? <div className="stat"><dt>Entities</dt><dd>{coverage.graph.entities.toLocaleString()}</dd></div> : null}
         <div className={thin > 0 ? "stat stat-warn" : "stat"}><dt>Nearly empty</dt><dd>{thin}</dd></div>
       </dl>
 

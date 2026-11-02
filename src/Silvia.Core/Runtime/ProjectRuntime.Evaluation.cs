@@ -231,6 +231,7 @@ public sealed partial class ProjectRuntime
         new("Passage size", $"{Settings.ChunkTokens} tokens, {Settings.ChunkOverlap} overlap"),
         new("Passages per answer", Settings.TopK.ToString(System.Globalization.CultureInfo.InvariantCulture)),
         new("Document overviews", Settings.DocumentOverviews ? "On" : "Off"),
+        new("Knowledge graph", UsesGraph ? "On" : "Off"),
         new("Project facts", _facts.List().Count.ToString(System.Globalization.CultureInfo.InvariantCulture)),
         new("Instructions", Settings.SystemPrompt),
     ];

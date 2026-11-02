@@ -217,6 +217,7 @@ public sealed class SettingsService(AppHost host)
         (int)Math.Round(s.MemoryMinScore * 100),
         s.SystemPrompt,
         s.DocumentOverviews,
+        s.GraphRag,
         s.JudgeModel);
 
     /// <summary>Applies the editable fields to the stored settings. The embedder keeps its dimension.</summary>
@@ -261,6 +262,7 @@ public sealed class SettingsService(AppHost host)
             MemoryMinScore = dto.MemoryMinPercent / 100.0,
             SystemPrompt = dto.SystemPrompt,
             DocumentOverviews = dto.DocumentOverviews,
+            GraphRag = dto.GraphRag,
             JudgeModel = dto.JudgeModel?.Trim() ?? string.Empty,
         };
     }

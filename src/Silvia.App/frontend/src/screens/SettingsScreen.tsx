@@ -41,7 +41,7 @@ export function SettingsScreen({ projectId, appearance, onAppearance, onError, o
 
 /** Settings that change what an answer says, so a test set run before and after them can differ. */
 const ANSWER_SETTINGS: ReadonlyArray<keyof ProjectSettingsDto> = [
-  "embedModel", "rerankModel", "chatModel", "judgeModel", "cloudPolicy", "chunkTokens", "chunkOverlap", "topK", "systemPrompt", "documentOverviews",
+  "embedModel", "rerankModel", "chatModel", "judgeModel", "cloudPolicy", "chunkTokens", "chunkOverlap", "topK", "systemPrompt", "documentOverviews", "graphRag",
 ];
 
 /** After a save that changes answers: how many test questions there are, and when the set last ran. */
@@ -246,6 +246,27 @@ function ProjectSettings({ projectId, onError, onEvaluate }: { projectId: string
               <span className="field-hint">
                 {usesCloud
                   ? "Each document's text is sent to DeepSeek once when it is indexed or changes, not only the passages an answer uses."
+                  : "Needs the deepseek cloud policy."}
+              </span>
+            </span>
+          </label>
+        </Card>
+      </Section>
+
+      <Section title="Knowledge graph" description="A map of the people, organisations, products and systems in the project and how they relate, so an answer can join facts that sit in different documents.">
+        <Card>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={draft.graphRag}
+              disabled={!usesCloud}
+              onChange={(event) => set("graphRag", event.target.checked)}
+            />
+            <span>
+              Build a knowledge graph with the chat model (GraphRAG)
+              <span className="field-hint">
+                {usesCloud
+                  ? "Every passage is sent to DeepSeek when its file is indexed or changes, about one call per passage, plus a short report per group of related entities. Building it takes minutes for a small folder and costs more than overviews. Needs the local embedding model. Turning it off deletes the graph."
                   : "Needs the deepseek cloud policy."}
               </span>
             </span>
