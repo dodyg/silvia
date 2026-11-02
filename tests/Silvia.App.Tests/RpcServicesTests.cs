@@ -1,0 +1,90 @@
+using NeoAstra.Rpc;
+using Silvia.App.Hosting;
+using Silvia.App.Rpc;
+using Silvia.Core.Models;
+using Xunit;
+
+namespace Silvia.App.Tests;
+
+/// <summary>
+/// The RPC services exercised directly over real projects: two projects stay isolated through every
+/// service, foreign ids resolve to not_found, and invalid input is refused with a safe error code.
+/// Needs the local ONNX models (scripts/fetch-models.ps1); the test is skipped when they are absent.
+/// </summary>
+public sealed class RpcServicesTests
+{
+    [Fact]
+    public async Task Two_Projects_Stay_Isolated_Through_The_Rpc_Services()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var models = Environment.GetEnvironmentVariable("SILVIA_MODELS")
+            ?? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "models"));
+        if (!File.Exists(ModelCatalog.ModelFile(models, ModelCatalog.DefaultEmbedder)))
+        {
+            Assert.Skip("The local models are not downloaded. Run scripts/fetch-models.ps1 first.");
+        }
+
+        var data = Path.Combine(Path.GetTempPath(), "silvia-app-tests", Guid.NewGuid().ToString("N"));
+        Environment.SetEnvironmentVariable("SILVIA_DATA", data);
+        Environment.SetEnvironmentVariable("SILVIA_MODELS", models);
+        using var host = AppHost.Create();
+        try
+        {
+            var projects = new ProjectsService(host);
+            var library = new LibraryService(host);
+            var chat = new ChatService(host);
+            var settings = new SettingsService(host);
+
+            var alpha = await projects.CreateAsync(new CreateProjectRequest("Alpha", null, null), ct);
+            var beta = await projects.CreateAsync(new CreateProjectRequest("Beta", null, null), ct);
+            Assert.Equal(2, (await projects.ListAsync(new EmptyRequest(), ct)).Length);
+
+            var folder = Path.Combine(data, "alpha-notes");
+            Directory.CreateDirectory(folder);
+            await File.WriteAllTextAsync(Path.Combine(folder, "field.md"), "The Lumen kit carries a 40 watt solar charger.", ct);
+            await library.AddSourceAsync(new AddSourceRequest(alpha.Id, folder, null, null), ct);
+            await host.Manager.Open(alpha.Id).WaitForIdleAsync(ct);
+
+            Assert.Single(await library.ListDocumentsAsync(new ProjectIdScoped(alpha.Id), ct));
+            Assert.Empty(await library.ListDocumentsAsync(new ProjectIdScoped(beta.Id), ct));
+
+            var hits = await chat.SearchAsync(new SearchRequest(alpha.Id, "solar charger", 3), ct);
+            Assert.NotEmpty(hits);
+            Assert.Empty(await chat.SearchAsync(new SearchRequest(beta.Id, "solar charger", 3), ct));
+
+            var answer = await host.Manager.Open(alpha.Id).AskAsync(null, "What does the kit carry?", ct);
+            var mine = await chat.MessagesAsync(new ConversationIdRequest(alpha.Id, answer.ConversationId), ct);
+            Assert.NotEmpty(mine);
+            var foreign = await Assert.ThrowsAsync<NeoRpcException>(() =>
+                chat.MessagesAsync(new ConversationIdRequest(beta.Id, answer.ConversationId), ct).AsTask());
+            Assert.Equal("not_found", foreign.Code);
+
+            var rejected = await Assert.ThrowsAsync<NeoRpcException>(() =>
+                settings.UpdateAppearanceAsync(Appearance("Not A Real Font"), ct).AsTask());
+            Assert.Equal("invalid_request", rejected.Code);
+
+            var saved = await settings.UpdateAppearanceAsync(Appearance("Inter"), ct);
+            Assert.Equal("Inter", saved.InterfaceFont);
+            Assert.Equal("Inter", (await settings.GetAppearanceAsync(new EmptyRequest(), ct)).InterfaceFont);
+
+            await projects.DeleteAsync(new ProjectIdRequest(beta.Id), ct);
+            Assert.Single(await projects.ListAsync(new EmptyRequest(), ct));
+            Assert.False(Directory.Exists(Path.Combine(data, "projects", beta.Id)));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("SILVIA_DATA", null);
+            Environment.SetEnvironmentVariable("SILVIA_MODELS", null);
+        }
+    }
+
+    private static AppearanceDto Appearance(string interfaceFont) => new(
+        Theme: "dark",
+        InterfaceSize: 14,
+        ReadingSize: 16,
+        LineHeight: "comfortable",
+        ReadingWidth: "wide",
+        InterfaceFont: interfaceFont,
+        ReadingFont: "System default",
+        MonoFont: "System default");
+}

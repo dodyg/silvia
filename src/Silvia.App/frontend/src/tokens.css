@@ -1,0 +1,88 @@
+/*
+ * Design tokens. Every color in the app comes from these variables: components never use a literal
+ * color. Each color is defined for light and dark themes, and the contrast test checks the text pairs.
+ */
+
+:root {
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --surface-2: #f2f2ef;
+  --text: #1b1c1f;
+  --text-muted: #55585f;
+  --border: #8a8e96;
+  --accent: #2456d6;
+  --accent-text: #ffffff;
+  --citation: #0b6b4c;
+  --citation-bg: #e3f3ec;
+  --danger: #b42318;
+  --danger-bg: #fdeceb;
+  --code-bg: #efefeb;
+  --focus: #2456d6;
+  --score: #2456d6;
+  --selection: #d7e3ff;
+  --warn: #8a5300;
+  --warn-bg: #fff4dc;
+
+  --font-size-ui: 14px;
+  --font-size-reading: 16px;
+  --line-height: 1.55;
+  --reading-width: 72ch;
+  --radius: 6px;
+  --space: 0.75rem;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #17181a;
+  --surface: #1f2023;
+  --surface-2: #26282c;
+  --text: #e8e8ea;
+  --text-muted: #a4a7ae;
+  --border: #6f7480;
+  --accent: #8aa8ff;
+  --accent-text: #0e1116;
+  --citation: #74d6ab;
+  --citation-bg: #173427;
+  --danger: #ff8a80;
+  --danger-bg: #3a1d1b;
+  --code-bg: #121316;
+  --focus: #9db6ff;
+  --score: #8aa8ff;
+  --selection: #2a3c66;
+  --warn: #f0c26b;
+  --warn-bg: #3a2e14;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17181a;
+    --surface: #1f2023;
+    --surface-2: #26282c;
+    --text: #e8e8ea;
+    --text-muted: #a4a7ae;
+    --border: #6f7480;
+    --accent: #8aa8ff;
+    --accent-text: #0e1116;
+    --citation: #74d6ab;
+    --citation-bg: #173427;
+    --danger: #ff8a80;
+    --danger-bg: #3a1d1b;
+    --code-bg: #121316;
+    --focus: #9db6ff;
+    --score: #8aa8ff;
+    --selection: #2a3c66;
+    --warn: #f0c26b;
+    --warn-bg: #3a2e14;
+    color-scheme: dark;
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    --border: CanvasText;
+    --focus: Highlight;
+    --score: Highlight;
+    --citation: LinkText;
+  }
+}

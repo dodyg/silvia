@@ -42,6 +42,14 @@ public sealed class ProjectManager : IDisposable
 
     public IReadOnlyList<ProjectRecord> List() => Catalog.List();
 
+    /// <summary>An app-wide setting from the catalog (for example <c>appearance.theme</c>), or null.</summary>
+    public string? GetGlobal(string key) => Catalog.GetGlobal(key);
+
+    public void SetGlobal(string key, string value) => Catalog.SetGlobal(key, value);
+
+    /// <summary>The options this manager was created with: the data folder, limits and seams.</summary>
+    public ProjectManagerOptions Options => _options;
+
     /// <summary>How many project runtimes are open right now.</summary>
     public int OpenCount
     {

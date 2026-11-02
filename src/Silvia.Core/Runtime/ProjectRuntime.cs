@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using System.Text;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -327,6 +329,93 @@ public sealed class ProjectRuntime : IAsyncDisposable
         await _memory.StoreAsync([new EmbeddedChunk { Chunk = chunk, Embedding = embedding[0].Vector }], cancellationToken);
     }
 
+    /// <summary>
+    /// The streaming form of <see cref="AskAsync"/>: text arrives as it is generated, then the cited
+    /// chunks, then a final update with the conversation id. The answer is saved once it is complete.
+    /// </summary>
+    public async IAsyncEnumerable<AnswerUpdate> AskStreamAsync(
+        string? conversationId,
+        string question,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var conversation = conversationId is null
+            ? _conversations.Create(question)
+            : _conversations.Find(conversationId) ?? throw new KeyNotFoundException("Conversation not found in this project.");
+        yield return new AnswerUpdate("conversation", ConversationId: conversation.Id);
+
+        _conversations.Append(conversation.Id, "user", question);
+
+        if (Settings.CloudPolicy == CloudPolicies.SearchOnly || _chat is null)
+        {
+            var hits = await SearchAsync(question, cancellationToken: cancellationToken);
+            var cited = hits.Select(ToCited).ToList();
+            _conversations.Append(conversation.Id, "assistant", string.Empty, cited);
+            yield return new AnswerUpdate("sources", Sources: cited);
+            yield return new AnswerUpdate("done", ConversationId: conversation.Id);
+            yield break;
+        }
+
+        var history = _conversations.Messages(conversation.Id, last: 10)
+            .Where(m => m.Role is "user" or "assistant")
+            .Select(m => new ChatMessage(m.Role == "user" ? ChatRole.User : ChatRole.Assistant, m.Content))
+            .SkipLast(1)
+            .ToList();
+        var recalled = await RecallAsync(question, cancellationToken);
+        if (recalled is not null)
+        {
+            history.Insert(0, recalled);
+        }
+
+        var answer = new StringBuilder();
+        IReadOnlyList<CitedChunk> sources = [];
+        var stream = _pipeline.AskStreamingAsync(question, new RagOptions
+        {
+            ConversationHistory = history,
+            SystemPrompt = Settings.SystemPrompt,
+            TopK = Settings.TopK,
+            UseHybridSearch = true,
+            UseLostInTheMiddleReordering = true,
+            UseRedundancyFilter = true,
+        }, cancellationToken);
+
+        await foreach (var update in stream.WithCancellation(cancellationToken))
+        {
+            if (update.TextDelta is { Length: > 0 } delta)
+            {
+                answer.Append(delta);
+                yield return new AnswerUpdate("delta", Text: delta);
+            }
+
+            if (update.Sources is { } found)
+            {
+                sources = found.Select(ToCited).ToList();
+                yield return new AnswerUpdate("sources", Sources: sources);
+            }
+        }
+
+        _conversations.Append(conversation.Id, "assistant", answer.ToString(), sources);
+        var exchange = _conversations.Messages(conversation.Id).Count(m => m.Role == "user") - 1;
+        await RememberAsync(conversation.Id, exchange, question, answer.ToString(), cancellationToken);
+        yield return new AnswerUpdate("done", ConversationId: conversation.Id);
+    }
+
+    /// <summary>Ingest jobs that failed after their retries, newest first.</summary>
+    public IReadOnlyList<(string Path, string? Error, string? FinishedUtc)> RecentFailures(int limit = 20)
+    {
+        using var connection = SqliteStorage.Open(_databasePath);
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT path, error, finished_utc FROM ingest_jobs WHERE status = 'failed' ORDER BY id DESC LIMIT $limit";
+        command.Parameters.AddWithValue("$limit", limit);
+        using var reader = command.ExecuteReader();
+        var rows = new List<(string, string?, string?)>();
+        while (reader.Read())
+        {
+            rows.Add((reader.GetString(0), reader.IsDBNull(1) ? null : reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2)));
+        }
+
+        return rows;
+    }
+
     /// <summary>A conversation of this project, or null. Ids from other projects are never found here.</summary>
     public Conversation? GetConversation(string conversationId) => _conversations.Find(conversationId);
 
@@ -424,3 +513,10 @@ public sealed class ProjectRuntime : IAsyncDisposable
 
 /// <summary>An answer and the chunks it cites, within one conversation.</summary>
 public sealed record ChatAnswer(string ConversationId, string Answer, IReadOnlyList<CitedChunk> Sources);
+
+/// <summary>One step of a streamed answer: <c>conversation</c>, <c>delta</c>, <c>sources</c> or <c>done</c>.</summary>
+public sealed record AnswerUpdate(
+    string Kind,
+    string? ConversationId = null,
+    string? Text = null,
+    IReadOnlyList<CitedChunk>? Sources = null);

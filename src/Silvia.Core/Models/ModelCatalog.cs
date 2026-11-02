@@ -10,6 +10,13 @@ public static class ModelCatalog
     public const int DefaultEmbedderDims = 384;
     public const string DefaultReranker = "ms-marco-MiniLM-L-6-v2";
 
+    /// <summary>The models this build can load, with the vector length an embedder produces.</summary>
+    public static IReadOnlyList<KnownModel> Known { get; } =
+    [
+        new(DefaultEmbedder, "embedder", DefaultEmbedderDims),
+        new(DefaultReranker, "reranker", 0),
+    ];
+
     /// <summary>Path of the ONNX graph for an embedder or reranker.</summary>
     public static string ModelFile(string modelsDirectory, string modelId) =>
         Path.Combine(modelsDirectory, modelId + ".onnx");
@@ -18,3 +25,6 @@ public static class ModelCatalog
     public static string VocabularyFile(string modelsDirectory, string modelId) =>
         Path.Combine(modelsDirectory, modelId + ".vocab.txt");
 }
+
+/// <summary>A model this build can load. Dimensions are 0 for a reranker, which scores pairs rather than producing vectors.</summary>
+public sealed record KnownModel(string Id, string Kind, int Dimensions);
