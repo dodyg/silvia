@@ -55,6 +55,8 @@ const textPairs: Array<[string, string]> = [
   ["accent-text", "accent-hover"],
   ["citation", "citation-bg"],
   ["citation", "surface"],
+  ["success", "success-bg"],
+  ["success", "surface"],
   ["danger", "bg"],
   ["danger", "danger-bg"],
   ["surface", "danger"],
@@ -66,6 +68,8 @@ const graphicPairs: Array<[string, string]> = [
   ["focus", "surface"],
   ["focus", "sidebar"],
   ["score", "surface"],
+  ["rubric", "sidebar"],
+  ["rubric", "surface"],
   ["border-strong", "surface"],
   ["border-strong", "bg"],
 ];

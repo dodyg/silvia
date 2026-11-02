@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { chat, consume, describeError, evaluation, facts, formatWhen, library, type CitationDto, type ConversationDto, type MessageDto, type VerdictDto } from "../api";
 import { renderMarkdown } from "../markdown";
-import { Button, Empty, Field, Icon, Spinner } from "../ui";
+import { Button, Field, Icon, Spinner } from "../ui";
 import { AnswerCheck, markUnsupported } from "./AnswerCheck";
 
 interface Turn {
@@ -327,9 +327,13 @@ export function ChatScreen({ projectId, onError }: Props) {
       <section className="thread" aria-label="Conversation">
         {turns.length === 0 ? (
           <div className="thread-empty">
-            <Empty title="Ask about your documents" icon="chat">
-              Answers come from this project only, and every answer cites the files it used.
-            </Empty>
+            <div className="hero">
+              <span className="hero-rule" aria-hidden="true" />
+              <h2 className="hero-title">
+                Ask your <em>documents</em>.
+              </h2>
+              <p className="hero-lede">Answers come from this project only, and every answer cites the files it used.</p>
+            </div>
           </div>
         ) : (
           <div className="messages" aria-live="polite">

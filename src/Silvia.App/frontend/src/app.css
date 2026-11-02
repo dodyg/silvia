@@ -86,9 +86,10 @@ h3 {
   align-items: center;
   gap: 0.55rem;
   padding: 0.15rem 0.5rem;
-  font-weight: 650;
-  font-size: 1.05rem;
-  letter-spacing: 0.01em;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.4rem;
+  letter-spacing: -0.01em;
 }
 
 .brand-mark {
@@ -99,8 +100,10 @@ h3 {
   border-radius: var(--radius-sm);
   background: var(--accent);
   color: var(--accent-text);
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 400;
+  box-shadow: inset 0 -3px 0 var(--rubric);
 }
 
 .project-switch {
@@ -173,9 +176,18 @@ h3 {
 }
 
 .nav button[aria-current="page"] {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--surface);
+  color: var(--text);
   font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--rubric), var(--shadow-sm);
+}
+
+.nav button[aria-current="page"] .icon {
+  color: var(--rubric);
+}
+
+[dir="rtl"] .nav button[aria-current="page"] {
+  box-shadow: inset -3px 0 0 var(--rubric), var(--shadow-sm);
 }
 
 .nav button:disabled {
@@ -232,11 +244,17 @@ h3 {
   margin-bottom: 1.75rem;
 }
 
+.page-head {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
 .page-head h1 {
   margin: 0;
-  font-size: 1.6rem;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: 2.3rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
 }
 
 .page-desc {
@@ -266,8 +284,9 @@ h3 {
 }
 
 .section-head h2 {
-  font-size: 1.05rem;
-  font-weight: 650;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 400;
   margin: 0;
 }
 
@@ -584,8 +603,8 @@ textarea {
 }
 
 .badge-ready {
-  background: var(--citation-bg);
-  color: var(--citation);
+  background: var(--success-bg);
+  color: var(--success);
 }
 
 .badge-danger {
@@ -639,14 +658,16 @@ textarea {
   width: 2.75rem;
   height: 2.75rem;
   border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--citation-bg);
+  color: var(--rubric);
   margin-bottom: 0.75rem;
 }
 
 .empty h2 {
   color: var(--text);
-  font-size: 1.1rem;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 400;
   margin: 0 0 0.35rem;
 }
 
@@ -733,7 +754,7 @@ textarea {
   min-height: 0;
   padding: 1.25rem 0.75rem;
   border-inline-end: 1px solid var(--border);
-  background: var(--surface);
+  background: var(--bg);
 }
 
 /* Only the New chat button spans the column; buttons inside the list keep their own size. */
@@ -743,8 +764,10 @@ textarea {
 
 .chat-list-head {
   padding: 0 0.5rem;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--text-muted);
 }
 
@@ -786,7 +809,8 @@ textarea {
 }
 
 .conversation[aria-current="true"] {
-  background: var(--accent-soft);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .conversation-title {
@@ -889,6 +913,69 @@ textarea {
   padding: 2rem;
 }
 
+/* The empty thread: a title page for the project, set in the display serif. */
+.hero {
+  display: grid;
+  justify-items: center;
+  gap: 1.1rem;
+  max-width: 40rem;
+  text-align: center;
+}
+
+.hero-rule {
+  display: block;
+  width: 3.5rem;
+  height: 3px;
+  background: var(--rubric);
+}
+
+.hero-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 6vw, 4.5rem);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.hero-title em {
+  color: var(--rubric);
+  font-style: normal;
+}
+
+.hero-lede {
+  margin: 0;
+  max-width: 30rem;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero > * {
+    animation: rise 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  .hero > :nth-child(2) {
+    animation-delay: 70ms;
+  }
+
+  .hero > :nth-child(3) {
+    animation-delay: 140ms;
+  }
+
+  .message {
+    animation: rise 320ms ease-out both;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
 .message {
   max-width: var(--reading-width);
   font-size: var(--font-size-reading);
@@ -899,11 +986,18 @@ textarea {
 }
 
 .message.user {
-  align-self: flex-end;
-  max-width: min(var(--reading-width), 85%);
-  background: var(--accent-soft);
-  border-radius: 1.1rem 1.1rem 0.35rem 1.1rem;
-  padding: 0.6rem 1rem;
+  margin-top: 1rem;
+  padding-inline-start: 1rem;
+  border-inline-start: 3px solid var(--rubric);
+  font-family: var(--font-display);
+  font-size: calc(var(--font-size-reading) * 1.3);
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.messages-inner > .message.user:first-child {
+  margin-top: 0;
 }
 
 .message.user p {
@@ -961,15 +1055,20 @@ textarea {
   padding: 0 0.25rem;
   margin-inline: 0.1rem;
   border-radius: 999px;
-  background: var(--citation-bg);
+  background: none;
   color: var(--citation);
   font-family: var(--font-ui);
-  font-size: 0.7rem;
-  font-weight: 650;
+  font-size: 0.75rem;
+  font-weight: 700;
   line-height: 1;
   text-decoration: none;
   vertical-align: 0.35em;
   cursor: pointer;
+}
+
+.cite:hover,
+.message a[href^="#cite-"]:hover {
+  background: var(--citation-bg);
 }
 
 .sources {
@@ -1012,7 +1111,7 @@ textarea {
   background: var(--citation-bg);
   color: var(--citation);
   font-size: 0.75rem;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .source-name {
@@ -1086,7 +1185,7 @@ textarea {
 
 .composer-box:focus-within {
   border-color: var(--focus);
-  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-md);
+  box-shadow: 0 0 0 3px var(--citation-bg), var(--shadow-md);
 }
 
 .composer textarea {
@@ -1934,7 +2033,7 @@ mark.unsupported {
 .claim-mark {
   flex: none;
   width: 1rem;
-  color: var(--citation);
+  color: var(--success);
   font-weight: 700;
 }
 
@@ -2031,7 +2130,7 @@ mark.unsupported {
 }
 
 .mark-ok {
-  color: var(--citation);
+  color: var(--success);
   white-space: nowrap;
 }
 
