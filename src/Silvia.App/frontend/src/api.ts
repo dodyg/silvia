@@ -1,17 +1,23 @@
 import { createDesktopClient, invoke, subscribe } from "@neoastra/client";
-import { chat, facts, inspect, library, projects, settings } from "#neoastra";
+import { chat, evaluation, facts, inspect, library, projects, settings } from "#neoastra";
 
-export { chat, facts, inspect, library, projects, settings };
+export { chat, evaluation, facts, inspect, library, projects, settings };
 export type {
   AppearanceDto,
   AskUpdateDto,
   CitationDto,
+  ClaimDto,
   ConversationDto,
   CoverageDto,
   DocumentCoverageDto,
   DocumentDetailDto,
   DocumentDto,
+  EvalQuestionDto,
+  EvalResultDto,
+  EvalRunDetailDto,
+  EvalRunDto,
   FactDto,
+  FactVerdictDto,
   FailureDto,
   FontListDto,
   GlobalSettingsDto,
@@ -24,10 +30,15 @@ export type {
   ModelDto,
   ProjectDto,
   ProjectSettingsDto,
+  QuestionChangeDto,
+  RunComparisonDto,
+  RunEstimateDto,
+  SettingChangeDto,
   ChatProviderDto,
   SourceDto,
   TraceDto,
   TracedHitDto,
+  VerdictDto,
 } from "#neoastra";
 
 /** Native dialogs (folder and file pickers). Calls are denied when the host has not granted them. */

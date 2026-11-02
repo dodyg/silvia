@@ -44,6 +44,15 @@ public sealed class SettingsService(AppHost host)
             }
         }
 
+        if (next.JudgeModel.Length > 0 && next.JudgeModel != current.JudgeModel && next.CloudPolicy == CloudPolicies.DeepSeek)
+        {
+            var check = await host.ChatProvider.CheckAsync(null, cancellationToken);
+            if (check.Offers(next.JudgeModel) == false)
+            {
+                throw Scope.Invalid($"DeepSeek does not offer the judge model '{next.JudgeModel}'. Choose one of: {string.Join(", ", check.Models)}.");
+            }
+        }
+
         host.Manager.UpdateSettings(request.ProjectId, next);
         return ToDto(next);
     }
@@ -207,7 +216,8 @@ public sealed class SettingsService(AppHost host)
         s.MemoryTopK,
         (int)Math.Round(s.MemoryMinScore * 100),
         s.SystemPrompt,
-        s.DocumentOverviews);
+        s.DocumentOverviews,
+        s.JudgeModel);
 
     /// <summary>Applies the editable fields to the stored settings. The embedder keeps its dimension.</summary>
     private static ProjectSettings FromDto(ProjectSettingsDto dto, ProjectSettings current)
@@ -251,6 +261,7 @@ public sealed class SettingsService(AppHost host)
             MemoryMinScore = dto.MemoryMinPercent / 100.0,
             SystemPrompt = dto.SystemPrompt,
             DocumentOverviews = dto.DocumentOverviews,
+            JudgeModel = dto.JudgeModel?.Trim() ?? string.Empty,
         };
     }
 }

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { chat, consume, describeError, facts, formatWhen, library, type CitationDto, type ConversationDto, type MessageDto } from "../api";
+import { chat, consume, describeError, evaluation, facts, formatWhen, library, type CitationDto, type ConversationDto, type MessageDto, type VerdictDto } from "../api";
 import { renderMarkdown } from "../markdown";
-import { Button, Empty, Icon, Spinner } from "../ui";
+import { Button, Empty, Field, Icon, Spinner } from "../ui";
+import { AnswerCheck, markUnsupported } from "./AnswerCheck";
 
 interface Turn {
   role: "user" | "assistant";
@@ -11,6 +12,19 @@ interface Turn {
   stopped?: boolean;
   /** Set once the person saved a correction of this answer as a project fact. */
   corrected?: boolean;
+  /** The judge's reading of this answer, once the person asked for it. */
+  check?: { status: "checking" } | { status: "done"; verdict: VerdictDto } | { status: "failed"; message: string };
+  /** Set once the person saved this question to the project's test set. */
+  savedTest?: boolean;
+}
+
+/** A question being saved to the test set from an answer, as typed so far. */
+interface TestDraft {
+  turn: number;
+  question: string;
+  facts: string;
+  documentId: string;
+  noAnswer: boolean;
 }
 
 /** A document overview arrives as a citation with this chunk index; real passages count from zero. */
@@ -32,6 +46,7 @@ export function ChatScreen({ projectId, onError }: Props) {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   // The answer being corrected, and the fact typed so far.
   const [correcting, setCorrecting] = useState<{ turn: number; text: string } | null>(null);
+  const [testing, setTesting] = useState<TestDraft | null>(null);
   const abort = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
 
@@ -60,6 +75,7 @@ export function ChatScreen({ projectId, onError }: Props) {
     setActiveId(conversation.id);
     setPicked(null);
     setCorrecting(null);
+    setTesting(null);
     try {
       const rows: ReadonlyArray<MessageDto> = await chat.messages({ projectId, conversationId: conversation.id });
       setTurns(rows.map((row) => ({ role: row.role === "user" ? "user" : "assistant", content: row.content, sources: [...row.sources] })));
@@ -75,6 +91,7 @@ export function ChatScreen({ projectId, onError }: Props) {
     setTurns([]);
     setPicked(null);
     setCorrecting(null);
+    setTesting(null);
   }
 
   async function remove(conversation: ConversationDto) {
@@ -102,6 +119,7 @@ export function ChatScreen({ projectId, onError }: Props) {
     }
 
     setCorrecting(null);
+    setTesting(null);
     setBusy(true);
     setPicked(null);
     onError(null);
@@ -156,6 +174,58 @@ export function ChatScreen({ projectId, onError }: Props) {
     }
   }
 
+  function patchTurn(index: number, change: (turn: Turn) => Turn) {
+    setTurns((rows) => rows.map((row, i) => (i === index ? change(row) : row)));
+  }
+
+  /** The question an answer replies to: the user turn just before it. */
+  function questionFor(index: number): string {
+    return index > 0 && turns[index - 1].role === "user" ? turns[index - 1].content : "";
+  }
+
+  async function checkAnswer(index: number) {
+    const turn = turns[index];
+    patchTurn(index, (row) => ({ ...row, check: { status: "checking" } }));
+    try {
+      const verdict = await evaluation.checkAnswer({ projectId, question: questionFor(index), answer: turn.content, sources: turn.sources });
+      patchTurn(index, (row) => ({ ...row, check: { status: "done", verdict } }));
+    } catch (failure) {
+      patchTurn(index, (row) => ({ ...row, check: { status: "failed", message: describeError(failure) } }));
+    }
+  }
+
+  function startTest(index: number) {
+    const turn = turns[index];
+    // A checked answer offers its backed statements as the facts to keep; the person edits them.
+    const backed = turn.check?.status === "done" ? turn.check.verdict.claims.filter((c) => c.supported).map((c) => c.text) : [];
+    const cited = turn.sources.find((s) => s.chunkIndex !== OVERVIEW_CHUNK) ?? turn.sources[0];
+    setCorrecting(null);
+    setTesting({ turn: index, question: questionFor(index), facts: backed.join("\n"), documentId: cited?.documentId ?? "", noAnswer: false });
+  }
+
+  async function saveTest() {
+    if (!testing) {
+      return;
+    }
+
+    const draft = testing;
+    try {
+      await evaluation.addQuestion({
+        projectId,
+        question: draft.question,
+        facts: draft.noAnswer ? [] : draft.facts.split("\n").map((f) => f.trim()).filter((f) => f.length > 0),
+        documentId: draft.noAnswer || draft.documentId === "" ? null : draft.documentId,
+        expectNoAnswer: draft.noAnswer,
+        origin: "chat",
+      });
+      setTesting(null);
+      patchTurn(draft.turn, (row) => ({ ...row, savedTest: true }));
+      onError(null);
+    } catch (failure) {
+      onError(describeError(failure));
+    }
+  }
+
   function onKey(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
@@ -172,6 +242,25 @@ export function ChatScreen({ projectId, onError }: Props) {
     event.preventDefault();
     const number = Number(anchor.getAttribute("href")?.replace("#cite-", ""));
     setPicked({ turn: turnIndex, source: number - 1 });
+  }
+
+  function testButtons(index: number, turn: Turn) {
+    return (
+      <>
+        {turn.check ? null : (
+          <Button size="sm" variant="quiet" disabled={busy} onClick={() => void checkAnswer(index)}>
+            <Icon name="check" /> Check this answer
+          </Button>
+        )}
+        {turn.savedTest ? (
+          <span className="message-note">Saved to the test set.</span>
+        ) : (
+          <Button size="sm" variant="quiet" onClick={() => startTest(index)}>
+            <Icon name="plus" /> Save as test question
+          </Button>
+        )}
+      </>
+    );
   }
 
   const evidence = useMemo(() => {
@@ -252,7 +341,7 @@ export function ChatScreen({ projectId, onError }: Props) {
                   ) : (
                     <>
                       {turn.content.length === 0 && busy && index === turns.length - 1 ? <Spinner label="Writing the answer" /> : null}
-                      <div dangerouslySetInnerHTML={{ __html: renderMarkdown(withCitations(turn.content)) }} />
+                      <div dangerouslySetInnerHTML={{ __html: markUnsupported(renderMarkdown(withCitations(turn.content)), turn.check?.status === "done" ? turn.check.verdict.claims : []) }} />
                       {turn.stopped ? (
                         <p className="message-note">{turn.content.length === 0 ? "Stopped before an answer arrived." : "Stopped."}</p>
                       ) : turn.content.length === 0 && !(busy && index === turns.length - 1) ? (
@@ -278,7 +367,47 @@ export function ChatScreen({ projectId, onError }: Props) {
                           ))}
                         </div>
                       ) : null}
-                      {turn.content.length > 0 && !(busy && index === turns.length - 1) ? (
+                      {turn.check ? (
+                        <AnswerCheck
+                          check={turn.check}
+                          onCite={(number) => setPicked({ turn: index, source: number - 1 })}
+                          onRetry={() => void checkAnswer(index)}
+                        />
+                      ) : null}
+                      {testing?.turn === index ? (
+                        <form className="correction" onSubmit={(event) => { event.preventDefault(); void saveTest(); }}>
+                          <Field label="Test question">
+                            <textarea rows={2} maxLength={2000} value={testing.question} onChange={(event) => setTesting({ ...testing, question: event.target.value })} autoFocus />
+                          </Field>
+                          <label className="check">
+                            <input type="checkbox" checked={testing.noAnswer} onChange={(event) => setTesting({ ...testing, noAnswer: event.target.checked })} />
+                            <span>
+                              The documents do not answer this
+                              <span className="field-hint">The right reply then says so instead of answering.</span>
+                            </span>
+                          </label>
+                          {testing.noAnswer ? null : (
+                            <>
+                              <Field label="Facts a right answer states" hint="One per line. For a wrong answer, write what the right one says.">
+                                <textarea rows={4} value={testing.facts} onChange={(event) => setTesting({ ...testing, facts: event.target.value })} placeholder="The pilot launches on 14 March 2027." />
+                              </Field>
+                              <Field label="Expected document" hint="A run also checks that search finds this file.">
+                                <select value={testing.documentId} onChange={(event) => setTesting({ ...testing, documentId: event.target.value })}>
+                                  <option value="">Any document</option>
+                                  {distinctDocuments(turn.sources).map((source) => (
+                                    <option key={source.documentId} value={source.documentId}>{source.fileName}</option>
+                                  ))}
+                                </select>
+                              </Field>
+                            </>
+                          )}
+                          <div className="row">
+                            <Button size="sm" type="submit" variant="primary" disabled={testing.question.trim().length === 0}>Save test question</Button>
+                            <Button size="sm" variant="quiet" onClick={() => setTesting(null)}>Cancel</Button>
+                          </div>
+                        </form>
+                      ) : null}
+                      {turn.content.length > 0 && !(busy && index === turns.length - 1) && testing?.turn !== index ? (
                         correcting?.turn === index ? (
                           <form className="correction" onSubmit={(event) => { event.preventDefault(); void saveCorrection(); }}>
                             <label className="field">
@@ -301,6 +430,7 @@ export function ChatScreen({ projectId, onError }: Props) {
                         ) : turn.corrected ? (
                           <div className="message-actions">
                             <span className="message-note">Saved as a project fact.</span>
+                            {testButtons(index, turn)}
                             {index > 0 && turns[index - 1].role === "user" ? (
                               <Button size="sm" variant="quiet" disabled={busy} onClick={() => void send(turns[index - 1].content)}>
                                 <Icon name="refresh" /> Ask again
@@ -309,9 +439,10 @@ export function ChatScreen({ projectId, onError }: Props) {
                           </div>
                         ) : (
                           <div className="message-actions">
-                            <Button size="sm" variant="quiet" onClick={() => setCorrecting({ turn: index, text: "" })}>
+                            <Button size="sm" variant="quiet" onClick={() => { setTesting(null); setCorrecting({ turn: index, text: "" }); }}>
                               <Icon name="fact" /> Correct this
                             </Button>
+                            {testButtons(index, turn)}
                           </div>
                         )
                       ) : null}
@@ -382,6 +513,18 @@ export function ChatScreen({ projectId, onError }: Props) {
 
 function sourceName(source: CitationDto): string {
   return source.chunkIndex === OVERVIEW_CHUNK ? `Overview · ${source.fileName}` : source.fileName;
+}
+
+function distinctDocuments(sources: CitationDto[]): CitationDto[] {
+  const seen = new Set<string>();
+  return sources.filter((source) => {
+    if (seen.has(source.documentId)) {
+      return false;
+    }
+
+    seen.add(source.documentId);
+    return true;
+  });
 }
 
 function patchLast(rows: Turn[], change: (turn: Turn) => Turn): Turn[] {

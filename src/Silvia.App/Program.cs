@@ -36,6 +36,7 @@ internal static class Program
                 .AddChatService(new ChatService(host))
                 .AddFactsService(new FactsService(host))
                 .AddInspectService(new InspectService(host))
+                .AddEvaluationService(new EvaluationService(host))
                 .AddSettingsService(new SettingsService(host)));
         });
     }

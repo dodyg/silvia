@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { describeError, settings, type ChatProviderDto, type FontListDto, type GlobalSettingsDto, type ModelDto, type ProjectSettingsDto } from "../api";
+import { describeError, evaluation, formatWhen, settings, type ChatProviderDto, type FontListDto, type GlobalSettingsDto, type ModelDto, type ProjectSettingsDto } from "../api";
 import { INTERFACE_SIZE, READING_SIZE, SYSTEM_FONT, type Appearance, type LineHeightChoice, type ReadingWidthChoice, type ThemeChoice } from "../theme";
 import { renderMarkdown } from "../markdown";
 import { Banner, Button, Card, Field, PageHeader, Section } from "../ui";
@@ -9,11 +9,13 @@ interface Props {
   appearance: Appearance;
   onAppearance: (next: Appearance) => void | Promise<void>;
   onError: (message: string | null) => void;
+  /** Opens the Evaluate screen, after a run was started from here. */
+  onEvaluate: () => void;
 }
 
 type Tab = "project" | "global" | "appearance";
 
-export function SettingsScreen({ projectId, appearance, onAppearance, onError }: Props) {
+export function SettingsScreen({ projectId, appearance, onAppearance, onError, onEvaluate }: Props) {
   const [tab, setTab] = useState<Tab>("appearance");
 
   return (
@@ -27,7 +29,7 @@ export function SettingsScreen({ projectId, appearance, onAppearance, onError }:
         ))}
       </div>
       {tab === "project" ? (
-        projectId ? <ProjectSettings projectId={projectId} onError={onError} /> : <Banner tone="info">Choose a project to change its settings.</Banner>
+        projectId ? <ProjectSettings projectId={projectId} onError={onError} onEvaluate={onEvaluate} /> : <Banner tone="info">Choose a project to change its settings.</Banner>
       ) : tab === "global" ? (
         <GlobalSettings onError={onError} />
       ) : (
@@ -37,12 +39,24 @@ export function SettingsScreen({ projectId, appearance, onAppearance, onError }:
   );
 }
 
-function ProjectSettings({ projectId, onError }: { projectId: string; onError: (message: string | null) => void }) {
+/** Settings that change what an answer says, so a test set run before and after them can differ. */
+const ANSWER_SETTINGS: ReadonlyArray<keyof ProjectSettingsDto> = [
+  "embedModel", "rerankModel", "chatModel", "judgeModel", "cloudPolicy", "chunkTokens", "chunkOverlap", "topK", "systemPrompt", "documentOverviews",
+];
+
+/** After a save that changes answers: how many test questions there are, and when the set last ran. */
+interface CompareOffer {
+  questions: number;
+  lastRun: string | null;
+}
+
+function ProjectSettings({ projectId, onError, onEvaluate }: { projectId: string; onError: (message: string | null) => void; onEvaluate: () => void }) {
   const [current, setCurrent] = useState<ProjectSettingsDto | null>(null);
   const [draft, setDraft] = useState<ProjectSettingsDto | null>(null);
   const [models, setModels] = useState<ModelDto[]>([]);
   const [saved, setSaved] = useState<string | null>(null);
   const [provider, setProvider] = useState<ChatProviderDto | null>(null);
+  const [offer, setOffer] = useState<CompareOffer | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -74,6 +88,7 @@ function ProjectSettings({ projectId, onError }: { projectId: string; onError: (
 
   function set<K extends keyof ProjectSettingsDto>(key: K, value: ProjectSettingsDto[K]) {
     setSaved(null);
+    setOffer(null);
     setDraft((state) => (state ? { ...state, [key]: value } : state));
   }
 
@@ -83,11 +98,37 @@ function ProjectSettings({ projectId, onError }: { projectId: string; onError: (
     }
 
     try {
+      const before = current;
       const next = await settings.updateProject({ projectId, settings: draft });
       setCurrent(next);
       setDraft(next);
       setSaved("Saved. The project reopens with these settings the next time it is used.");
       onError(null);
+      if (before && ANSWER_SETTINGS.some((key) => before[key] !== next[key])) {
+        void offerCompare();
+      }
+    } catch (failure) {
+      onError(describeError(failure));
+    }
+  }
+
+  async function offerCompare() {
+    try {
+      const [questions, runs] = await Promise.all([evaluation.listQuestions({ projectId }), evaluation.listRuns({ projectId })]);
+      const count = questions.filter((q) => !q.draft).length;
+      const last = runs.find((r) => r.status !== "running" && r.completed > 0);
+      setOffer(count > 0 ? { questions: count, lastRun: last?.startedUtc ?? null } : null);
+    } catch {
+      // The offer is a convenience; the settings are saved either way.
+      setOffer(null);
+    }
+  }
+
+  async function runTestSet() {
+    try {
+      await evaluation.startRun({ projectId });
+      onError(null);
+      onEvaluate();
     } catch (failure) {
       onError(describeError(failure));
     }
@@ -95,6 +136,17 @@ function ProjectSettings({ projectId, onError }: { projectId: string; onError: (
 
   return (
     <div>
+      {offer ? (
+        <Banner tone="info">
+          {offer.lastRun
+            ? `Your ${offer.questions} test ${offer.questions === 1 ? "question" : "questions"} last ran on ${formatWhen(offer.lastRun)}, before this change. Run them again to see what it did.`
+            : `Run your ${offer.questions} test ${offer.questions === 1 ? "question" : "questions"} now, so the next change has a run to compare with.`}
+          <div className="row banner-actions">
+            <Button size="sm" variant="primary" onClick={() => void runTestSet()}>Run test set</Button>
+            <Button size="sm" variant="quiet" onClick={onEvaluate}>Open Evaluate</Button>
+          </div>
+        </Banner>
+      ) : null}
       {embedderChanged ? (
         <Banner tone="warn">
           Changing the embedder re-embeds every document the next time this project opens. Search keeps using the old vectors until that finishes.
@@ -139,6 +191,19 @@ function ProjectSettings({ projectId, onError }: { projectId: string; onError: (
                 </select>
               ) : (
                 <input type="text" value={draft.chatModel} onChange={(event) => set("chatModel", event.target.value)} />
+              )}
+            </Field>
+            <Field label="Judge model" hint="Grades answers in Evaluate. A model other than the chat model gives a more independent grade.">
+              {offered ? (
+                <select value={draft.judgeModel ?? ""} onChange={(event) => set("judgeModel", event.target.value)}>
+                  <option value="">Same as the chat model</option>
+                  {draft.judgeModel && !offered.includes(draft.judgeModel) ? <option value={draft.judgeModel}>{draft.judgeModel} (not offered by DeepSeek)</option> : null}
+                  {offered.map((model) => (
+                    <option key={model} value={model}>{model}</option>
+                  ))}
+                </select>
+              ) : (
+                <input type="text" value={draft.judgeModel ?? ""} placeholder="Same as the chat model" onChange={(event) => set("judgeModel", event.target.value)} />
               )}
             </Field>
           </div>

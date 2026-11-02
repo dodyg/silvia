@@ -200,7 +200,7 @@ export const settings = Object.freeze({
     return delay({ ...appearance });
   },
   listFonts: () => delay(fonts),
-  getProject: () => delay({ embedModel: "bge-small-en-v1.5", embedDims: 384, rerankModel: "ms-marco-MiniLM-L-6-v2", chatModel: "deepseek-chat", cloudPolicy: "deepseek", chunkTokens: 400, chunkOverlap: 60, topK: 6, memoryTopK: 3, memoryMinPercent: 70, systemPrompt: "Answer from the numbered context.", documentOverviews: true }),
+  getProject: () => delay({ embedModel: "bge-small-en-v1.5", embedDims: 384, rerankModel: "ms-marco-MiniLM-L-6-v2", chatModel: "deepseek-chat", cloudPolicy: "deepseek", chunkTokens: 400, chunkOverlap: 60, topK: 6, memoryTopK: 3, memoryMinPercent: 70, systemPrompt: "Answer from the numbered context.", documentOverviews: true, judgeModel: "" }),
   updateProject: (request: { settings: unknown }) => delay(request.settings),
   listModels: () => delay([
     { id: "bge-small-en-v1.5", kind: "embedder", dimensions: 384, installed: true, default: true },
@@ -211,4 +211,144 @@ export const settings = Object.freeze({
   verifyDeepSeekKey: () => delay(providerOk("The key works. DeepSeek offers 2 chat models.")),
   listChatModels: () => delay(providerOk("The key works. DeepSeek offers 2 chat models.")),
   removeDeepSeekKey: () => delay({}),
+});
+
+type MockQuestion = { id: string; question: string; facts: string[]; documentId: string | null; fileName: string | null; expectNoAnswer: boolean; origin: string; draft: boolean; createdUtc: string };
+const evalQuestions: MockQuestion[] = [
+  { id: "1", question: "When does the Lumen pilot launch?", facts: ["The pilot launches on 14 March 2027."], documentId: sample.citation.documentId, fileName: "handbook.md", expectNoAnswer: false, origin: "chat", draft: false, createdUtc: now },
+  { id: "2", question: "Which cities does the pilot start in?", facts: ["Lisbon", "Nairobi"], documentId: sample.citation.documentId, fileName: "handbook.md", expectNoAnswer: false, origin: "manual", draft: false, createdUtc: now },
+  { id: "3", question: "What is the pilot's marketing budget?", facts: [], documentId: null, fileName: null, expectNoAnswer: true, origin: "manual", draft: false, createdUtc: now },
+];
+
+const runSettings = (chunk: number) => [
+  { name: "Chat model", value: "deepseek-flash" },
+  { name: "Judge model", value: "deepseek-v4-pro" },
+  { name: "Search", value: "Vectors and keywords (bge-small-en-v1.5)" },
+  { name: "Reranker", value: "ms-marco-MiniLM-L-6-v2" },
+  { name: "Passage size", value: `${chunk} tokens, 60 overlap` },
+  { name: "Passages per answer", value: "6" },
+];
+
+const goodVerdict = {
+  claims: [
+    { text: "The pilot launches on 14 March 2027", supported: true, sources: [2], reason: "Passage 2 gives this date." },
+    { text: "Kits ship from the Porto warehouse", supported: false, sources: [], reason: "No passage names a warehouse." },
+  ],
+  facts: [{ fact: "The pilot launches on 14 March 2027.", stated: true, reason: "The date is stated." }],
+  answersQuestion: true,
+  declines: false,
+  summary: "Gives the right date, but adds a shipping detail the passages do not mention.",
+};
+
+function mockResult(runId: string, q: MockQuestion, passed: boolean) {
+  return {
+    questionId: q.id,
+    question: q.question,
+    facts: q.facts,
+    expectNoAnswer: q.expectNoAnswer,
+    answer: q.expectNoAnswer ? "The documents do not say what the marketing budget is." : "The pilot launches on 14 March 2027 [2]. Kits ship from the Porto warehouse.",
+    sources: [sample.overview, sample.citation],
+    verdict: q.expectNoAnswer
+      ? { claims: [], facts: [], answersQuestion: true, declines: true, summary: "Says the documents do not hold the budget." }
+      : { ...goodVerdict, facts: q.facts.map((fact) => ({ fact, stated: passed, reason: passed ? "Stated." : "Not mentioned." })) },
+    foundDocument: q.documentId === null ? null : true,
+    passed: q.expectNoAnswer || passed,
+    error: null,
+  };
+}
+
+type MockRun = { id: string; status: string; startedUtc: string; finishedUtc: string | null; total: number; settings: Array<{ name: string; value: string }>; error: string | null; results: ReturnType<typeof mockResult>[] };
+const evalRuns: MockRun[] = [
+  { id: "2", status: "done", startedUtc: "2026-11-02T09:00:00Z", finishedUtc: now, total: 3, settings: runSettings(400), error: null, results: evalQuestions.map((q) => mockResult("2", q, q.id !== "2")) },
+  { id: "1", status: "done", startedUtc: "2026-11-01T09:00:00Z", finishedUtc: now, total: 3, settings: runSettings(200), error: null, results: evalQuestions.map((q) => mockResult("1", q, false)) },
+];
+
+function runDto(run: MockRun) {
+  const verdicts = run.results.map((r) => r.verdict);
+  return {
+    id: run.id, status: run.status, startedUtc: run.startedUtc, finishedUtc: run.finishedUtc, total: run.total,
+    completed: run.results.length,
+    passed: run.results.filter((r) => r.passed).length,
+    factsStated: verdicts.reduce((n, v) => n + v.facts.filter((f) => f.stated).length, 0),
+    factsTotal: run.results.reduce((n, r) => n + r.facts.length, 0),
+    claimsSupported: verdicts.reduce((n, v) => n + v.claims.filter((c) => c.supported).length, 0),
+    claimsTotal: verdicts.reduce((n, v) => n + v.claims.length, 0),
+    documentsFound: run.results.filter((r) => r.foundDocument === true).length,
+    documentsExpected: run.results.filter((r) => r.foundDocument !== null).length,
+    settings: run.settings, error: run.error,
+  };
+}
+
+export const evaluation = Object.freeze({
+  listQuestions: () => delay(evalQuestions.slice()),
+  addQuestion: (request: { question: string; facts: string[]; documentId: string | null; expectNoAnswer: boolean; origin: string }) => {
+    const q = { id: String(evalQuestions.length + 10), question: request.question.trim(), facts: request.facts, documentId: request.documentId, fileName: request.documentId?.split("/").pop() ?? null, expectNoAnswer: request.expectNoAnswer, origin: request.origin, draft: false, createdUtc: now };
+    evalQuestions.push(q);
+    return delay(q);
+  },
+  updateQuestion: (request: { id: string; question: string; facts: string[]; expectNoAnswer: boolean }) => {
+    const q = evalQuestions.find((x) => x.id === request.id)!;
+    Object.assign(q, { question: request.question, facts: request.facts, expectNoAnswer: request.expectNoAnswer });
+    return delay({ ...q });
+  },
+  acceptQuestion: (request: { id: string }) => {
+    const q = evalQuestions.find((x) => x.id === request.id)!;
+    q.draft = false;
+    return delay({ ...q });
+  },
+  deleteQuestion: (request: { id: string }) => {
+    const index = evalQuestions.findIndex((x) => x.id === request.id);
+    if (index >= 0) evalQuestions.splice(index, 1);
+    return delay({});
+  },
+  draftQuestions: () => {
+    const drafted = [
+      { id: String(evalQuestions.length + 20), question: "How many lamps are in a field kit?", facts: ["Two lamps"], documentId: "C:/Documents/Lumen/kit-list.md", fileName: "kit-list.md", expectNoAnswer: false, origin: "drafted", draft: true, createdUtc: now },
+    ];
+    evalQuestions.push(...drafted);
+    return delay(drafted);
+  },
+  checkAnswer: () => delay(goodVerdict),
+  estimate: () => delay({ questions: evalQuestions.filter((q) => !q.draft).length, drafts: evalQuestions.filter((q) => q.draft).length, calls: evalQuestions.filter((q) => !q.draft).length * 2, chatModel: "deepseek-flash", judgeModel: "deepseek-v4-pro", mode: "vector", blocked: null }),
+  startRun: () => {
+    const questions = evalQuestions.filter((q) => !q.draft);
+    const run: MockRun = { id: String(evalRuns.length + 1), status: "running", startedUtc: new Date().toISOString(), finishedUtc: null, total: questions.length, settings: runSettings(400), error: null, results: [] };
+    evalRuns.unshift(run);
+    questions.forEach((q, i) => setTimeout(() => {
+      run.results.push(mockResult(run.id, q, true));
+      if (run.results.length === questions.length) {
+        run.status = "done";
+        run.finishedUtc = new Date().toISOString();
+      }
+    }, 1200 * (i + 1)));
+    return delay(runDto(run));
+  },
+  cancelRun: () => {
+    const run = evalRuns.find((r) => r.status === "running");
+    if (run) { run.status = "canceled"; run.error = "Stopped before every question was asked."; }
+    return delay({});
+  },
+  listRuns: () => delay(evalRuns.map(runDto)),
+  run: (request: { runId: string }) => {
+    const run = evalRuns.find((r) => r.id === request.runId)!;
+    return delay({ run: runDto(run), results: run.results.slice() });
+  },
+  deleteRun: (request: { runId: string }) => {
+    const index = evalRuns.findIndex((r) => r.id === request.runId);
+    if (index >= 0) evalRuns.splice(index, 1);
+    return delay({});
+  },
+  compare: (request: { beforeId: string; afterId: string }) => {
+    const before = evalRuns.find((r) => r.id === request.beforeId)!;
+    const after = evalRuns.find((r) => r.id === request.afterId)!;
+    const settingsChanged = after.settings
+      .map((s) => ({ name: s.name, before: before.settings.find((b) => b.name === s.name)?.value ?? null, after: s.value }))
+      .filter((c) => c.before !== c.after);
+    const questions = after.results.map((r) => {
+      const earlier = before.results.find((b) => b.questionId === r.questionId);
+      const change = !earlier ? "added" : earlier.passed === r.passed ? "same" : r.passed ? "improved" : "regressed";
+      return { questionId: r.questionId, question: r.question, before: earlier?.passed ?? null, after: r.passed, change };
+    });
+    return delay({ before: runDto(before), after: runDto(after), settings: settingsChanged, questions });
+  },
 });

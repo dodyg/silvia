@@ -21,6 +21,12 @@ public sealed record ProjectSettings
     public string ChatModel { get; init; } = "deepseek-flash";
 
     /// <summary>
+    /// Chat model that grades answers in evaluations, or empty to use <see cref="ChatModel"/>. A different
+    /// model avoids a model grading its own writing.
+    /// </summary>
+    public string JudgeModel { get; init; } = string.Empty;
+
+    /// <summary>
     /// Where answers may come from: <c>deepseek</c> (default), <c>local-only</c> (no cloud model; not
     /// yet wired), or <c>search-only</c> (retrieval without any model call).
     /// </summary>

@@ -64,18 +64,24 @@ public sealed class HashingEmbedder(int dimensions) : IEmbeddingGenerator<string
     }
 }
 
-/// <summary>A chat model that records every request and answers with a fixed reply.</summary>
+/// <summary>
+/// A chat model that records every request and answers with a fixed reply, or with what
+/// <see cref="Respond"/> returns for a request when that is set and gives a reply.
+/// </summary>
 public sealed class RecordingChatClient(string reply = "Answer [1].") : IChatClient
 {
     public List<IReadOnlyList<ChatMessage>> Requests { get; } = [];
+
+    public Func<IReadOnlyList<ChatMessage>, string?>? Respond { get; set; }
 
     public Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        Requests.Add(messages.ToList());
-        return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, reply)));
+        var request = messages.ToList();
+        Requests.Add(request);
+        return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, Respond?.Invoke(request) ?? reply)));
     }
 
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
@@ -83,8 +89,9 @@ public sealed class RecordingChatClient(string reply = "Answer [1].") : IChatCli
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        Requests.Add(messages.ToList());
-        yield return new ChatResponseUpdate(ChatRole.Assistant, reply);
+        var request = messages.ToList();
+        Requests.Add(request);
+        yield return new ChatResponseUpdate(ChatRole.Assistant, Respond?.Invoke(request) ?? reply);
         await Task.CompletedTask;
     }
 

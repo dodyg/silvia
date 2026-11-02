@@ -75,7 +75,8 @@ public sealed record ProjectSettingsDto(
     int MemoryTopK,
     int MemoryMinPercent,
     string SystemPrompt,
-    bool DocumentOverviews);
+    bool DocumentOverviews,
+    string? JudgeModel);
 
 public sealed record FactDto(string Id, string Text, string CreatedUtc);
 
@@ -162,6 +163,85 @@ public sealed record DocumentCoverageDto(string DocumentId, string FileName, int
 
 public sealed record CoverageDto(string Mode, string? EmbedModel, bool OverviewsOn, IReadOnlyList<DocumentCoverageDto> Documents);
 
+/// <summary>A test question. FileName names the expected document, when the question has one.</summary>
+public sealed record EvalQuestionDto(
+    string Id,
+    string Question,
+    IReadOnlyList<string> Facts,
+    string? DocumentId,
+    string? FileName,
+    bool ExpectNoAnswer,
+    string Origin,
+    bool Draft,
+    string CreatedUtc);
+
+public sealed record AddEvalQuestionRequest(string ProjectId, string Question, IReadOnlyList<string>? Facts, string? DocumentId, bool ExpectNoAnswer, string? Origin);
+
+public sealed record UpdateEvalQuestionRequest(string ProjectId, string Id, string Question, IReadOnlyList<string>? Facts, string? DocumentId, bool ExpectNoAnswer);
+
+public sealed record EvalQuestionIdRequest(string ProjectId, string Id);
+
+public sealed record DraftQuestionsRequest(string ProjectId, int Count);
+
+/// <summary>A chat answer to check: the question, the answer as shown, and the passages it cited, in order.</summary>
+public sealed record CheckAnswerRequest(string ProjectId, string Question, string Answer, IReadOnlyList<CitationDto> Sources);
+
+/// <summary>One statement of an answer. Sources are the 1-based numbers of the passages that back it.</summary>
+public sealed record ClaimDto(string Text, bool Supported, IReadOnlyList<int> Sources, string Reason);
+
+public sealed record FactVerdictDto(string Fact, bool Stated, string Reason);
+
+public sealed record VerdictDto(IReadOnlyList<ClaimDto> Claims, IReadOnlyList<FactVerdictDto> Facts, bool AnswersQuestion, bool Declines, string Summary);
+
+/// <summary>What a run would send: questions, model calls, the models, and why it cannot start, when it cannot.</summary>
+public sealed record RunEstimateDto(int Questions, int Drafts, int Calls, string ChatModel, string JudgeModel, string Mode, string? Blocked);
+
+public sealed record RunSettingDto(string Name, string Value);
+
+/// <summary>A run of the test set: <c>running</c>, <c>done</c>, <c>canceled</c> or <c>failed</c>, with its totals so far.</summary>
+public sealed record EvalRunDto(
+    string Id,
+    string Status,
+    string StartedUtc,
+    string? FinishedUtc,
+    int Total,
+    int Completed,
+    int Passed,
+    int FactsStated,
+    int FactsTotal,
+    int ClaimsSupported,
+    int ClaimsTotal,
+    int DocumentsFound,
+    int DocumentsExpected,
+    IReadOnlyList<RunSettingDto> Settings,
+    string? Error);
+
+public sealed record EvalRunIdRequest(string ProjectId, string RunId);
+
+/// <summary>One question's outcome. FoundDocument is null when the question names no document.</summary>
+public sealed record EvalResultDto(
+    string QuestionId,
+    string Question,
+    IReadOnlyList<string> Facts,
+    bool ExpectNoAnswer,
+    string Answer,
+    IReadOnlyList<CitationDto> Sources,
+    VerdictDto? Verdict,
+    bool? FoundDocument,
+    bool Passed,
+    string? Error);
+
+public sealed record EvalRunDetailDto(EvalRunDto Run, IReadOnlyList<EvalResultDto> Results);
+
+public sealed record CompareRunsRequest(string ProjectId, string BeforeId, string AfterId);
+
+public sealed record SettingChangeDto(string Name, string? Before, string? After);
+
+/// <summary>How one question fared: <c>improved</c>, <c>regressed</c>, <c>same</c>, <c>added</c> or <c>removed</c>.</summary>
+public sealed record QuestionChangeDto(string QuestionId, string Question, bool? Before, bool? After, string Change);
+
+public sealed record RunComparisonDto(EvalRunDto Before, EvalRunDto After, IReadOnlyList<SettingChangeDto> Settings, IReadOnlyList<QuestionChangeDto> Questions);
+
 [JsonSerializable(typeof(EmptyRequest))]
 [JsonSerializable(typeof(ProjectDto))]
 [JsonSerializable(typeof(ProjectDto[]))]
@@ -220,5 +300,26 @@ public sealed record CoverageDto(string Mode, string? EmbedModel, bool Overviews
 [JsonSerializable(typeof(MapDto))]
 [JsonSerializable(typeof(DocumentCoverageDto))]
 [JsonSerializable(typeof(CoverageDto))]
+[JsonSerializable(typeof(EvalQuestionDto))]
+[JsonSerializable(typeof(EvalQuestionDto[]))]
+[JsonSerializable(typeof(AddEvalQuestionRequest))]
+[JsonSerializable(typeof(UpdateEvalQuestionRequest))]
+[JsonSerializable(typeof(EvalQuestionIdRequest))]
+[JsonSerializable(typeof(DraftQuestionsRequest))]
+[JsonSerializable(typeof(CheckAnswerRequest))]
+[JsonSerializable(typeof(ClaimDto))]
+[JsonSerializable(typeof(FactVerdictDto))]
+[JsonSerializable(typeof(VerdictDto))]
+[JsonSerializable(typeof(RunEstimateDto))]
+[JsonSerializable(typeof(RunSettingDto))]
+[JsonSerializable(typeof(EvalRunDto))]
+[JsonSerializable(typeof(EvalRunDto[]))]
+[JsonSerializable(typeof(EvalRunIdRequest))]
+[JsonSerializable(typeof(EvalResultDto))]
+[JsonSerializable(typeof(EvalRunDetailDto))]
+[JsonSerializable(typeof(CompareRunsRequest))]
+[JsonSerializable(typeof(SettingChangeDto))]
+[JsonSerializable(typeof(QuestionChangeDto))]
+[JsonSerializable(typeof(RunComparisonDto))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 internal sealed partial class AppJsonContext : JsonSerializerContext;

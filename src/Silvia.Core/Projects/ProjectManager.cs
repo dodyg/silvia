@@ -177,7 +177,8 @@ public sealed class ProjectManager : IDisposable
                 _models,
                 _throttle,
                 ChatClientFor(settings),
-                _options.RuntimeOptions);
+                _options.RuntimeOptions,
+                JudgeClientFor(settings));
             _open[id] = new OpenRuntime(runtime, ++_clock);
             Catalog.MarkOpened(id, DateTimeOffset.UtcNow);
             return runtime;
@@ -316,6 +317,12 @@ public sealed class ProjectManager : IDisposable
             ? null
             : _models.GetChatClient(_options.DeepSeekEndpoint, apiKey, settings.ChatModel);
     }
+
+    /// <summary>The chat model that grades evaluations: the judge model when one is set, else the chat model.</summary>
+    private IChatClient? JudgeClientFor(ProjectSettings settings) =>
+        string.IsNullOrWhiteSpace(settings.JudgeModel)
+            ? ChatClientFor(settings)
+            : ChatClientFor(settings with { ChatModel = settings.JudgeModel });
 
     private void EvictIdleRuntimes(int keep)
     {
