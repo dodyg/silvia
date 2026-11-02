@@ -32,6 +32,17 @@ public sealed class LibraryService(AppHost host)
         }
     }
 
+    /// <summary>
+    /// Shows the native folder dialog and returns the chosen folder. It does not add the folder: the page
+    /// calls <c>addSource</c> with it, so a typed path and a picked one go through the same checks.
+    /// </summary>
+    [NeoRpcMethod("pickFolder", TimeoutMilliseconds = 600_000)]
+    public async ValueTask<FolderPickDto> PickFolderAsync(EmptyRequest request, CancellationToken cancellationToken)
+    {
+        var (status, path) = await host.FolderPicker.PickAsync("Choose a folder to index", cancellationToken);
+        return new FolderPickDto(status, path);
+    }
+
     [NeoRpcMethod("removeSource")]
     public ValueTask<EmptyRequest> RemoveSourceAsync(SourceIdRequest request, CancellationToken cancellationToken)
     {

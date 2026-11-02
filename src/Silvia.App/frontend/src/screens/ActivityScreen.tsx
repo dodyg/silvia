@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { describeError, library, type JobSummaryDto } from "../api";
-import { Banner, Section } from "../ui";
+import { describeError, formatWhen, library, type JobSummaryDto } from "../api";
+import { Empty, Icon, PageHeader, Section, Spinner, Stat } from "../ui";
 
 interface Props {
   projectId: string;
@@ -39,18 +39,21 @@ export function ActivityScreen({ projectId, onError }: Props) {
 
   return (
     <div>
+      <PageHeader title="Activity" description="Indexing work for this project. Updates every few seconds while this screen is open." />
+
       <Section title="Queue">
         {summary ? (
-          <dl className="row" style={{ gap: "1.5rem" }} aria-label="Queue counts">
-            <Count label="Waiting" value={summary.pending} />
-            <Count label="Working" value={summary.running} />
-            <Count label="Done" value={summary.done} />
-            <Count label="Failed" value={summary.failed} />
+          <dl className="stats" aria-label="Queue counts">
+            <Stat label="Waiting" value={summary.pending} />
+            <Stat label="Working" value={summary.running} />
+            <Stat label="Done" value={summary.done} />
+            <Stat label="Failed" value={summary.failed} tone="danger" />
           </dl>
         ) : (
-          <p className="muted">Loading…</p>
+          <p className="row muted">
+            <Spinner label="Loading" /> Loading…
+          </p>
         )}
-        <p className="muted">Updates every few seconds while this screen is open.</p>
       </Section>
 
       <Section title="Failed files">
@@ -58,28 +61,19 @@ export function ActivityScreen({ projectId, onError }: Props) {
           <ul className="list">
             {summary.recentFailures.map((failure) => (
               <li key={`${failure.path}-${failure.finishedUtc ?? ""}`}>
+                <span className="list-icon"><Icon name="file" /></span>
                 <div className="grow">
-                  <strong>{failure.path}</strong>
-                  <div className="banner banner-error" style={{ margin: "0.3rem 0 0", padding: "0.3rem 0.5rem" }}>
-                    {failure.error ?? "The file could not be indexed."}
-                  </div>
+                  <div className="path">{failure.path}</div>
+                  <div className="failure-text">{failure.error ?? "The file could not be indexed."}</div>
                 </div>
+                {failure.finishedUtc ? <span className="list-meta">{formatWhen(failure.finishedUtc)}</span> : null}
               </li>
             ))}
           </ul>
         ) : (
-          <Banner tone="info">No file has failed in this project.</Banner>
+          <Empty title="Nothing has failed">Every file in this project was indexed.</Empty>
         )}
       </Section>
-    </div>
-  );
-}
-
-function Count({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <dt className="muted">{label}</dt>
-      <dd style={{ margin: 0, fontSize: "1.4rem" }}>{value}</dd>
     </div>
   );
 }

@@ -54,6 +54,7 @@ export const projects = Object.freeze({
 export const library = Object.freeze({
   listSources: () => delay(sample.sources),
   addSource: (request: { path: string }) => delay({ ...sample.sources[0], id: "2", path: request.path }),
+  pickFolder: () => delay({ status: "picked", path: "C:/Documents/Picked" }),
   removeSource: () => delay({}),
   rescan: () => delay({}),
   listDocuments: () => delay(sample.documents),
@@ -69,7 +70,7 @@ export const chat = Object.freeze({
     { role: "assistant", content: "The pilot launches on 14 March 2027 in Lisbon and Nairobi [1].", createdUtc: now, sources: [sample.citation] },
   ]),
   deleteConversation: () => delay({}),
-  search: () => delay([{ documentId: sample.citation.documentId, chunkIndex: 0, fileName: "handbook.md", text: sample.citation.text, score: 0.81 }]),
+  search: () => delay([{ documentId: sample.citation.documentId, chunkIndex: 0, fileName: "handbook.md", text: sample.citation.text, relevance: 810 }]),
   ask: async () => {
     const steps = [
       { kind: "conversation", conversationId: "01MOCKCONVERSATION", text: null, sources: null },

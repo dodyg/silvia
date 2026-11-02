@@ -229,7 +229,7 @@ internal sealed class IngestQueue : IAsyncDisposable
 
             case JobKind.Upsert:
             case JobKind.Delete:
-                await _pipeline.DeleteAsync(DocumentIds.For(job.Path), cancellationToken);
+                await DeleteFileAsync(job.Path, job.SourceId, cancellationToken);
                 break;
 
             case JobKind.Reindex:
@@ -264,6 +264,24 @@ internal sealed class IngestQueue : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Removes a file's chunks, and forgets that its source scanned it. Without the second step a scan
+    /// of the same unchanged file (after a folder is removed and added back, for example) would match the
+    /// stored ETag, skip the file, and leave it out of the index.
+    /// </summary>
+    private async Task DeleteFileAsync(string path, long? sourceId, CancellationToken cancellationToken)
+    {
+        var documentId = DocumentIds.For(path);
+        await _pipeline.DeleteAsync(documentId, cancellationToken);
+        if (sourceId is { } id)
+        {
+            var hashStore = _services.GetRequiredService<IContentHashStore>();
+            await hashStore.RemoveAsync(SourceProvider(id), new EntryId(documentId), cancellationToken);
+        }
+    }
+
+    private static ProviderId SourceProvider(long sourceId) => new($"source-{sourceId}");
+
     private async Task ScanSourceAsync(long sourceId, CancellationToken cancellationToken)
     {
         var source = ReadSource(sourceId);
@@ -280,7 +298,7 @@ internal sealed class IngestQueue : IAsyncDisposable
         // Per-file failures are kept by Rag.NET in the run result; they never fail the scan job itself.
         _ = await _pipeline.IngestFromProviderAsync(
             provider,
-            new ProviderId($"source-{sourceId}"),
+            SourceProvider(sourceId),
             hashStore: hashStore,
             cleanupMode: CleanupMode.Full,
             cancellationToken: cancellationToken);

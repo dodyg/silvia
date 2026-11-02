@@ -45,21 +45,29 @@ const textPairs: Array<[string, string]> = [
   ["text-muted", "bg"],
   ["text-muted", "surface"],
   ["text-muted", "surface-2"],
+  ["text", "sidebar"],
+  ["text-muted", "sidebar"],
+  ["text", "accent-soft"],
   ["accent", "bg"],
   ["accent", "surface"],
+  ["accent", "accent-soft"],
   ["accent-text", "accent"],
+  ["accent-text", "accent-hover"],
   ["citation", "citation-bg"],
   ["citation", "surface"],
   ["danger", "bg"],
   ["danger", "danger-bg"],
+  ["surface", "danger"],
   ["warn", "warn-bg"],
 ];
 
 const graphicPairs: Array<[string, string]> = [
   ["focus", "bg"],
   ["focus", "surface"],
+  ["focus", "sidebar"],
   ["score", "surface"],
-  ["border", "surface"],
+  ["border-strong", "surface"],
+  ["border-strong", "bg"],
 ];
 
 for (const [name, palette] of [["light", light], ["dark", dark]] as const) {

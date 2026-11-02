@@ -25,7 +25,11 @@ internal static class Program
             app.Title = "Silvia";
             app.Width = 1280;
             app.Height = 820;
-            app.ConfigureMainWindow((_, window) => window.BackgroundColor = background);
+            app.ConfigureMainWindow((application, window) =>
+            {
+                window.BackgroundColor = background;
+                host.FolderPicker.Attach(application, window);
+            });
             app.UseRpc(rpc => rpc
                 .AddProjectsService(new ProjectsService(host))
                 .AddLibraryService(new LibraryService(host))

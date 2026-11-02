@@ -1,46 +1,64 @@
 /*
  * Design tokens. Every color in the app comes from these variables: components never use a literal
  * color. Each color is defined for light and dark themes, and the contrast test checks the text pairs.
+ *
+ * --border is a quiet divider between regions and rows; it carries no meaning on its own, so it is
+ * exempt from the 3:1 rule. --border-strong outlines form controls and must reach 3:1.
  */
 
 :root {
-  --bg: #fafaf9;
+  --bg: #f7f7f5;
   --surface: #ffffff;
-  --surface-2: #f2f2ef;
+  --surface-2: #f0f0ed;
+  --sidebar: #efefec;
   --text: #1b1c1f;
-  --text-muted: #55585f;
-  --border: #8a8e96;
+  --text-muted: #5b5e66;
+  --border: #e3e2de;
+  --border-strong: #8a8e96;
   --accent: #2456d6;
+  --accent-hover: #1c46b4;
   --accent-text: #ffffff;
+  --accent-soft: #e6ecfb;
   --citation: #0b6b4c;
   --citation-bg: #e3f3ec;
   --danger: #b42318;
   --danger-bg: #fdeceb;
-  --code-bg: #efefeb;
+  --code-bg: #f1f1ee;
   --focus: #2456d6;
   --score: #2456d6;
   --selection: #d7e3ff;
   --warn: #8a5300;
   --warn-bg: #fff4dc;
 
+  --shadow-sm: 0 1px 2px rgb(20 22 28 / 0.06);
+  --shadow-md: 0 1px 2px rgb(20 22 28 / 0.06), 0 4px 12px rgb(20 22 28 / 0.06);
+  --shadow-pop: 0 2px 6px rgb(20 22 28 / 0.08), 0 12px 32px rgb(20 22 28 / 0.14);
+
   --font-size-ui: 14px;
   --font-size-reading: 16px;
   --line-height: 1.55;
   --reading-width: 72ch;
-  --radius: 6px;
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
   --space: 0.75rem;
+  --sidebar-width: 15rem;
   color-scheme: light;
 }
 
 :root[data-theme="dark"] {
-  --bg: #17181a;
-  --surface: #1f2023;
-  --surface-2: #26282c;
+  --bg: #17181b;
+  --surface: #1e1f23;
+  --surface-2: #27292e;
+  --sidebar: #121316;
   --text: #e8e8ea;
   --text-muted: #a4a7ae;
-  --border: #6f7480;
+  --border: #2d2f35;
+  --border-strong: #6f7480;
   --accent: #8aa8ff;
+  --accent-hover: #a6bdff;
   --accent-text: #0e1116;
+  --accent-soft: #1f2a45;
   --citation: #74d6ab;
   --citation-bg: #173427;
   --danger: #ff8a80;
@@ -51,19 +69,27 @@
   --selection: #2a3c66;
   --warn: #f0c26b;
   --warn-bg: #3a2e14;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px rgb(0 0 0 / 0.25);
+  --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.35), 0 12px 32px rgb(0 0 0 / 0.45);
   color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #17181a;
-    --surface: #1f2023;
-    --surface-2: #26282c;
+    --bg: #17181b;
+    --surface: #1e1f23;
+    --surface-2: #27292e;
+    --sidebar: #121316;
     --text: #e8e8ea;
     --text-muted: #a4a7ae;
-    --border: #6f7480;
+    --border: #2d2f35;
+    --border-strong: #6f7480;
     --accent: #8aa8ff;
+    --accent-hover: #a6bdff;
     --accent-text: #0e1116;
+    --accent-soft: #1f2a45;
     --citation: #74d6ab;
     --citation-bg: #173427;
     --danger: #ff8a80;
@@ -74,6 +100,10 @@
     --selection: #2a3c66;
     --warn: #f0c26b;
     --warn-bg: #3a2e14;
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px rgb(0 0 0 / 0.25);
+    --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.35), 0 12px 32px rgb(0 0 0 / 0.45);
     color-scheme: dark;
   }
 }
@@ -81,6 +111,7 @@
 @media (forced-colors: active) {
   :root {
     --border: CanvasText;
+    --border-strong: CanvasText;
     --focus: Highlight;
     --score: Highlight;
     --citation: LinkText;

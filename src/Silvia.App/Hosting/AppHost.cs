@@ -30,6 +30,9 @@ public sealed class AppHost : IDisposable
 
     public ModelDownloadService Downloads { get; }
 
+    /// <summary>The native folder dialog. It reports <c>unavailable</c> until the main window attaches it.</summary>
+    public FolderPicker FolderPicker { get; } = new();
+
     public string DataRoot { get; }
 
     public string ModelsRoot { get; }

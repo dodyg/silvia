@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { chat, describeError, library, type HitDto } from "../api";
-import { Banner, Button, Empty } from "../ui";
+import { Button, Empty, Icon, PageHeader } from "../ui";
 
 interface Props {
   projectId: string;
@@ -32,45 +32,57 @@ export function SearchScreen({ projectId, onError }: Props) {
 
   return (
     <div>
-      <form className="toolbar" role="search" onSubmit={run}>
-        <input
-          type="search"
-          aria-label="Search this project"
-          placeholder="Search the passages in this project"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          style={{ flex: "1 1 20rem" }}
-        />
+      <PageHeader title="Search" description="Find passages in this project. Search never calls a model, so it works offline." />
+
+      <form className="search-bar" role="search" onSubmit={run}>
+        <div className="search-field">
+          <Icon name="search" />
+          <input
+            type="search"
+            aria-label="Search this project"
+            placeholder="Search the passages in this project"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </div>
         <Button type="submit" variant="primary" disabled={busy || query.trim().length === 0}>Search</Button>
       </form>
-      <p className="muted" style={{ marginTop: 0 }}>Search returns passages without calling a model, so it works offline.</p>
+      <p className="search-note">{hits === null ? "Type a few words to find passages." : `${hits.length} passage${hits.length === 1 ? "" : "s"}`}</p>
 
       {hits === null ? null : hits.length === 0 ? (
-        <Empty title="No passages matched">Try other words, or add more folders in Library.</Empty>
+        <Empty title="No passages matched" icon="search">Try other words, or add more folders in Library.</Empty>
       ) : (
-        <ol className="list" aria-label="Results">
-          {hits.map((hit) => (
-            <li key={`${hit.documentId}-${hit.chunkIndex}`} className="hit" style={{ display: "block" }}>
-              <div className="row" style={{ justifyContent: "space-between" }}>
-                <strong>{hit.fileName}</strong>
-                <span className="row muted" style={{ gap: "0.4rem" }}>
-                  <span className="score" aria-label={`Relevance ${Math.round(scaled(hit.relevance / 1000) * 100)} percent`}>
-                    <span style={{ width: `${Math.round(scaled(hit.relevance / 1000) * 100)}%` }} />
+        <ol className="hits" aria-label="Results">
+          {hits.map((hit) => {
+            const percent = Math.round(scaled(hit.relevance / 1000) * 100);
+            return (
+              <li key={`${hit.documentId}-${hit.chunkIndex}`} className="card hit">
+                <div className="hit-head">
+                  <span className="hit-title">
+                    <Icon name="file" /> {hit.fileName}
                   </span>
-                  {(hit.relevance / 1000).toFixed(3)}
-                </span>
-              </div>
-              <p className="path" style={{ margin: "0.2rem 0" }}>{hit.documentId}</p>
-              <p className="hit-text">{hit.text}</p>
-              <div className="row">
-                <Button variant="quiet" onClick={() => void library.openDocument({ projectId, documentId: hit.documentId, page: null }).catch((failure) => onError(describeError(failure)))}>Open</Button>
-                <Button variant="quiet" onClick={() => void library.revealDocument({ projectId, documentId: hit.documentId, page: null }).catch((failure) => onError(describeError(failure)))}>Show in folder</Button>
-              </div>
-            </li>
-          ))}
+                  <span className="relevance">
+                    <span className="score" aria-label={`Relevance ${percent} percent`}>
+                      <span style={{ width: `${percent}%` }} />
+                    </span>
+                    {(hit.relevance / 1000).toFixed(3)}
+                  </span>
+                </div>
+                <p className="path">{hit.documentId}</p>
+                <p className="hit-text">{hit.text}</p>
+                <div className="hit-actions">
+                  <Button variant="quiet" size="sm" onClick={() => void library.openDocument({ projectId, documentId: hit.documentId, page: null }).catch((failure) => onError(describeError(failure)))}>
+                    <Icon name="external" /> Open
+                  </Button>
+                  <Button variant="quiet" size="sm" onClick={() => void library.revealDocument({ projectId, documentId: hit.documentId, page: null }).catch((failure) => onError(describeError(failure)))}>
+                    <Icon name="folder" /> Show in folder
+                  </Button>
+                </div>
+              </li>
+            );
+          })}
         </ol>
       )}
-      {hits === null ? <Banner tone="info">Type a few words to find passages.</Banner> : null}
     </div>
   );
 }

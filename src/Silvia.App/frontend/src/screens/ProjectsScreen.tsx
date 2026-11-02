@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { describeError, projects, type ProjectDto } from "../api";
-import { Banner, Button, Empty, Field, Section } from "../ui";
+import { Banner, Button, Card, Empty, Field, Icon, PageHeader, Section } from "../ui";
 
 interface Props {
   projects: ProjectDto[];
@@ -100,52 +100,69 @@ export function ProjectsScreen({ projects: list, selectedId, onChanged, onOpen }
 
   return (
     <div>
-      <Section title="Projects">
-        {error ? <Banner tone="error">{error}</Banner> : null}
-        {notice ? <Banner tone="info">{notice}</Banner> : null}
+      <PageHeader title="Projects" description="Each project is a separate knowledge base with its own folders, index and conversations." />
 
+      {error ? <Banner tone="error">{error}</Banner> : null}
+      {notice ? <Banner tone="info">{notice}</Banner> : null}
+
+      <Section title="Your projects" actions={<span className="count">{list.length}</span>}>
         {list.length === 0 ? (
-          <Empty title="No projects yet">Give your first knowledge base a name below.</Empty>
+          <Empty title="No projects yet" icon="projects">Give your first knowledge base a name below.</Empty>
         ) : (
           <ul className="list">
-            {list.map((project) => (
-              <li key={project.id} aria-current={project.id === selectedId ? "true" : undefined}>
-                <div className="grow">
-                  <strong>{project.name}</strong>{" "}
-                  <span className={`badge ${project.status === "ready" ? "badge-ready" : ""}`}>{project.status}</span>
-                  {project.description ? <div className="muted">{project.description}</div> : null}
-                </div>
-                <Button onClick={() => onOpen(project.id)}>{project.id === selectedId ? "Open (current)" : "Open"}</Button>
-                <Button variant="quiet" onClick={() => setEditing({ id: project.id, name: project.name, mode: "rename" })}>Rename</Button>
-                <Button variant="quiet" onClick={() => setEditing({ id: project.id, name: `${project.name} copy`, mode: "duplicate" })}>Duplicate</Button>
-                <Button variant="quiet" onClick={() => exportProject(project)}>Export</Button>
-                <Button variant="danger" onClick={() => setConfirming(project)}>Delete</Button>
-              </li>
-            ))}
+            {list.map((project) => {
+              const current = project.id === selectedId;
+              return (
+                <li key={project.id} aria-current={current ? "true" : undefined}>
+                  <span className="list-icon"><Icon name="projects" /></span>
+                  <div className="grow">
+                    <div className="list-title">
+                      {project.name}
+                      {current ? <span className="badge badge-accent">Open</span> : null}
+                      {project.status !== "ready" ? <span className="badge badge-danger">{project.status}</span> : null}
+                    </div>
+                    {project.description ? <div className="list-meta">{project.description}</div> : null}
+                  </div>
+                  <div className="list-actions">
+                    {current ? null : <Button size="sm" onClick={() => onOpen(project.id)}>Open</Button>}
+                    <Button variant="quiet" size="sm" onClick={() => setEditing({ id: project.id, name: project.name, mode: "rename" })}>Rename</Button>
+                    <Button variant="quiet" size="sm" onClick={() => setEditing({ id: project.id, name: `${project.name} copy`, mode: "duplicate" })}>Duplicate</Button>
+                    <Button variant="quiet" size="sm" onClick={() => exportProject(project)}>Export</Button>
+                    <Button variant="quiet" size="sm" className="btn-danger icon-btn" onClick={() => setConfirming(project)} aria-label={`Delete ${project.name}`} title="Delete">
+                      <Icon name="trash" />
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
 
         {editing ? (
-          <form className="row" style={{ marginTop: "0.75rem" }} onSubmit={saveEdit}>
-            <Field label={editing.mode === "rename" ? "New name" : "Name of the copy"}>
-              <input type="text" value={editing.name} onChange={(event) => setEditing({ ...editing, name: event.target.value })} />
-            </Field>
-            <Button type="submit" variant="primary" disabled={editing.name.trim().length === 0}>
-              {editing.mode === "rename" ? "Save name" : "Make copy"}
-            </Button>
-            <Button onClick={() => setEditing(null)}>Cancel</Button>
-          </form>
+          <Card className="edit-card">
+            <form className="inline-form" onSubmit={saveEdit}>
+              <Field label={editing.mode === "rename" ? "New name" : "Name of the copy"}>
+                <input type="text" value={editing.name} onChange={(event) => setEditing({ ...editing, name: event.target.value })} autoFocus />
+              </Field>
+              <Button type="submit" variant="primary" disabled={editing.name.trim().length === 0}>
+                {editing.mode === "rename" ? "Save name" : "Make copy"}
+              </Button>
+              <Button variant="quiet" onClick={() => setEditing(null)}>Cancel</Button>
+            </form>
+          </Card>
         ) : null}
 
         {confirming ? (
-          <div className="banner banner-warn" role="alertdialog" aria-label="Confirm delete" style={{ marginTop: "0.75rem" }}>
-            <p style={{ marginTop: 0 }}>
+          <div className="confirm" role="alertdialog" aria-label="Confirm delete">
+            <p>
               Deleting <strong>{confirming.name}</strong> removes its index, conversations and folder list. Your documents stay where they are.
               Type the project name to confirm.
             </p>
-            <div className="row">
-              <input type="text" aria-label="Type the project name" value={confirmText} onChange={(event) => setConfirmText(event.target.value)} />
-              <Button variant="danger" disabled={confirmText !== confirming.name} onClick={() => remove(confirming)}>Delete project</Button>
+            <div className="inline-form">
+              <Field label="Project name">
+                <input type="text" value={confirmText} onChange={(event) => setConfirmText(event.target.value)} />
+              </Field>
+              <Button variant="primary" className="btn-destructive" disabled={confirmText !== confirming.name} onClick={() => remove(confirming)}>Delete project</Button>
               <Button onClick={() => { setConfirming(null); setConfirmText(""); }}>Keep it</Button>
             </div>
           </div>
@@ -153,27 +170,41 @@ export function ProjectsScreen({ projects: list, selectedId, onChanged, onOpen }
       </Section>
 
       <Section title="New project">
-        <form onSubmit={create} className="row">
-          <Field label="Name">
-            <input type="text" value={name} onChange={(event) => setName(event.target.value)} placeholder="Field notes" />
-          </Field>
-          <Field label="Description (optional)">
-            <input type="text" value={description} onChange={(event) => setDescription(event.target.value)} />
-          </Field>
-          <Button type="submit" variant="primary" disabled={name.trim().length === 0}>Create project</Button>
-        </form>
+        <Card>
+          <form onSubmit={create}>
+            <div className="form-grid">
+              <Field label="Name">
+                <input type="text" value={name} onChange={(event) => setName(event.target.value)} placeholder="Field notes" />
+              </Field>
+              <Field label="Description (optional)">
+                <input type="text" value={description} onChange={(event) => setDescription(event.target.value)} />
+              </Field>
+            </div>
+            <div className="form-actions">
+              <Button type="submit" variant="primary" disabled={name.trim().length === 0}>
+                <Icon name="plus" /> Create project
+              </Button>
+            </div>
+          </form>
+        </Card>
       </Section>
 
-      <Section title="Import a project file">
-        <form onSubmit={importFile} className="row">
-          <Field label="Path to a .silvia file">
-            <input type="text" value={importPath} onChange={(event) => setImportPath(event.target.value)} placeholder="C:\Exports\field-notes.silvia" />
-          </Field>
-          <Field label="Name for the imported project">
-            <input type="text" value={importName} onChange={(event) => setImportName(event.target.value)} />
-          </Field>
-          <Button type="submit" disabled={importPath.trim().length === 0 || importName.trim().length === 0}>Import</Button>
-        </form>
+      <Section title="Import a project file" description="Bring in a .silvia file exported from Silvia. Its folders are kept as paths, not copied.">
+        <Card>
+          <form onSubmit={importFile}>
+            <div className="form-grid">
+              <Field label="Path to a .silvia file">
+                <input type="text" value={importPath} onChange={(event) => setImportPath(event.target.value)} placeholder="C:\Exports\field-notes.silvia" />
+              </Field>
+              <Field label="Name for the imported project">
+                <input type="text" value={importName} onChange={(event) => setImportName(event.target.value)} />
+              </Field>
+            </div>
+            <div className="form-actions">
+              <Button type="submit" disabled={importPath.trim().length === 0 || importName.trim().length === 0}>Import</Button>
+            </div>
+          </form>
+        </Card>
       </Section>
     </div>
   );

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { describeError, settings, type FontListDto, type GlobalSettingsDto, type ModelDto, type ProjectSettingsDto } from "../api";
 import { INTERFACE_SIZE, READING_SIZE, SYSTEM_FONT, type Appearance, type LineHeightChoice, type ReadingWidthChoice, type ThemeChoice } from "../theme";
 import { renderMarkdown } from "../markdown";
-import { Banner, Button, Field, Section } from "../ui";
+import { Banner, Button, Card, Field, PageHeader, Section } from "../ui";
 
 interface Props {
   projectId: string | null;
@@ -18,6 +18,7 @@ export function SettingsScreen({ projectId, appearance, onAppearance, onError }:
 
   return (
     <div>
+      <PageHeader title="Settings" description="How the open project searches and answers, what Silvia stores, and how it looks." />
       <div className="tabs" role="tablist" aria-label="Settings">
         {(["project", "global", "appearance"] as const).map((id) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
@@ -86,7 +87,7 @@ function ProjectSettings({ projectId, onError }: { projectId: string; onError: (
   }
 
   return (
-    <Section title="Project settings">
+    <div>
       {embedderChanged ? (
         <Banner tone="warn">
           Changing the embedder re-embeds every document the next time this project opens. Search keeps using the old vectors until that finishes.
@@ -94,47 +95,62 @@ function ProjectSettings({ projectId, onError }: { projectId: string; onError: (
       ) : null}
       {saved ? <Banner tone="info">{saved}</Banner> : null}
 
-      <Field label="Embedder" hint="Runs locally. Its vectors are only comparable within one embedder.">
-        <select value={draft.embedModel} onChange={(event) => set("embedModel", event.target.value)}>
-          {embedders.map((m) => (
-            <option key={m.id} value={m.id} disabled={!m.installed}>
-              {m.id} ({m.dimensions} dimensions){m.installed ? "" : " — model files not found"}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Reranker" hint="Reorders the retrieved passages with a local cross-encoder.">
-        <input type="text" value={draft.rerankModel} onChange={(event) => set("rerankModel", event.target.value)} />
-      </Field>
-      <Field label="Chat model" hint="Sent to DeepSeek when the cloud policy allows it.">
-        <input type="text" value={draft.chatModel} onChange={(event) => set("chatModel", event.target.value)} />
-      </Field>
-      <Field label="Cloud policy" hint="search-only never calls a model. local-only is reserved until a local model is wired.">
-        <select value={draft.cloudPolicy} onChange={(event) => set("cloudPolicy", event.target.value)}>
-          <option value="deepseek">deepseek: answers with DeepSeek</option>
-          <option value="local-only">local-only: no cloud model</option>
-          <option value="search-only">search-only: passages only</option>
-        </select>
-      </Field>
-      <div className="row">
-        <NumberField label="Chunk size (tokens)" value={draft.chunkTokens} min={50} max={2000} onChange={(v) => set("chunkTokens", v)} />
-        <NumberField label="Chunk overlap (tokens)" value={draft.chunkOverlap} min={0} max={500} onChange={(v) => set("chunkOverlap", v)} />
-        <NumberField label="Passages per answer" value={draft.topK} min={1} max={30} onChange={(v) => set("topK", v)} />
-      </div>
-      <div className="row">
-        <NumberField label="Earlier exchanges to recall" value={draft.memoryTopK} min={0} max={10} onChange={(v) => set("memoryTopK", v)} />
-        <Field label="Recall threshold (percent of similarity)">
-          <input type="number" step="5" min={0} max={100} value={draft.memoryMinPercent} onChange={(event) => set("memoryMinPercent", Number(event.target.value))} />
-        </Field>
-      </div>
-      <Field label="System prompt">
-        <textarea rows={4} value={draft.systemPrompt} onChange={(event) => set("systemPrompt", event.target.value)} />
-      </Field>
-      <div className="row">
+      <Section title="Models" description="Embedding and reranking run on this computer; only answers may use the cloud.">
+        <Card>
+          <div className="form-grid form-grid-wide">
+            <Field label="Embedder" hint="Its vectors are only comparable within one embedder.">
+              <select value={draft.embedModel} onChange={(event) => set("embedModel", event.target.value)}>
+                {embedders.map((m) => (
+                  <option key={m.id} value={m.id} disabled={!m.installed}>
+                    {m.id} ({m.dimensions} dimensions){m.installed ? "" : " — model files not found"}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Reranker" hint="Reorders the retrieved passages with a local cross-encoder.">
+              <input type="text" value={draft.rerankModel} onChange={(event) => set("rerankModel", event.target.value)} />
+            </Field>
+            <Field label="Cloud policy" hint="search-only never calls a model. local-only is reserved until a local model is wired.">
+              <select value={draft.cloudPolicy} onChange={(event) => set("cloudPolicy", event.target.value)}>
+                <option value="deepseek">deepseek: answers with DeepSeek</option>
+                <option value="local-only">local-only: no cloud model</option>
+                <option value="search-only">search-only: passages only</option>
+              </select>
+            </Field>
+            <Field label="Chat model" hint="Sent to DeepSeek when the cloud policy allows it.">
+              <input type="text" value={draft.chatModel} onChange={(event) => set("chatModel", event.target.value)} />
+            </Field>
+          </div>
+        </Card>
+      </Section>
+
+      <Section title="Retrieval" description="How documents are split, and how much context each answer gets.">
+        <Card>
+          <div className="form-grid">
+            <NumberField label="Chunk size (tokens)" value={draft.chunkTokens} min={50} max={2000} onChange={(v) => set("chunkTokens", v)} />
+            <NumberField label="Chunk overlap (tokens)" value={draft.chunkOverlap} min={0} max={500} onChange={(v) => set("chunkOverlap", v)} />
+            <NumberField label="Passages per answer" value={draft.topK} min={1} max={30} onChange={(v) => set("topK", v)} />
+            <NumberField label="Earlier exchanges to recall" value={draft.memoryTopK} min={0} max={10} onChange={(v) => set("memoryTopK", v)} />
+            <Field label="Recall threshold (% similarity)">
+              <input type="number" step="5" min={0} max={100} value={draft.memoryMinPercent} onChange={(event) => set("memoryMinPercent", Number(event.target.value))} />
+            </Field>
+          </div>
+        </Card>
+      </Section>
+
+      <Section title="System prompt" description="The standing instructions sent with every question.">
+        <Card>
+          <Field label="System prompt">
+            <textarea rows={4} value={draft.systemPrompt} onChange={(event) => set("systemPrompt", event.target.value)} />
+          </Field>
+        </Card>
+      </Section>
+
+      <div className="form-actions">
         <Button variant="primary" onClick={() => void save()}>Save project settings</Button>
         <Button onClick={() => setDraft(current)} disabled={JSON.stringify(draft) === JSON.stringify(current)}>Discard changes</Button>
       </div>
-    </Section>
+    </div>
   );
 }
 
@@ -245,56 +261,60 @@ function GlobalSettings({ onError }: { onError: (message: string | null) => void
 
   return (
     <div>
-      <Section title="Data">
-        <p>
-          <strong>Data folder</strong>
-          <br />
-          <span className="path">{global.dataRoot}</span>
-        </p>
-        <p>
-          <strong>Models folder</strong>
-          <br />
-          <span className="path">{global.modelsRoot}</span>
-        </p>
-        <p className="muted">Up to {global.maxOpenProjects} projects stay open at once; the others open on demand.</p>
-      </Section>
-
-      <Section title="Models">
-        {missing.length === 0 ? (
-          <Banner tone="info">The embedder and the reranker are installed.</Banner>
-        ) : (
-          <Banner tone="warn">
-            {missing.map((m) => m.id).join(", ")} not installed. Search needs the embedder, so download the models before you add a folder.
-          </Banner>
-        )}
-        {download.state === "running" ? (
-          <div role="status" aria-live="polite" className="muted">
-            Downloading {download.file ?? "the models"}… {download.percent}%
+      <Section title="Data" description={`Up to ${global.maxOpenProjects} projects stay open at once; the others open on demand.`}>
+        <Card>
+          <div className="info-row">
+            <span className="field-label">Data folder</span>
+            <span className="path">{global.dataRoot}</span>
           </div>
-        ) : null}
-        {download.state === "done" || download.state === "failed" ? (
-          <Banner tone={download.state === "done" ? "info" : "error"}>{download.message}</Banner>
-        ) : null}
-        <Button onClick={() => void startDownload()} disabled={download.state === "running" || missing.length === 0}>
-          Download the models
-        </Button>
-        <p className="muted">About 230 MB, from Hugging Face. Files that are already present are skipped.</p>
+          <div className="info-row">
+            <span className="field-label">Models folder</span>
+            <span className="path">{global.modelsRoot}</span>
+          </div>
+        </Card>
       </Section>
 
-      <Section title="DeepSeek key">
-        <p>
-          {global.deepSeekKeyConfigured
-            ? "A key is configured. It is stored encrypted for this Windows account and is never shown again."
-            : "No key is configured. Without one, projects answer with passages only."}
-        </p>
+      <Section title="Models" description="About 230 MB, from Hugging Face. Files that are already present are skipped.">
+        <Card>
+          {missing.length === 0 ? (
+            <Banner tone="info">The embedder and the reranker are installed.</Banner>
+          ) : (
+            <Banner tone="warn">
+              {missing.map((m) => m.id).join(", ")} not installed. Search needs the embedder, so download the models before you add a folder.
+            </Banner>
+          )}
+          {download.state === "running" ? (
+            <div role="status" aria-live="polite" className="small muted">
+              Downloading {download.file ?? "the models"}… {download.percent}%
+              <div className="progress"><span style={{ width: `${download.percent}%` }} /></div>
+            </div>
+          ) : null}
+          {download.state === "done" || download.state === "failed" ? (
+            <Banner tone={download.state === "done" ? "info" : "error"}>{download.message}</Banner>
+          ) : null}
+          <Button onClick={() => void startDownload()} disabled={download.state === "running" || missing.length === 0}>
+            Download the models
+          </Button>
+        </Card>
+      </Section>
+
+      <Section
+        title="DeepSeek key"
+        description={global.deepSeekKeyConfigured
+          ? "A key is configured. It is stored encrypted for this Windows account and is never shown again."
+          : "No key is configured. Without one, projects answer with passages only."}
+        actions={global.deepSeekKeyConfigured ? <span className="badge badge-ready">Configured</span> : <span className="badge">Not set</span>}
+      >
         {notice ? <Banner tone="info">{notice}</Banner> : null}
-        <form className="row" onSubmit={saveKey}>
-          <Field label="API key">
-            <input type="password" autoComplete="off" value={keyDraft} onChange={(event) => setKeyDraft(event.target.value)} placeholder="sk-…" />
-          </Field>
-          <Button type="submit" variant="primary" disabled={keyDraft.trim().length < 8}>Save key</Button>
-          {global.deepSeekKeyConfigured ? <Button variant="danger" onClick={() => void removeKey()}>Remove key</Button> : null}
-        </form>
+        <Card>
+          <form className="inline-form" onSubmit={saveKey}>
+            <Field label="API key">
+              <input type="password" autoComplete="off" value={keyDraft} onChange={(event) => setKeyDraft(event.target.value)} placeholder="sk-…" />
+            </Field>
+            <Button type="submit" variant="primary" disabled={keyDraft.trim().length < 8}>Save key</Button>
+            {global.deepSeekKeyConfigured ? <Button variant="danger" onClick={() => void removeKey()}>Remove key</Button> : null}
+          </form>
+        </Card>
       </Section>
     </div>
   );
@@ -333,61 +353,70 @@ function AppearanceSettings({
   };
 
   return (
-    <Section title="Appearance">
-      <fieldset style={{ border: "none", padding: 0, margin: "0.5rem 0" }}>
-        <legend className="field-label">Theme</legend>
-        <div className="row">
-          {(["system", "light", "dark"] as ThemeChoice[]).map((theme) => (
-            <label key={theme} className="choice">
-              <input type="radio" name="theme" checked={appearance.theme === theme} onChange={() => set("theme", theme)} />
-              {theme === "system" ? "Follow Windows" : theme === "light" ? "Light" : "Dark"}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+    <div>
+      <Section title="Theme and text" description="Changes apply at once and are saved for every project.">
+        <Card>
+          <fieldset className="fieldset">
+            <legend className="field-label">Theme</legend>
+            <div className="segmented">
+              {(["system", "light", "dark"] as ThemeChoice[]).map((theme) => (
+                <label key={theme}>
+                  <input type="radio" name="theme" checked={appearance.theme === theme} onChange={() => set("theme", theme)} />
+                  {theme === "system" ? "Follow Windows" : theme === "light" ? "Light" : "Dark"}
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
-      <div className="row">
-        <Field label={`Interface text size: ${appearance.interfaceSize}px`}>
-          <input type="range" min={INTERFACE_SIZE.min} max={INTERFACE_SIZE.max} step={INTERFACE_SIZE.step} value={appearance.interfaceSize} onChange={(event) => set("interfaceSize", Number(event.target.value))} />
-        </Field>
-        <Field label={`Reading text size: ${appearance.readingSize}px`} hint="Ctrl + and Ctrl − change this too.">
-          <input type="range" min={READING_SIZE.min} max={READING_SIZE.max} step={READING_SIZE.step} value={appearance.readingSize} onChange={(event) => set("readingSize", Number(event.target.value))} />
-        </Field>
-      </div>
+          <div className="form-grid">
+            <Field label={`Interface text size: ${appearance.interfaceSize}px`}>
+              <input type="range" min={INTERFACE_SIZE.min} max={INTERFACE_SIZE.max} step={INTERFACE_SIZE.step} value={appearance.interfaceSize} onChange={(event) => set("interfaceSize", Number(event.target.value))} />
+            </Field>
+            <Field label={`Reading text size: ${appearance.readingSize}px`} hint="Ctrl + and Ctrl − change this too.">
+              <input type="range" min={READING_SIZE.min} max={READING_SIZE.max} step={READING_SIZE.step} value={appearance.readingSize} onChange={(event) => set("readingSize", Number(event.target.value))} />
+            </Field>
+          </div>
 
-      <div className="row">
-        <Field label="Line height">
-          <select value={appearance.lineHeight} onChange={(event) => set("lineHeight", event.target.value as LineHeightChoice)}>
-            <option value="compact">Compact</option>
-            <option value="comfortable">Comfortable</option>
-            <option value="spacious">Spacious</option>
-          </select>
-        </Field>
-        <Field label="Reading width">
-          <select value={appearance.readingWidth} onChange={(event) => set("readingWidth", event.target.value as ReadingWidthChoice)}>
-            <option value="narrow">Narrow</option>
-            <option value="wide">Wide</option>
-            <option value="full">Full</option>
-          </select>
-        </Field>
-      </div>
+          <div className="form-grid">
+            <Field label="Line height">
+              <select value={appearance.lineHeight} onChange={(event) => set("lineHeight", event.target.value as LineHeightChoice)}>
+                <option value="compact">Compact</option>
+                <option value="comfortable">Comfortable</option>
+                <option value="spacious">Spacious</option>
+              </select>
+            </Field>
+            <Field label="Reading width">
+              <select value={appearance.readingWidth} onChange={(event) => set("readingWidth", event.target.value as ReadingWidthChoice)}>
+                <option value="narrow">Narrow</option>
+                <option value="wide">Wide</option>
+                <option value="full">Full</option>
+              </select>
+            </Field>
+          </div>
+        </Card>
+      </Section>
 
-      <div className="row">
-        <Field label="Interface font">
-          <select value={appearance.interfaceFont} onChange={(event) => set("interfaceFont", event.target.value)}>{fontOptions(appearance.interfaceFont)}</select>
-        </Field>
-        <Field label="Reading font">
-          <select value={appearance.readingFont} onChange={(event) => set("readingFont", event.target.value)}>{fontOptions(appearance.readingFont)}</select>
-        </Field>
-        <Field label="Monospace font">
-          <select value={appearance.monoFont} onChange={(event) => set("monoFont", event.target.value)}>{fontOptions(appearance.monoFont)}</select>
-        </Field>
-      </div>
+      <Section title="Fonts" description="Bundled fonts ship with Silvia; installed fonts come from Windows.">
+        <Card>
+          <div className="form-grid">
+            <Field label="Interface font">
+              <select value={appearance.interfaceFont} onChange={(event) => set("interfaceFont", event.target.value)}>{fontOptions(appearance.interfaceFont)}</select>
+            </Field>
+            <Field label="Reading font">
+              <select value={appearance.readingFont} onChange={(event) => set("readingFont", event.target.value)}>{fontOptions(appearance.readingFont)}</select>
+            </Field>
+            <Field label="Monospace font">
+              <select value={appearance.monoFont} onChange={(event) => set("monoFont", event.target.value)}>{fontOptions(appearance.monoFont)}</select>
+            </Field>
+          </div>
 
-      <div className="preview" aria-label="Preview">
-        <div className="sample" dangerouslySetInnerHTML={{ __html: renderMarkdown(SAMPLE) }} />
-      </div>
-    </Section>
+          <div className="preview" aria-label="Preview">
+            <p className="preview-label">Preview</p>
+            <div className="sample" dangerouslySetInnerHTML={{ __html: renderMarkdown(SAMPLE) }} />
+          </div>
+        </Card>
+      </Section>
+    </div>
   );
 }
 

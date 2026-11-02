@@ -36,6 +36,33 @@ public sealed class IngestTests
     }
 
     [Fact]
+    public async Task A_Folder_Removed_And_Added_Again_Is_Indexed_Again()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var harness = new CoreHarness();
+        var project = harness.Manager.Create("Re-added", settings: CoreHarness.FakeSettings());
+        var folder = harness.NewFolder("readded");
+        for (var i = 0; i < 3; i++)
+        {
+            CoreHarness.WriteFile(folder, $"note-{i}.md", $"Note {i} about the Lumen pilot.");
+        }
+
+        var runtime = harness.Manager.Open(project.Id);
+        var sourceId = runtime.AddSource(folder);
+        await runtime.WaitForIdleAsync(ct);
+        Assert.Equal(3, runtime.Documents().Count);
+
+        runtime.RemoveSource(sourceId);
+        await runtime.WaitForIdleAsync(ct);
+        Assert.Empty(runtime.Documents());
+
+        // The files did not change, so only forgetting their ingest records brings them back.
+        runtime.AddSource(folder);
+        await runtime.WaitForIdleAsync(ct);
+        Assert.Equal(3, runtime.Documents().Count);
+    }
+
+    [Fact]
     public async Task Jobs_Queued_Before_A_Crash_Run_After_Restart()
     {
         var ct = TestContext.Current.CancellationToken;

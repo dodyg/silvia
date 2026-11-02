@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { describeError, projects, settings, type ProjectDto } from "./api";
 import { applyAppearance, stepReadingSize, type Appearance } from "./theme";
-import { Banner, Button } from "./ui";
+import { Banner, Button, Empty, Icon, Spinner, type IconName } from "./ui";
 import { ActivityScreen } from "./screens/ActivityScreen";
 import { ChatScreen } from "./screens/ChatScreen";
 import { LibraryScreen } from "./screens/LibraryScreen";
@@ -11,13 +11,17 @@ import { SettingsScreen } from "./screens/SettingsScreen";
 
 type Screen = "chat" | "search" | "library" | "activity" | "projects" | "settings";
 
-const SCREENS: Array<{ id: Screen; label: string }> = [
-  { id: "chat", label: "Chat" },
-  { id: "search", label: "Search" },
-  { id: "library", label: "Library" },
-  { id: "activity", label: "Activity" },
-  { id: "projects", label: "Projects" },
-  { id: "settings", label: "Settings" },
+// Project screens need an open project; the app screens below them work without one.
+const PROJECT_SCREENS: Array<{ id: Screen; label: string; icon: IconName }> = [
+  { id: "chat", label: "Chat", icon: "chat" },
+  { id: "search", label: "Search", icon: "search" },
+  { id: "library", label: "Library", icon: "library" },
+  { id: "activity", label: "Activity", icon: "activity" },
+];
+
+const APP_SCREENS: Array<{ id: Screen; label: string; icon: IconName }> = [
+  { id: "projects", label: "Projects", icon: "projects" },
+  { id: "settings", label: "Settings", icon: "settings" },
 ];
 
 const PROJECT_KEY = "silvia.project.v1";
@@ -86,6 +90,11 @@ export function App() {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSwitcherOpen(false);
+        return;
+      }
+
       if (!(event.ctrlKey || event.metaKey)) {
         return;
       }
@@ -124,10 +133,10 @@ export function App() {
 
   if (projectList === null || appearance === null) {
     return (
-      <div className="shell">
-        <div className="main">
-          <p className="muted" role="status">Starting Silvia…</p>
-        </div>
+      <div className="loading">
+        <p className="row muted">
+          <Spinner label="Starting" /> Starting Silvia…
+        </p>
       </div>
     );
   }
@@ -138,43 +147,70 @@ export function App() {
     setScreen("chat");
   };
 
+  const navButton = (item: { id: Screen; label: string; icon: IconName }) => (
+    <button
+      key={item.id}
+      type="button"
+      aria-current={screen === item.id ? "page" : undefined}
+      onClick={() => setScreen(item.id)}
+      disabled={!project && PROJECT_SCREENS.includes(item)}
+    >
+      <Icon name={item.icon} />
+      {item.label}
+    </button>
+  );
+
+  // Chat fills the window edge to edge; the other screens sit in a centered column.
+  const flush = screen === "chat" && project !== null;
+
   return (
     <div className="shell">
-      <header className="topbar">
-        <span className="brand">Silvia</span>
-        <nav className="nav" aria-label="Sections">
-          {SCREENS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              aria-current={screen === item.id ? "page" : undefined}
-              onClick={() => setScreen(item.id)}
-              disabled={!project && item.id !== "projects" && item.id !== "settings"}
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
+      <aside className="sidebar">
+        <div className="brand">
+          <span className="brand-mark" aria-hidden="true">S</span>
+          <span className="brand-name">Silvia</span>
+        </div>
+
         <div className="project-switch">
-          <Button onClick={() => setSwitcherOpen((open) => !open)} aria-haspopup="listbox" aria-expanded={switcherOpen}>
-            {project ? project.name : "No project"} <span aria-hidden="true">▾</span>
+          <button
+            type="button"
+            className="project-button"
+            onClick={() => setSwitcherOpen((open) => !open)}
+            aria-haspopup="listbox"
+            aria-expanded={switcherOpen}
+          >
+            <span className="grow">
+              <span className="label">Project</span>
+              <span className="name">{project ? project.name : "No project"}</span>
+            </span>
+            <Icon name="chevron" />
             <span className="visually-hidden">(Ctrl+P)</span>
-          </Button>
+          </button>
           {switcherOpen ? (
             <div className="popover" role="listbox" aria-label="Projects">
-              {projectList.length === 0 ? <span className="muted">No projects yet.</span> : null}
+              {projectList.length === 0 ? <span className="popover-empty">No projects yet.</span> : null}
               {projectList.map((p) => (
                 <button key={p.id} type="button" role="option" aria-selected={p.id === projectId} aria-current={p.id === projectId} onClick={() => chooseProject(p.id)}>
                   {p.name}
                 </button>
               ))}
-              <button type="button" onClick={() => { setSwitcherOpen(false); setScreen("projects"); }}>Manage projects…</button>
+              <hr />
+              <button type="button" onClick={() => { setSwitcherOpen(false); setScreen("projects"); }}>
+                <Icon name="projects" /> Manage projects…
+              </button>
             </div>
           ) : null}
         </div>
-      </header>
 
-      <main className="main">
+        <nav className="nav" aria-label="Project">
+          {PROJECT_SCREENS.map(navButton)}
+        </nav>
+        <nav className="nav nav-end" aria-label="App">
+          {APP_SCREENS.map(navButton)}
+        </nav>
+      </aside>
+
+      <main className={flush ? "main main-flush" : "main"}>
         <div className="page">
           {error ? <Banner tone="error">{error}</Banner> : null}
           {screen === "projects" ? (
@@ -192,10 +228,13 @@ export function App() {
               onError={setError}
             />
           ) : !project ? (
-            <Banner tone="info">
-              Create a project to start. Each project keeps its own folders, index and conversations.{" "}
-              <Button variant="primary" onClick={() => setScreen("projects")}>Create a project</Button>
-            </Banner>
+            <Empty title="Create a project to start" icon="projects">
+              Each project keeps its own folders, index and conversations.
+              <br />
+              <Button variant="primary" onClick={() => setScreen("projects")}>
+                <Icon name="plus" /> Create a project
+              </Button>
+            </Empty>
           ) : screen === "chat" ? (
             <ChatScreen key={project.id} projectId={project.id} onError={setError} />
           ) : screen === "search" ? (

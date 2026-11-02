@@ -31,6 +31,9 @@ public sealed record ProjectIdScoped(string ProjectId);
 
 public sealed record AddSourceRequest(string ProjectId, string Path, string? IncludeGlobs, string? ExcludeGlobs);
 
+/// <summary>The result of the folder dialog: <c>picked</c> with a path, <c>canceled</c>, or <c>unavailable</c>.</summary>
+public sealed record FolderPickDto(string Status, string? Path);
+
 public sealed record SourceIdRequest(string ProjectId, string SourceId);
 
 public sealed record RescanRequest(string ProjectId, string? SourceId);
@@ -108,6 +111,7 @@ public sealed record ModelDownloadStatusDto(string State, string? File, int Perc
 [JsonSerializable(typeof(SourceDto[]))]
 [JsonSerializable(typeof(ProjectIdScoped))]
 [JsonSerializable(typeof(AddSourceRequest))]
+[JsonSerializable(typeof(FolderPickDto))]
 [JsonSerializable(typeof(SourceIdRequest))]
 [JsonSerializable(typeof(RescanRequest))]
 [JsonSerializable(typeof(DocumentDto))]
