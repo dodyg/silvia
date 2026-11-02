@@ -76,6 +76,14 @@ public sealed class LibraryService(AppHost host)
             .ToArray());
     }
 
+    /// <summary>Which local models this project uses now. Both are optional; without the embedder, search is by keyword.</summary>
+    [NeoRpcMethod("modelStatus")]
+    public ValueTask<ModelStatusDto> ModelStatusAsync(ProjectIdScoped request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        return ValueTask.FromResult(new ModelStatusDto(runtime.CanEmbed, runtime.CanRerank));
+    }
+
     [NeoRpcMethod("activity")]
     public ValueTask<JobSummaryDto> ActivityAsync(ProjectIdScoped request, CancellationToken cancellationToken)
     {

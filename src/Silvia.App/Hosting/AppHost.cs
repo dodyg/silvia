@@ -19,7 +19,8 @@ public sealed class AppHost : IDisposable
         Secrets = secrets;
         DataRoot = dataRoot;
         ModelsRoot = modelsRoot;
-        Downloads = new ModelDownloadService(modelsRoot, _http);
+        // Open projects that started without the models reopen with them on their next use.
+        Downloads = new ModelDownloadService(modelsRoot, _http, completed: manager.CloseAll);
     }
 
     public ProjectManager Manager { get; }

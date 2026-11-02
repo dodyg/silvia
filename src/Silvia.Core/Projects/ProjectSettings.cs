@@ -18,7 +18,7 @@ public sealed record ProjectSettings
     public string RerankModel { get; init; } = ModelCatalog.DefaultReranker;
 
     /// <summary>Chat model name sent to DeepSeek (or the configured OpenAI-compatible endpoint).</summary>
-    public string ChatModel { get; init; } = "deepseek-chat";
+    public string ChatModel { get; init; } = "deepseek-flash";
 
     /// <summary>
     /// Where answers may come from: <c>deepseek</c> (default), <c>local-only</c> (no cloud model; not

@@ -280,7 +280,7 @@ function GlobalSettings({ onError }: { onError: (message: string | null) => void
             <Banner tone="info">The embedder and the reranker are installed.</Banner>
           ) : (
             <Banner tone="warn">
-              {missing.map((m) => m.id).join(", ")} not installed. Search needs the embedder, so download the models before you add a folder.
+              {missing.map((m) => m.id).join(", ")} not installed. They are optional: without them Silvia searches by keyword and answers with DeepSeek. With them, search also finds passages by meaning and ranks them better.
             </Banner>
           )}
           {download.state === "running" ? (

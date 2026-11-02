@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { chat, describeError, library, type HitDto } from "../api";
+import { useModelStatus } from "../models";
 import { Button, Empty, Icon, PageHeader } from "../ui";
 
 interface Props {
@@ -11,6 +12,7 @@ export function SearchScreen({ projectId, onError }: Props) {
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<HitDto[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const { canEmbed } = useModelStatus(projectId);
 
   async function run(event: FormEvent) {
     event.preventDefault();
@@ -32,7 +34,12 @@ export function SearchScreen({ projectId, onError }: Props) {
 
   return (
     <div>
-      <PageHeader title="Search" description="Find passages in this project. Search never calls a model, so it works offline." />
+      <PageHeader
+        title="Search"
+        description={canEmbed
+          ? "Find passages in this project by meaning. Search never calls a cloud model, so it works offline."
+          : "Find passages in this project by keyword. Search never calls a cloud model, so it works offline."}
+      />
 
       <form className="search-bar" role="search" onSubmit={run}>
         <div className="search-field">

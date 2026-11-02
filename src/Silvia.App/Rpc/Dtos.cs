@@ -34,6 +34,9 @@ public sealed record AddSourceRequest(string ProjectId, string Path, string? Inc
 /// <summary>The result of the folder dialog: <c>picked</c> with a path, <c>canceled</c>, or <c>unavailable</c>.</summary>
 public sealed record FolderPickDto(string Status, string? Path);
 
+/// <summary>Whether a project's embedder and reranker are installed. Without the embedder, search is by keyword.</summary>
+public sealed record ModelStatusDto(bool CanEmbed, bool CanRerank);
+
 public sealed record SourceIdRequest(string ProjectId, string SourceId);
 
 public sealed record RescanRequest(string ProjectId, string? SourceId);
@@ -112,6 +115,7 @@ public sealed record ModelDownloadStatusDto(string State, string? File, int Perc
 [JsonSerializable(typeof(ProjectIdScoped))]
 [JsonSerializable(typeof(AddSourceRequest))]
 [JsonSerializable(typeof(FolderPickDto))]
+[JsonSerializable(typeof(ModelStatusDto))]
 [JsonSerializable(typeof(SourceIdRequest))]
 [JsonSerializable(typeof(RescanRequest))]
 [JsonSerializable(typeof(DocumentDto))]

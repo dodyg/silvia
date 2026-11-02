@@ -22,12 +22,18 @@ public sealed class CoreHarness : IDisposable
     public CoreHarness(
         ProjectManagerOptions? overrides = null,
         bool withChat = false,
-        ProjectRuntime.RuntimeOptions? runtimeOptions = null)
+        ProjectRuntime.RuntimeOptions? runtimeOptions = null,
+        bool localModels = true)
     {
         Chat = new RecordingChatClient();
         Pool = new ModelPool(
             createEmbedder: id =>
             {
+                if (!localModels)
+                {
+                    throw new ModelFilesMissingException(id, Path.Combine(_root, "models"));
+                }
+
                 var dims = id == EmbedderId ? Dimensions : int.Parse(id.Split('-')[1]);
                 var embedder = new HashingEmbedder(dims);
                 _embedders.Add(embedder);

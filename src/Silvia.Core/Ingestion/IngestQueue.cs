@@ -28,13 +28,19 @@ internal sealed class IngestQueue : IAsyncDisposable
     private Task? _worker;
     private volatile Exception? _lastFault;
     private volatile string _step = "idle";
+    private readonly KeywordIndex? _keywords;
 
-    public IngestQueue(string databasePath, IRagPipeline pipeline, IServiceProvider services, IngestThrottle throttle)
+    /// <param name="keywords">
+    /// When given, jobs index files for keyword search instead of embedding them: the project has no
+    /// local embedder, and searches and answers run on this index.
+    /// </param>
+    public IngestQueue(string databasePath, IRagPipeline pipeline, IServiceProvider services, IngestThrottle throttle, KeywordIndex? keywords = null)
     {
         _databasePath = databasePath;
         _pipeline = pipeline;
         _services = services;
         _throttle = throttle;
+        _keywords = keywords;
     }
 
     /// <summary>Starts the worker, after returning any interrupted jobs to the queue.</summary>
@@ -221,6 +227,12 @@ internal sealed class IngestQueue : IAsyncDisposable
             return;
         }
 
+        if (_keywords is not null)
+        {
+            await ExecuteKeywordAsync(_keywords, job, cancellationToken);
+            return;
+        }
+
         switch (job.Kind)
         {
             case JobKind.Upsert when File.Exists(job.Path):
@@ -264,6 +276,39 @@ internal sealed class IngestQueue : IAsyncDisposable
         }
     }
 
+    /// <summary>The same jobs, run against the keyword index. Re-embedding has nothing to do here.</summary>
+    private async Task ExecuteKeywordAsync(KeywordIndex keywords, Job job, CancellationToken cancellationToken)
+    {
+        switch (job.Kind)
+        {
+            case JobKind.Upsert:
+                using (await _throttle.AcquireAsync(cancellationToken))
+                {
+                    await keywords.IndexFileAsync(job.Path, cancellationToken);
+                }
+
+                break;
+
+            case JobKind.Delete:
+                await keywords.RemoveFileAsync(job.Path, cancellationToken);
+                break;
+
+            case JobKind.Scan:
+                var source = ReadSource(job.SourceId!.Value);
+                if (source is { Enabled: true })
+                {
+                    using (await _throttle.AcquireAsync(cancellationToken))
+                    {
+                        await keywords.ScanAsync(new FolderFileProvider(source.Path, source.IncludeGlobs, source.ExcludeGlobs), source.Path, cancellationToken);
+                    }
+
+                    StampScan(source.Id);
+                }
+
+                break;
+        }
+    }
+
     /// <summary>
     /// Removes a file's chunks, and forgets that its source scanned it. Without the second step a scan
     /// of the same unchanged file (after a folder is removed and added back, for example) would match the
@@ -303,13 +348,17 @@ internal sealed class IngestQueue : IAsyncDisposable
             cleanupMode: CleanupMode.Full,
             cancellationToken: cancellationToken);
 
+        StampScan(sourceId);
+    }
+
+    private void StampScan(long sourceId)
+    {
         using var connection = SqliteStorage.Open(_databasePath);
         using var stamp = connection.CreateCommand();
         stamp.CommandText = "UPDATE sources SET last_scan_utc = $now WHERE id = $id";
         stamp.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
         stamp.Parameters.AddWithValue("$id", sourceId);
         stamp.ExecuteNonQuery();
-
     }
 
     private bool IsSourceEnabled(long id) => ReadSource(id) is { Enabled: true };

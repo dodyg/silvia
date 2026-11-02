@@ -55,6 +55,7 @@ export const library = Object.freeze({
   listSources: () => delay(sample.sources),
   addSource: (request: { path: string }) => delay({ ...sample.sources[0], id: "2", path: request.path }),
   pickFolder: () => delay({ status: "picked", path: "C:/Documents/Picked" }),
+  modelStatus: () => delay({ canEmbed: true, canRerank: true }),
   removeSource: () => delay({}),
   rescan: () => delay({}),
   listDocuments: () => delay(sample.documents),

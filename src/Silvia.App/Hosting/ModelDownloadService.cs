@@ -5,9 +5,10 @@ namespace Silvia.App.Hosting;
 
 /// <summary>
 /// Runs the model download in the background and keeps its progress for the settings screen, which
-/// polls for it. One download runs at a time.
+/// polls for it. One download runs at a time. <paramref name="completed"/> runs after a download
+/// succeeds, so projects opened without the models can reopen with them.
 /// </summary>
-public sealed class ModelDownloadService(string modelsRoot, HttpClient http)
+public sealed class ModelDownloadService(string modelsRoot, HttpClient http, Action? completed = null)
 {
     private readonly Lock _gate = new();
     private Task? _running;
@@ -33,6 +34,7 @@ public sealed class ModelDownloadService(string modelsRoot, HttpClient http)
                 {
                     var downloader = new ModelDownloader(http, modelsRoot, ModelDownloader.DefaultFiles);
                     await downloader.DownloadAsync(new Progress<ModelDownloadProgress>(p => _latest = p), CancellationToken.None);
+                    completed?.Invoke();
                     SetState("done", "The models are ready. Projects can now embed and rerank.");
                 }
                 catch (Exception)
