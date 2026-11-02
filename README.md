@@ -1,0 +1,2 @@
+# silvia
+Personal desktop RAG
