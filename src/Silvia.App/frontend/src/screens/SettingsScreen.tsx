@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { describeError, settings, type FontListDto, type GlobalSettingsDto, type ModelDto, type ProjectSettingsDto } from "../api";
 import { INTERFACE_SIZE, READING_SIZE, SYSTEM_FONT, type Appearance, type LineHeightChoice, type ReadingWidthChoice, type ThemeChoice } from "../theme";
 import { renderMarkdown } from "../markdown";
@@ -146,40 +146,157 @@ function NumberField({ label, value, min, max, onChange }: { label: string; valu
   );
 }
 
+interface DownloadView {
+  state: string;
+  file: string | null;
+  percent: number;
+  message: string | null;
+}
+
 function GlobalSettings({ onError }: { onError: (message: string | null) => void }) {
   const [global, setGlobal] = useState<GlobalSettingsDto | null>(null);
+  const [models, setModels] = useState<ModelDto[]>([]);
+  const [keyDraft, setKeyDraft] = useState("");
+  const [download, setDownload] = useState<DownloadView>({ state: "idle", file: null, percent: 0, message: null });
+  const [notice, setNotice] = useState<string | null>(null);
+  const timer = useRef<number | null>(null);
+
+  async function reload() {
+    try {
+      const [loaded, known] = await Promise.all([settings.getGlobal({}), settings.listModels({})]);
+      setGlobal(loaded);
+      setModels([...known]);
+    } catch (failure) {
+      onError(describeError(failure));
+    }
+  }
 
   useEffect(() => {
-    settings.getGlobal({}).then(setGlobal).catch((failure) => onError(describeError(failure)));
+    void reload();
+    return () => {
+      if (timer.current !== null) {
+        window.clearInterval(timer.current);
+      }
+    };
     // Loaded once when the tab opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function watchDownload() {
+    if (timer.current !== null) {
+      return;
+    }
+
+    timer.current = window.setInterval(async () => {
+      try {
+        const next = await settings.modelDownloadStatus({});
+        setDownload({ state: next.state, file: next.file ?? null, percent: next.percent, message: next.message ?? null });
+        if (next.state !== "running" && timer.current !== null) {
+          window.clearInterval(timer.current);
+          timer.current = null;
+          await reload();
+        }
+      } catch (failure) {
+        onError(describeError(failure));
+      }
+    }, 1000);
+  }
+
+  async function startDownload() {
+    onError(null);
+    try {
+      const next = await settings.startModelDownload({});
+      setDownload({ state: next.state, file: next.file ?? null, percent: next.percent, message: next.message ?? null });
+      watchDownload();
+    } catch (failure) {
+      onError(describeError(failure));
+    }
+  }
+
+  async function saveKey(event: FormEvent) {
+    event.preventDefault();
+    setNotice(null);
+    try {
+      await settings.setDeepSeekKey({ key: keyDraft.trim() });
+      setKeyDraft("");
+      setNotice("Saved for this Windows account. Open projects reconnect with the new key on their next use.");
+      await reload();
+    } catch (failure) {
+      onError(describeError(failure));
+    }
+  }
+
+  async function removeKey() {
+    setNotice(null);
+    try {
+      await settings.removeDeepSeekKey({});
+      setNotice("The key was removed.");
+      await reload();
+    } catch (failure) {
+      onError(describeError(failure));
+    }
+  }
 
   if (!global) {
     return <p className="muted">Loading…</p>;
   }
 
+  const missing = models.filter((m) => !m.installed);
+
   return (
-    <Section title="Global settings">
-      <p>
-        <strong>Data folder</strong>
-        <br />
-        <span className="path">{global.dataRoot}</span>
-      </p>
-      <p>
-        <strong>Models folder</strong>
-        <br />
-        <span className="path">{global.modelsRoot}</span>
-      </p>
-      <p>
-        <strong>DeepSeek key</strong>
-        <br />
-        {global.deepSeekKeyConfigured
-          ? "Configured through the DEEPSEEK_API_KEY environment variable."
-          : "Not configured. Set DEEPSEEK_API_KEY and restart Silvia to enable answers from DeepSeek."}
-      </p>
-      <p className="muted">Up to {global.maxOpenProjects} projects stay open at once; the others open on demand.</p>
-    </Section>
+    <div>
+      <Section title="Data">
+        <p>
+          <strong>Data folder</strong>
+          <br />
+          <span className="path">{global.dataRoot}</span>
+        </p>
+        <p>
+          <strong>Models folder</strong>
+          <br />
+          <span className="path">{global.modelsRoot}</span>
+        </p>
+        <p className="muted">Up to {global.maxOpenProjects} projects stay open at once; the others open on demand.</p>
+      </Section>
+
+      <Section title="Models">
+        {missing.length === 0 ? (
+          <Banner tone="info">The embedder and the reranker are installed.</Banner>
+        ) : (
+          <Banner tone="warn">
+            {missing.map((m) => m.id).join(", ")} not installed. Search needs the embedder, so download the models before you add a folder.
+          </Banner>
+        )}
+        {download.state === "running" ? (
+          <div role="status" aria-live="polite" className="muted">
+            Downloading {download.file ?? "the models"}… {download.percent}%
+          </div>
+        ) : null}
+        {download.state === "done" || download.state === "failed" ? (
+          <Banner tone={download.state === "done" ? "info" : "error"}>{download.message}</Banner>
+        ) : null}
+        <Button onClick={() => void startDownload()} disabled={download.state === "running" || missing.length === 0}>
+          Download the models
+        </Button>
+        <p className="muted">About 230 MB, from Hugging Face. Files that are already present are skipped.</p>
+      </Section>
+
+      <Section title="DeepSeek key">
+        <p>
+          {global.deepSeekKeyConfigured
+            ? "A key is configured. It is stored encrypted for this Windows account and is never shown again."
+            : "No key is configured. Without one, projects answer with passages only."}
+        </p>
+        {notice ? <Banner tone="info">{notice}</Banner> : null}
+        <form className="row" onSubmit={saveKey}>
+          <Field label="API key">
+            <input type="password" autoComplete="off" value={keyDraft} onChange={(event) => setKeyDraft(event.target.value)} placeholder="sk-…" />
+          </Field>
+          <Button type="submit" variant="primary" disabled={keyDraft.trim().length < 8}>Save key</Button>
+          {global.deepSeekKeyConfigured ? <Button variant="danger" onClick={() => void removeKey()}>Remove key</Button> : null}
+        </form>
+      </Section>
+    </div>
   );
 }
 
@@ -202,16 +319,15 @@ function AppearanceSettings({
 
   const set = <K extends keyof Appearance>(key: K, value: Appearance[K]) => void onChange({ ...appearance, [key]: value });
   const fontOptions = (current: string) => {
-    const known = new Set([SYSTEM_FONT, ...(fonts?.bundled ?? []), ...(fonts?.system ?? [])]);
     const list = [SYSTEM_FONT, ...(fonts?.bundled ?? []), ...(fonts?.system ?? [])];
     return (
       <>
         {list.map((font) => (
-          <option key={font} value={font} style={{ fontFamily: font === SYSTEM_FONT ? undefined : `"${font}"` }}>
+          <option key={font} value={font}>
             {font}
           </option>
         ))}
-        {known.has(current) ? null : <option value={current}>{current} (not installed)</option>}
+        {list.includes(current) ? null : <option value={current}>{current} (not installed)</option>}
       </>
     );
   };

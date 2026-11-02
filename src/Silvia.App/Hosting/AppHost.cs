@@ -1,28 +1,34 @@
-using System.ClientModel;
-using Microsoft.Extensions.AI;
-using OpenAI;
 using Silvia.Core.Models;
 using Silvia.Core.Projects;
+using Silvia.Core.Secrets;
 
 namespace Silvia.App.Hosting;
 
 /// <summary>
-/// The composition root: where the data lives, which models load, and the one project manager the
-/// RPC services share. Everything here is created once at startup and disposed at exit.
+/// The composition root: where the data lives, which models load, where secrets are kept, and the one
+/// project manager the RPC services share. Everything here is created once at startup and disposed at exit.
 /// </summary>
 public sealed class AppHost : IDisposable
 {
-    private AppHost(ProjectManager manager, ModelPool models, string dataRoot, string modelsRoot)
+    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromMinutes(30) };
+
+    private AppHost(ProjectManager manager, ModelPool models, SecretStore secrets, string dataRoot, string modelsRoot)
     {
         Manager = manager;
         Models = models;
+        Secrets = secrets;
         DataRoot = dataRoot;
         ModelsRoot = modelsRoot;
+        Downloads = new ModelDownloadService(modelsRoot, _http);
     }
 
     public ProjectManager Manager { get; }
 
     public ModelPool Models { get; }
+
+    public SecretStore Secrets { get; }
+
+    public ModelDownloadService Downloads { get; }
 
     public string DataRoot { get; }
 
@@ -38,41 +44,25 @@ public sealed class AppHost : IDisposable
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Silvia");
         var modelsRoot = Environment.GetEnvironmentVariable("SILVIA_MODELS") ?? Path.Combine(dataRoot, "models");
 
-        var models = new ModelPool(
-            createEmbedder: id =>
-            {
-                var options = new Rag.NET.Embeddings.Onnx.OnnxEmbeddingOptions
-                {
-                    ModelPath = ModelCatalog.ModelFile(modelsRoot, id),
-                    TokenizerVocabPath = ModelCatalog.VocabularyFile(modelsRoot, id),
-                };
-                return new Rag.NET.Embeddings.Onnx.OnnxEmbeddingGenerator(options);
-            },
-            createReranker: id =>
-            {
-                var options = new Rag.NET.Reranking.Onnx.OnnxRerankerOptions
-                {
-                    ModelPath = ModelCatalog.ModelFile(modelsRoot, id),
-                    VocabPath = ModelCatalog.VocabularyFile(modelsRoot, id),
-                };
-                return new Rag.NET.Reranking.Onnx.OnnxReranker(options);
-            },
-            createChatClient: (endpoint, apiKey, model) => new OpenAIClient(
-                    new ApiKeyCredential(apiKey),
-                    new OpenAIClientOptions { Endpoint = endpoint })
-                .GetChatClient(model)
-                .AsIChatClient());
-
-        var manager = new ProjectManager(
-            new ProjectManagerOptions { RootDirectory = dataRoot },
-            models);
+        var secrets = SecretStore.InDataFolder(dataRoot);
+        var models = ModelPoolFactory.Create(modelsRoot);
+        var manager = new ProjectManager(new ProjectManagerOptions
+        {
+            RootDirectory = dataRoot,
+            ApiKeyProvider = () => ChatKey(secrets),
+        }, models);
         manager.Initialize();
-        return new AppHost(manager, models, dataRoot, modelsRoot);
+        return new AppHost(manager, models, secrets, dataRoot, modelsRoot);
     }
+
+    /// <summary>The DeepSeek key: the saved one first, then the environment variable for scripted setups.</summary>
+    public static string? ChatKey(SecretStore secrets) =>
+        secrets.Get(SecretStore.DeepSeekKey) ?? Environment.GetEnvironmentVariable("DEEPSEEK_API_KEY");
 
     public void Dispose()
     {
         Manager.Dispose();
         Models.Dispose();
+        _http.Dispose();
     }
 }

@@ -92,6 +92,10 @@ public sealed record OpenDocumentRequest(string ProjectId, string DocumentId, in
 
 public sealed record ShellResult(bool Opened, string Message);
 
+public sealed record SetDeepSeekKeyRequest(string Key);
+
+public sealed record ModelDownloadStatusDto(string State, string? File, int Percent, string? Message);
+
 [JsonSerializable(typeof(EmptyRequest))]
 [JsonSerializable(typeof(ProjectDto))]
 [JsonSerializable(typeof(ProjectDto[]))]
@@ -130,5 +134,7 @@ public sealed record ShellResult(bool Opened, string Message);
 [JsonSerializable(typeof(FontListDto))]
 [JsonSerializable(typeof(OpenDocumentRequest))]
 [JsonSerializable(typeof(ShellResult))]
+[JsonSerializable(typeof(SetDeepSeekKeyRequest))]
+[JsonSerializable(typeof(ModelDownloadStatusDto))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 internal sealed partial class AppJsonContext : JsonSerializerContext;

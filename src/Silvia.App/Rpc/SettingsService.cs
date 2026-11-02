@@ -3,6 +3,7 @@ using NeoAstra.Rpc;
 using Silvia.App.Hosting;
 using Silvia.Core.Models;
 using Silvia.Core.Projects;
+using Silvia.Core.Secrets;
 
 namespace Silvia.App.Rpc;
 
@@ -10,7 +11,6 @@ namespace Silvia.App.Rpc;
 [NeoRpcService("settings", Version = 1)]
 public sealed class SettingsService(AppHost host)
 {
-    private const string DeepSeekKeyVariable = "DEEPSEEK_API_KEY";
 
     [NeoRpcMethod("getProject")]
     public ValueTask<ProjectSettingsDto> GetProjectAsync(ProjectIdScoped request, CancellationToken cancellationToken)
@@ -38,8 +38,42 @@ public sealed class SettingsService(AppHost host)
         ValueTask.FromResult(new GlobalSettingsDto(
             host.DataRoot,
             host.ModelsRoot,
-            !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(DeepSeekKeyVariable)),
+            !string.IsNullOrWhiteSpace(AppHost.ChatKey(host.Secrets)),
             host.Manager.Options.MaxOpenRuntimes));
+
+    /// <summary>
+    /// Saves the DeepSeek key, protected for this Windows user. The key is write-only: no call returns it.
+    /// Open projects are closed so the next use picks it up.
+    /// </summary>
+    [NeoRpcMethod("setDeepSeekKey")]
+    public ValueTask<EmptyRequest> SetDeepSeekKeyAsync(SetDeepSeekKeyRequest request, CancellationToken cancellationToken)
+    {
+        var key = request.Key?.Trim() ?? string.Empty;
+        if (key.Length is < 8 or > 512 || key.Any(char.IsControl))
+        {
+            throw Scope.Invalid("The key does not look like an API key.");
+        }
+
+        host.Secrets.Set(SecretStore.DeepSeekKey, key);
+        host.Manager.CloseAll();
+        return ValueTask.FromResult(new EmptyRequest());
+    }
+
+    [NeoRpcMethod("removeDeepSeekKey")]
+    public ValueTask<EmptyRequest> RemoveDeepSeekKeyAsync(EmptyRequest request, CancellationToken cancellationToken)
+    {
+        host.Secrets.Remove(SecretStore.DeepSeekKey);
+        host.Manager.CloseAll();
+        return ValueTask.FromResult(new EmptyRequest());
+    }
+
+    [NeoRpcMethod("startModelDownload")]
+    public ValueTask<ModelDownloadStatusDto> StartModelDownloadAsync(EmptyRequest request, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(host.Downloads.Start());
+
+    [NeoRpcMethod("modelDownloadStatus")]
+    public ValueTask<ModelDownloadStatusDto> ModelDownloadStatusAsync(EmptyRequest request, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(host.Downloads.Status());
 
     [NeoRpcMethod("listModels")]
     public ValueTask<ModelDto[]> ListModelsAsync(EmptyRequest request, CancellationToken cancellationToken)

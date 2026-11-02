@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/eval/">
+    <Project Path="eval/Silvia.Eval/Silvia.Eval.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Silvia.App/Silvia.App.csproj" />
     <Project Path="src/Silvia.Core/Silvia.Core.csproj" />

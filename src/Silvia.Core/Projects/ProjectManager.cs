@@ -213,6 +213,21 @@ public sealed class ProjectManager : IDisposable
 
     public void Close(string id) => CloseAsync(id).GetAwaiter().GetResult();
 
+    /// <summary>Closes every open runtime. The next open rebuilds each one with current credentials and settings.</summary>
+    public void CloseAll()
+    {
+        List<string> ids;
+        lock (_gate)
+        {
+            ids = _open.Keys.ToList();
+        }
+
+        foreach (var id in ids)
+        {
+            Close(id);
+        }
+    }
+
     /// <summary>Reads a project's settings without opening its runtime.</summary>
     public ProjectSettings ReadSettings(string id)
     {
