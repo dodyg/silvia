@@ -7,6 +7,11 @@ using Rag.NET.Abstractions;
 using Rag.NET.DependencyInjection;
 using Rag.NET.Models;
 using Rag.NET.Models.Options;
+using Rag.NET.Parsers.Excel;
+using Rag.NET.Parsers.Html;
+using Rag.NET.Parsers.Pdf;
+using Rag.NET.Parsers.PowerPoint;
+using Rag.NET.Parsers.Word;
 using Rag.NET.Storage;
 using Silvia.Core.Conversations;
 using Silvia.Core.Ingestion;
@@ -101,6 +106,14 @@ public sealed class ProjectRuntime : IAsyncDisposable
 
         services.AddRagNet(rag =>
         {
+            // Rag.NET registers only its plain-text parsers by itself (Markdown, text, CSV, JSON). The
+            // other types that ContentTypes accepts need their packages' parsers registered here, or
+            // their files are skipped in both the vector and the keyword index.
+            rag.AddPdfParser();
+            rag.AddWordParser();
+            rag.AddPowerPointParser();
+            rag.AddExcelParser();
+            rag.AddHtmlParser(_ => { });
             rag.UseChunkingStrategy<Rag.NET.Chunking.RecursiveChunkingStrategy>(c =>
             {
                 // The settings count tokens; roughly four characters make one token in English prose.

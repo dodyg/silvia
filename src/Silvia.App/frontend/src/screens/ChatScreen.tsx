@@ -23,6 +23,8 @@ export function ChatScreen({ projectId, onError }: Props) {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [picked, setPicked] = useState<{ turn: number; source: number } | null>(null);
+  // Deleting takes a second click on the row itself, so a stray click on the icon never loses a chat.
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const abort = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
 
@@ -67,6 +69,7 @@ export function ChatScreen({ projectId, onError }: Props) {
   }
 
   async function remove(conversation: ConversationDto) {
+    setConfirmingId(null);
     try {
       await chat.deleteConversation({ projectId, conversationId: conversation.id });
       if (activeId === conversation.id) {
@@ -163,28 +166,42 @@ export function ChatScreen({ projectId, onError }: Props) {
           <p className="chat-list-empty">Your conversations appear here.</p>
         ) : (
           <ul className="conversations">
-            {conversations.map((conversation) => (
-              <li key={conversation.id}>
-                <button
-                  type="button"
-                  className="conversation"
-                  aria-current={conversation.id === activeId ? "true" : undefined}
-                  onClick={() => void open(conversation)}
-                >
-                  <span className="conversation-title">{conversation.title}</span>
-                  <span className="conversation-date">{formatWhen(conversation.createdUtc)}</span>
-                </button>
-                <Button
-                  variant="quiet"
-                  className="btn-danger icon-btn"
-                  onClick={() => void remove(conversation)}
-                  aria-label={`Delete ${conversation.title}`}
-                  title="Delete"
-                >
-                  <Icon name="trash" />
-                </Button>
-              </li>
-            ))}
+            {conversations.map((conversation) =>
+              conversation.id === confirmingId ? (
+                <li key={conversation.id} className="conversation-confirm" role="group" aria-label={`Delete ${conversation.title}?`}>
+                  <span className="conversation-confirm-text">Delete this chat?</span>
+                  <div className="conversation-confirm-actions">
+                    <Button size="sm" variant="primary" className="btn-destructive" onClick={() => void remove(conversation)} autoFocus>
+                      Delete
+                    </Button>
+                    <Button size="sm" variant="quiet" onClick={() => setConfirmingId(null)}>
+                      Keep
+                    </Button>
+                  </div>
+                </li>
+              ) : (
+                <li key={conversation.id}>
+                  <button
+                    type="button"
+                    className="conversation"
+                    aria-current={conversation.id === activeId ? "true" : undefined}
+                    onClick={() => void open(conversation)}
+                  >
+                    <span className="conversation-title">{conversation.title}</span>
+                    <span className="conversation-date">{formatWhen(conversation.createdUtc)}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="conversation-delete"
+                    onClick={() => setConfirmingId(conversation.id)}
+                    aria-label={`Delete ${conversation.title}`}
+                    title="Delete chat"
+                  >
+                    <Icon name="trash" size={14} />
+                  </button>
+                </li>
+              ),
+            )}
           </ul>
         )}
       </aside>

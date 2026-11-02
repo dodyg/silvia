@@ -24,7 +24,10 @@ const sample = {
   },
 };
 
-const conversations: Array<{ id: string; title: string; createdUtc: string }> = [];
+const conversations: Array<{ id: string; title: string; createdUtc: string }> = [
+  { id: "01MOCKCHAT0000000000000001", title: "When does the Lumen pilot launch, and who owns the launch?", createdUtc: now },
+  { id: "01MOCKCHAT0000000000000002", title: "Battery pack capacity", createdUtc: now },
+];
 
 function delay<T>(value: T): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(value), 60));
@@ -70,7 +73,11 @@ export const chat = Object.freeze({
     { role: "user", content: "When does the pilot launch?", createdUtc: now, sources: [] },
     { role: "assistant", content: "The pilot launches on 14 March 2027 in Lisbon and Nairobi [1].", createdUtc: now, sources: [sample.citation] },
   ]),
-  deleteConversation: () => delay({}),
+  deleteConversation: (request: { conversationId: string }) => {
+    const index = conversations.findIndex((c) => c.id === request.conversationId);
+    if (index >= 0) conversations.splice(index, 1);
+    return delay({});
+  },
   search: () => delay([{ documentId: sample.citation.documentId, chunkIndex: 0, fileName: "handbook.md", text: sample.citation.text, relevance: 810 }]),
   ask: async () => {
     const steps = [

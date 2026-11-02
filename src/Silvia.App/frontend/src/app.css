@@ -736,7 +736,8 @@ textarea {
   background: var(--surface);
 }
 
-.chat-list .btn {
+/* Only the New chat button spans the column; buttons inside the list keep their own size. */
+.chat-list > .btn {
   width: 100%;
 }
 
@@ -805,17 +806,50 @@ textarea {
   color: var(--text-muted);
 }
 
-.conversations .icon-btn {
+.conversation-delete {
   position: absolute;
-  inset-inline-end: 0.35rem;
-  top: 50%;
-  transform: translateY(-50%);
+  inset-inline-end: 0.4rem;
+  top: 0.45rem;
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
   opacity: 0;
 }
 
-.conversations li:hover .icon-btn,
-.conversations li:focus-within .icon-btn {
+.conversations li:hover .conversation-delete,
+.conversation-delete:focus-visible {
   opacity: 1;
+}
+
+.conversation-delete:hover {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.conversation-confirm {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--danger-bg);
+}
+
+.conversation-confirm-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.conversation-confirm-actions {
+  display: flex;
+  gap: 0.35rem;
 }
 
 .thread {

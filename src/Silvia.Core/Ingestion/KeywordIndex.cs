@@ -36,7 +36,10 @@ internal sealed class KeywordIndex : IDisposable
         EnsureTable();
     }
 
-    /// <summary>Parses, chunks and indexes one file, replacing any passages it had. Unsupported files are skipped.</summary>
+    /// <summary>
+    /// Parses, chunks and indexes one file, replacing any passages it had. A supported type with no
+    /// registered parser fails, so the file shows up in Activity instead of being left out silently.
+    /// </summary>
     public async Task IndexFileAsync(string path, CancellationToken cancellationToken)
     {
         var documentId = DocumentIds.For(path);
@@ -48,11 +51,8 @@ internal sealed class KeywordIndex : IDisposable
         }
 
         var contentType = ContentTypes.For(documentId);
-        var parser = _parsers.FirstOrDefault(p => p.CanParse(contentType));
-        if (parser is null)
-        {
-            return;
-        }
+        var parser = _parsers.FirstOrDefault(p => p.CanParse(contentType))
+            ?? throw new NotSupportedException($"No parser can read {info.Name} ({contentType}).");
 
         var metadata = new DocumentMetadata
         {
@@ -126,26 +126,43 @@ internal sealed class KeywordIndex : IDisposable
 
     /// <summary>
     /// Brings a folder's passages in step with its files: new and changed files are indexed, files that
-    /// went away are removed, and unchanged files are skipped by their ETag.
+    /// went away are removed, and unchanged files are skipped by their ETag. A file that cannot be read
+    /// does not stop the others; the scan fails afterwards and names it, so it is retried and reported.
     /// </summary>
     public async Task ScanAsync(FolderFileProvider provider, string folder, CancellationToken cancellationToken)
     {
         var known = IndexedUnder(folder);
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var failed = new List<string>();
         foreach (var path in provider.ListFiles())
         {
             cancellationToken.ThrowIfCancellationRequested();
             var documentId = DocumentIds.For(path);
             seen.Add(documentId);
-            if (!known.TryGetValue(documentId, out var etag) || etag != ETagOf(new FileInfo(documentId)))
+            if (known.TryGetValue(documentId, out var etag) && etag == ETagOf(new FileInfo(documentId)))
+            {
+                continue;
+            }
+
+            try
             {
                 await IndexFileAsync(documentId, cancellationToken);
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                failed.Add($"{Path.GetFileName(documentId)}: {ex.Message}");
             }
         }
 
         foreach (var gone in known.Keys.Where(id => !seen.Contains(id)))
         {
             await RemoveFileAsync(gone, cancellationToken);
+        }
+
+        if (failed.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"{failed.Count} file{(failed.Count == 1 ? "" : "s")} could not be indexed. {string.Join(" ", failed.Take(5))}");
         }
     }
 
