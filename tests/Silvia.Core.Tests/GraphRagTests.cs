@@ -155,6 +155,48 @@ public sealed partial class GraphRagTests
     }
 
     [Fact]
+    public async Task The_Graph_View_Draws_Every_Entity_With_Its_Relationships_And_Documents()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (harness, runtime, _, _) = await OpenAsync();
+        using var _ = harness;
+
+        var graph = await runtime.KnowledgeGraphAsync(cancellationToken: ct);
+        Assert.NotNull(graph);
+        Assert.Equal(3, graph.TotalEntities);
+        Assert.Equal(["Dana Okafor", "Mira Holm", "Tomas Berg"], graph.Nodes.Select(n => n.Name).Order());
+
+        // Tomas Berg is in both documents, so he joins the other two.
+        var tomas = graph.Nodes.Single(n => n.Name == "Tomas Berg");
+        Assert.Equal(2, tomas.Documents.Count);
+        Assert.Equal(2, tomas.Degree);
+        Assert.Equal(graph.TotalRelationships, graph.Edges.Count);
+        var at = graph.Nodes.ToList().IndexOf(tomas);
+        Assert.All(graph.Edges, e => Assert.Contains(at, new[] { e.Source, e.Target }));
+        Assert.NotEmpty(graph.Communities);
+        Assert.All(graph.Nodes, n => Assert.NotEmpty(n.Communities));
+
+        // Same graph, same drawing; and no two entities on one spot.
+        var again = await runtime.KnowledgeGraphAsync(cancellationToken: ct);
+        Assert.Equal(graph.Nodes.Select(n => (n.X, n.Y)), again!.Nodes.Select(n => (n.X, n.Y)));
+        Assert.Equal(3, graph.Nodes.Select(n => (n.X, n.Y)).Distinct().Count());
+
+        var top = await runtime.KnowledgeGraphAsync(maxEntities: 1, cancellationToken: ct);
+        Assert.Single(top!.Nodes);
+        Assert.Empty(top.Edges);
+        Assert.Equal(3, top.TotalEntities);
+    }
+
+    [Fact]
+    public async Task The_Graph_View_Is_Empty_When_The_Project_Builds_No_Graph()
+    {
+        var (harness, runtime, _, _) = await OpenAsync(graphRag: false);
+        using var _ = harness;
+
+        Assert.Null(await runtime.KnowledgeGraphAsync(cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task A_Deleted_File_Leaves_The_Graph()
     {
         var ct = TestContext.Current.CancellationToken;

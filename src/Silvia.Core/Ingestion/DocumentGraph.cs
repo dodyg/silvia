@@ -233,6 +233,10 @@ internal sealed class DocumentGraph : IAsyncDisposable
         return (Stored().Count, graph.Entities.Count, graph.Relationships.Count, graph.Communities.Count);
     }
 
+    /// <summary>The whole graph as stored, for the graph view: every entity, relationship and community.</summary>
+    public Task<GraphSnapshot> SnapshotAsync(CancellationToken cancellationToken) =>
+        _graph.GetFullGraphAsync(cancellationToken);
+
     /// <summary>
     /// Removes every trace of the graph from a project file: used when the project turns it off, so text
     /// the model extracted does not stay behind.

@@ -20,6 +20,8 @@ export type {
   FactVerdictDto,
   FailureDto,
   FontListDto,
+  GraphDto,
+  GraphNodeDto,
   GlobalSettingsDto,
   HitDto,
   JobSummaryDto,

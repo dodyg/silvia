@@ -130,6 +130,35 @@ function mockPoints() {
     })));
 }
 
+// A small fixed graph in two communities joined by one person, laid out by hand.
+function mockGraph() {
+  const documents = ["handbook.md", "kit-list.md", "support.md"].map((fileName) => ({ documentId: `C:/Documents/Lumen/${fileName}`, fileName }));
+  const raw: Array<[string, string, string, number, number, number[], number[]]> = [
+    ["Lumen pilot", "Project", "A solar lighting pilot launching in Lisbon and Nairobi in March 2027.", 3000, 5600, [0, 1], [0]],
+    ["Ana Ribeiro", "Person", "Leads the Lumen pilot and signs off the launch plan.", 4300, 6900, [0], [0]],
+    ["Lisbon", "Location", "One of the two pilot cities.", 1500, 7600, [0], [0]],
+    ["Nairobi", "Location", "One of the two pilot cities.", 1200, 4300, [0], [0]],
+    ["Porto warehouse", "Location", "Ships the field kits six weeks before launch.", 3400, 2800, [1], [0]],
+    ["Field kit", "Product", "A solar panel, a battery pack, two lamps and a phone charger.", 1900, 1700, [1], [0]],
+    ["Support desk", "Team", "Answers pilot users from 08:00 to 20:00 local time.", 7000, 6200, [2], [1]],
+    ["On-call engineer", "Role", "Takes escalations from the support desk.", 8600, 7800, [2], [1]],
+    ["Runbook", "Document", "Lists the on-call engineer and the escalation steps.", 8800, 4600, [2], [1]],
+    ["Tomas Berg", "Person", "Runs the support desk and writes the runbook.", 6200, 3900, [0, 2], [1]],
+  ];
+  const ranks = [1000, 760, 420, 410, 380, 520, 690, 340, 450, 610];
+  const nodes = raw.map(([name, type, description, x, y, docs, communities], i) => ({ name, type, description, rank: ranks[i], degree: 0, documents: docs, communities, x, y }));
+  const edges = [
+    [1, 0, "leads"], [0, 2, "runs in"], [0, 3, "runs in"], [4, 5, "ships"], [5, 0, "is used by"],
+    [9, 6, "runs"], [6, 7, "escalates to"], [8, 7, "names"], [9, 8, "writes"], [9, 1, "reports to"],
+  ].map(([source, target, description]) => ({ source: source as number, target: target as number, description: description as string }));
+  edges.forEach((e) => { nodes[e.source].degree += 1; nodes[e.target].degree += 1; });
+  const communities = [
+    { id: 1, level: 0, report: "The Lumen pilot, led by Ana Ribeiro, brings solar field kits from the Porto warehouse to Lisbon and Nairobi.", members: 6 },
+    { id: 2, level: 0, report: "Tomas Berg's support desk answers pilot users and escalates to the on-call engineer named in the runbook.", members: 4 },
+  ];
+  return { available: true, totalEntities: nodes.length, totalRelationships: edges.length, nodes, edges, communities, documents };
+}
+
 export const inspect = Object.freeze({
   document: (request: { documentId: string }) => delay({
     documentId: request.documentId,
@@ -159,6 +188,7 @@ export const inspect = Object.freeze({
     const points = mockPoints();
     return delay({ available: true, total: points.length, firstShare: 214, secondShare: 131, points });
   },
+  graph: () => delay(mockGraph()),
   coverage: () => delay({
     mode: "vector",
     embedModel: "bge-small-en-v1.5",

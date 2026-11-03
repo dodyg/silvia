@@ -142,6 +142,103 @@ public sealed partial class ProjectRuntime
         return new EmbeddingMap(total, points, firstShare, secondShare);
     }
 
+    /// <summary>
+    /// The knowledge graph laid out for drawing, or null when the project does not build one. Above
+    /// <paramref name="maxEntities"/> entities, the highest ranked are drawn with the relationships between them.
+    /// </summary>
+    public async Task<KnowledgeGraph?> KnowledgeGraphAsync(int maxEntities = 300, CancellationToken cancellationToken = default)
+    {
+        if (_graph is null)
+        {
+            return null;
+        }
+
+        var snapshot = await _graph.SnapshotAsync(cancellationToken);
+        var names = Rag.NET.Graph.GraphNames.Comparer;
+        var degree = new Dictionary<string, int>(names);
+        foreach (var relationship in snapshot.Relationships)
+        {
+            degree[relationship.SourceEntity] = degree.GetValueOrDefault(relationship.SourceEntity) + 1;
+            degree[relationship.TargetEntity] = degree.GetValueOrDefault(relationship.TargetEntity) + 1;
+        }
+
+        var entities = snapshot.Entities
+            .OrderByDescending(e => e.PageRankScore)
+            .ThenByDescending(e => degree.GetValueOrDefault(e.Name))
+            .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+            .DistinctBy(e => e.Name, names)
+            .Take(maxEntities)
+            .ToList();
+        var index = new Dictionary<string, int>(names);
+        for (var i = 0; i < entities.Count; i++)
+        {
+            index[entities[i].Name] = i;
+        }
+
+        var relationships = snapshot.Relationships
+            .Where(r => index.ContainsKey(r.SourceEntity) && index.ContainsKey(r.TargetEntity))
+            .ToList();
+        var edges = relationships
+            .Select(r => new GraphEdge(index[r.SourceEntity], index[r.TargetEntity], r.Description ?? string.Empty, r.Weight))
+            .ToList();
+
+        // An entity's documents: the one it was extracted from, and those of the relationships it is part of.
+        var documents = entities.Select(_ => new SortedSet<string>(StringComparer.OrdinalIgnoreCase)).ToList();
+        for (var i = 0; i < entities.Count; i++)
+        {
+            if (entities[i].SourceDocumentId is { Length: > 0 } source)
+            {
+                documents[i].Add(source);
+            }
+        }
+
+        foreach (var relationship in relationships)
+        {
+            if (relationship.SourceDocumentId is { Length: > 0 } source)
+            {
+                documents[index[relationship.SourceEntity]].Add(source);
+                documents[index[relationship.TargetEntity]].Add(source);
+            }
+        }
+
+        // Only communities with a member on the drawing; the broadest level first, so an entity's first
+        // community is the widest group it belongs to.
+        var communities = snapshot.Communities
+            .Where(c => c.MemberEntities.Any(index.ContainsKey))
+            .OrderBy(c => c.Level)
+            .ThenByDescending(c => c.MemberEntities.Count)
+            .ThenBy(c => c.Id)
+            .ToList();
+        var memberships = entities.Select(_ => new List<int>()).ToList();
+        for (var c = 0; c < communities.Count; c++)
+        {
+            foreach (var member in communities[c].MemberEntities.Where(index.ContainsKey).Distinct(names))
+            {
+                memberships[index[member]].Add(c);
+            }
+        }
+
+        var (x, y) = GraphLayout.Arrange(entities.Count, edges.Select(e => (e.Source, e.Target)).ToList());
+        var nodes = entities
+            .Select((e, i) => new GraphNode(
+                e.Name,
+                e.Type ?? string.Empty,
+                e.Description ?? string.Empty,
+                e.PageRankScore,
+                degree.GetValueOrDefault(e.Name),
+                documents[i].ToList(),
+                memberships[i],
+                x[i],
+                y[i]))
+            .ToList();
+        return new KnowledgeGraph(
+            snapshot.Entities.Count,
+            snapshot.Relationships.Count,
+            nodes,
+            edges,
+            communities.Select(c => new GraphCommunity(c.Id, c.Level, c.ReportSummary ?? string.Empty, c.MemberEntities.Count)).ToList());
+    }
+
     private const int PreviewCharacters = 200;
 
     /// <summary>Each indexed document's size in passages and characters, whether it has an overview, and when it was last indexed.</summary>
@@ -359,5 +456,38 @@ public sealed record MapPoint(string DocumentId, int ChunkIndex, float X, float 
 /// which can exceed the points drawn; the shares say how much of the spread each axis shows.
 /// </summary>
 public sealed record EmbeddingMap(int Total, IReadOnlyList<MapPoint> Points, double FirstShare, double SecondShare);
+
+/// <summary>
+/// One entity of the knowledge graph on the drawing: its PageRank, how many relationships it has in the
+/// whole graph, the documents it comes from, and the communities it belongs to (indexes into
+/// <see cref="KnowledgeGraph.Communities"/>, broadest first).
+/// </summary>
+public sealed record GraphNode(
+    string Name,
+    string Type,
+    string Description,
+    double Rank,
+    int Degree,
+    IReadOnlyList<string> Documents,
+    IReadOnlyList<int> Communities,
+    float X,
+    float Y);
+
+/// <summary>A relationship between two entities on the drawing, by their indexes in <see cref="KnowledgeGraph.Nodes"/>.</summary>
+public sealed record GraphEdge(int Source, int Target, string Description, double Weight);
+
+/// <summary>A community of related entities and the report the model wrote about it; members counts all of them.</summary>
+public sealed record GraphCommunity(int Id, int Level, string Report, int Members);
+
+/// <summary>
+/// The knowledge graph laid out for drawing. The totals count the whole graph, which can hold more than
+/// the drawing shows.
+/// </summary>
+public sealed record KnowledgeGraph(
+    int TotalEntities,
+    int TotalRelationships,
+    IReadOnlyList<GraphNode> Nodes,
+    IReadOnlyList<GraphEdge> Edges,
+    IReadOnlyList<GraphCommunity> Communities);
 
 public sealed record DocumentCoverage(string DocumentId, int Passages, long Characters, bool HasOverview, string? IndexedUtc);

@@ -6,13 +6,14 @@ import { ActivityScreen } from "./screens/ActivityScreen";
 import { ChatScreen } from "./screens/ChatScreen";
 import { EvaluateScreen } from "./screens/EvaluateScreen";
 import { FactsScreen } from "./screens/FactsScreen";
+import { GraphScreen } from "./screens/GraphScreen";
 import { LibraryScreen } from "./screens/LibraryScreen";
 import { MapScreen } from "./screens/MapScreen";
 import { ProjectsScreen } from "./screens/ProjectsScreen";
 import { SearchScreen } from "./screens/SearchScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 
-type Screen = "chat" | "search" | "library" | "map" | "facts" | "evaluate" | "activity" | "projects" | "settings";
+type Screen = "chat" | "search" | "library" | "map" | "graph" | "facts" | "evaluate" | "activity" | "projects" | "settings";
 
 // Project screens need an open project; the app screens below them work without one.
 const PROJECT_SCREENS: Array<{ id: Screen; label: string; icon: IconName }> = [
@@ -20,6 +21,7 @@ const PROJECT_SCREENS: Array<{ id: Screen; label: string; icon: IconName }> = [
   { id: "search", label: "Search", icon: "search" },
   { id: "library", label: "Library", icon: "library" },
   { id: "map", label: "Map", icon: "map" },
+  { id: "graph", label: "Graph", icon: "graph" },
   { id: "facts", label: "Facts", icon: "fact" },
   { id: "evaluate", label: "Evaluate", icon: "evaluate" },
   { id: "activity", label: "Activity", icon: "activity" },
@@ -250,6 +252,8 @@ export function App() {
             <LibraryScreen key={project.id} projectId={project.id} onError={setError} />
           ) : screen === "map" ? (
             <MapScreen key={project.id} projectId={project.id} onError={setError} />
+          ) : screen === "graph" ? (
+            <GraphScreen key={project.id} projectId={project.id} onError={setError} />
           ) : screen === "facts" ? (
             <FactsScreen key={project.id} projectId={project.id} onError={setError} />
           ) : screen === "evaluate" ? (

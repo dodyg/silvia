@@ -6,7 +6,7 @@ namespace Silvia.App.Rpc;
 
 /// <summary>
 /// Read-only views of what a project knows: one document's passages, how a search chose its results,
-/// a map of the passage embeddings, and how much of each document is indexed. None calls a cloud model.
+/// a map of the passage embeddings, the knowledge graph, and how much of each document is indexed. None calls a cloud model.
 /// </summary>
 [NeoRpcService("inspect", Version = 1)]
 public sealed class InspectService(AppHost host)
@@ -64,6 +64,42 @@ public sealed class InspectService(AppHost host)
                 p.Preview))
             .ToArray();
         return ValueTask.FromResult(new MapDto(true, map.Total, Permille(map.FirstShare), Permille(map.SecondShare), points));
+    }
+
+    [NeoRpcMethod("graph", TimeoutMilliseconds = 120_000)]
+    public async ValueTask<GraphDto> GraphAsync(ProjectIdScoped request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        if (await runtime.KnowledgeGraphAsync(cancellationToken: cancellationToken) is not { } graph)
+        {
+            return new GraphDto(false, 0, 0, [], [], [], []);
+        }
+
+        var documents = graph.Nodes.SelectMany(n => n.Documents).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var documentIndex = documents.Select((d, i) => (d, i)).ToDictionary(p => p.d, p => p.i, StringComparer.OrdinalIgnoreCase);
+        var (minX, spanX) = Range(graph.Nodes.Select(n => n.X));
+        var (minY, spanY) = Range(graph.Nodes.Select(n => n.Y));
+        var topRank = graph.Nodes.Count == 0 ? 0 : graph.Nodes.Max(n => n.Rank);
+        var nodes = graph.Nodes
+            .Select(n => new GraphNodeDto(
+                n.Name,
+                n.Type,
+                n.Description,
+                topRank > 0 ? (int)Math.Round(n.Rank / topRank * 1000) : 0,
+                n.Degree,
+                n.Documents.Select(d => documentIndex[d]).ToArray(),
+                n.Communities,
+                (int)Math.Round((n.X - minX) / spanX * MapGrid),
+                (int)Math.Round((n.Y - minY) / spanY * MapGrid)))
+            .ToArray();
+        return new GraphDto(
+            true,
+            graph.TotalEntities,
+            graph.TotalRelationships,
+            nodes,
+            graph.Edges.Select(e => new GraphEdgeDto(e.Source, e.Target, e.Description)).ToArray(),
+            graph.Communities.Select(c => new GraphCommunityDto(c.Id, c.Level, c.Report, c.Members)).ToArray(),
+            documents.Select(d => new GraphDocumentDto(d, Path.GetFileName(d))).ToArray());
     }
 
     [NeoRpcMethod("coverage")]

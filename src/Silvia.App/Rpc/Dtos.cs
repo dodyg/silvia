@@ -161,6 +161,42 @@ public sealed record MapPointDto(string DocumentId, string FileName, int ChunkIn
 /// </summary>
 public sealed record MapDto(bool Available, int Total, int FirstShare, int SecondShare, IReadOnlyList<MapPointDto> Points);
 
+public sealed record GraphDocumentDto(string DocumentId, string FileName);
+
+/// <summary>
+/// One entity on the graph drawing. X and Y run from 0 to 10000, rank is thousandths of the top entity's
+/// PageRank, documents index <see cref="GraphDto.Documents"/>, and communities index
+/// <see cref="GraphDto.Communities"/>, broadest first.
+/// </summary>
+public sealed record GraphNodeDto(
+    string Name,
+    string Type,
+    string Description,
+    int Rank,
+    int Degree,
+    IReadOnlyList<int> Documents,
+    IReadOnlyList<int> Communities,
+    int X,
+    int Y);
+
+/// <summary>A relationship between two entities, by their indexes in <see cref="GraphDto.Nodes"/>.</summary>
+public sealed record GraphEdgeDto(int Source, int Target, string Description);
+
+public sealed record GraphCommunityDto(int Id, int Level, string Report, int Members);
+
+/// <summary>
+/// The knowledge graph laid out for drawing, or <c>Available</c> false when the project does not build one.
+/// The totals count the whole graph, which can hold more than the drawing shows.
+/// </summary>
+public sealed record GraphDto(
+    bool Available,
+    int TotalEntities,
+    int TotalRelationships,
+    IReadOnlyList<GraphNodeDto> Nodes,
+    IReadOnlyList<GraphEdgeDto> Edges,
+    IReadOnlyList<GraphCommunityDto> Communities,
+    IReadOnlyList<GraphDocumentDto> Documents);
+
 public sealed record DocumentCoverageDto(string DocumentId, string FileName, int Passages, int Characters, bool HasOverview, string? IndexedUtc);
 
 /// <summary>How much the knowledge graph holds: documents read, entities, relationships and communities.</summary>
@@ -303,6 +339,11 @@ public sealed record RunComparisonDto(EvalRunDto Before, EvalRunDto After, IRead
 [JsonSerializable(typeof(TraceDto))]
 [JsonSerializable(typeof(MapPointDto))]
 [JsonSerializable(typeof(MapDto))]
+[JsonSerializable(typeof(GraphDocumentDto))]
+[JsonSerializable(typeof(GraphNodeDto))]
+[JsonSerializable(typeof(GraphEdgeDto))]
+[JsonSerializable(typeof(GraphCommunityDto))]
+[JsonSerializable(typeof(GraphDto))]
 [JsonSerializable(typeof(DocumentCoverageDto))]
 [JsonSerializable(typeof(CoverageDto))]
 [JsonSerializable(typeof(GraphSizeDto))]
