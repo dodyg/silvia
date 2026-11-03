@@ -180,11 +180,17 @@ static async Task<ConfigResult> RunAsync(Config config, List<EvalCase> cases, st
             // A follow-up is searched by its standalone rewrite, as chat does; every other question as asked. Then
             // the further searches that chat's bridge step plans from the first passages add theirs.
             var query = item.Query ?? item.Question;
-            var hits = await runtime.SearchAsync(query, config.TopK, found => bridges.ForAsync(query, found), ct);
+            // The best score is the first search's: a bridge search's passages match its own query, not the question.
+            var best = 0.0;
+            var hits = await runtime.SearchAsync(query, config.TopK, found =>
+            {
+                best = found.Max(h => h.Score);
+                return bridges.ForAsync(query, found);
+            }, ct);
             var ranks = item.Evidence.Select(e => Rank(hits, e)).ToList();
             var found = ranks.Count(r => r > 0);
             var rank = item.Evidence.Count > 0 && found == item.Evidence.Count ? ranks.Max() : 0;
-            outcomes.Add(new Outcome(item.Id, item.Kind, rank, found, item.Evidence.Count, hits.Count == 0 ? 0 : hits.Max(h => h.Score)));
+            outcomes.Add(new Outcome(item.Id, item.Kind, rank, found, item.Evidence.Count, best));
         }
 
         var answerable = outcomes.Where(o => o.Kind != Kinds.Unanswerable).ToList();
@@ -280,18 +286,21 @@ static int Rank(IReadOnlyList<Rag.NET.Models.SearchResult> hits, Evidence eviden
 
 // How well one threshold on the best hit's score tells unanswerable questions from the rest: the balanced
 // accuracy (mean of both classes' recall) at the best threshold. 0.5 means the score says nothing.
-static double AbstainAccuracy(List<Outcome> outcomes)
+static double AbstainAccuracy(List<Outcome> outcomes) => AbstainThreshold(outcomes).Accuracy;
+
+// The threshold behind AbstainAccuracy: a best hit scoring below it counts as "the documents don't say".
+static (double Threshold, double Accuracy) AbstainThreshold(List<Outcome> outcomes)
 {
     var none = outcomes.Where(o => o.Kind == Kinds.Unanswerable).Select(o => o.TopScore).ToList();
     var some = outcomes.Where(o => o.Kind != Kinds.Unanswerable).Select(o => o.TopScore).ToList();
     if (none.Count == 0 || some.Count == 0)
     {
-        return 0;
+        return (0, 0);
     }
 
     return outcomes.Select(o => o.TopScore).Append(double.MaxValue)
-        .Select(t => (none.Count(s => s < t) / (double)none.Count + some.Count(s => s >= t) / (double)some.Count) / 2)
-        .Max();
+        .Select(t => (Threshold: t, Accuracy: (none.Count(s => s < t) / (double)none.Count + some.Count(s => s >= t) / (double)some.Count) / 2))
+        .MaxBy(x => x.Accuracy);
 }
 
 static string Normalize(string text) => Regex.Replace(text, @"\s+", " ").Trim().ToLowerInvariant();
@@ -344,7 +353,16 @@ static string Missed(ConfigResult result, List<EvalCase> cases)
     if (scores.Count > 0)
     {
         builder.AppendLine(string.Create(CultureInfo.InvariantCulture,
-            $"- **unanswerable**: best-hit score {scores.Min():F3} to {scores.Max():F3}; answerable questions {answered[0]:F3} to {answered[^1]:F3} (median {answered[answered.Count / 2]:F3})"));
+            $"- **unanswerable**: best-hit score {scores.Min():F3} to {scores.Max():F3}; answerable questions {answered[0]:F3} to {answered[^1]:F3} (median {answered[answered.Count / 2]:F3}); best threshold {AbstainThreshold(result.Outcomes).Threshold:F3}"));
+        var unanswerable = result.Outcomes.Where(o => o.Kind == Kinds.Unanswerable).OrderBy(o => o.TopScore);
+        builder.AppendLine(string.Create(CultureInfo.InvariantCulture,
+            $"- **unanswerable, best-hit score each**: {string.Join(", ", unanswerable.Select(o => $"{o.Id} ({o.TopScore:F3})"))}"));
+        foreach (var cut in new[] { 0.01, 0.05, 0.1, 0.2 })
+        {
+            var weak = result.Outcomes.Where(o => o.TopScore < cut).ToList();
+            builder.AppendLine(string.Create(CultureInfo.InvariantCulture,
+                $"- **below {cut:F2}**: {weak.Count(o => o.Kind == Kinds.Unanswerable)} of {scores.Count} unanswerable, {weak.Count(o => o.Kind != Kinds.Unanswerable)} of {answered.Count} answerable ({string.Join(", ", weak.Where(o => o.Kind != Kinds.Unanswerable).Select(o => o.Id))})"));
+        }
     }
 
     return builder.ToString();
@@ -380,7 +398,9 @@ static string Report(string table, string missed, List<EvalCase> cases)
         *All* is the hit rate over every answerable question. *Evidence recall* counts the pieces of evidence
         found, so a multi-hop question with one of two pieces counts half. *Abstain* is the balanced accuracy
         of the best single threshold on the top hit's score at telling unanswerable questions from the rest
-        (0.5 means the score says nothing). MRR uses the final order of the hits, which the lost-in-the-middle
+        (0.5 means the score says nothing). With the reranker on, that score is its relevance from 0 to 1, which
+        the app's `WeakMatchBelow` setting is chosen from; with it off, it is a fused rank score that says little
+        about relevance. MRR uses the final order of the hits, which the lost-in-the-middle
         reordering changes, so read it as a rough signal only.
 
         Recorded on the default settings of the app: 400-token chunks, 6 passages, reranker on. The regression

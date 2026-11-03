@@ -64,6 +64,14 @@ public sealed record ProjectSettings
 
     public int RerankCandidates { get; init; } = 30;
 
+    /// <summary>
+    /// The reranker's relevance (0 to 1) below which the best passage counts as a weak match; the answer is
+    /// then told to say the documents do not contain it unless a passage states it. Only with a reranker.
+    /// In the retrieval evaluation, 0.01 marks 4 of 7 unanswerable questions and 9 of 83 answerable ones,
+    /// mostly paraphrases the small reranker scores low; a higher cut marks few more unanswerable ones.
+    /// </summary>
+    public double WeakMatchBelow { get; init; } = 0.01;
+
     /// <summary>How many earlier exchanges to recall for a new question.</summary>
     public int MemoryTopK { get; init; } = 3;
 

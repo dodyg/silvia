@@ -24,7 +24,9 @@ file that contains all the expected terms. Kinds:
 *All* is the hit rate over every answerable question. *Evidence recall* counts the pieces of evidence
 found, so a multi-hop question with one of two pieces counts half. *Abstain* is the balanced accuracy
 of the best single threshold on the top hit's score at telling unanswerable questions from the rest
-(0.5 means the score says nothing). MRR uses the final order of the hits, which the lost-in-the-middle
+(0.5 means the score says nothing). With the reranker on, that score is its relevance from 0 to 1, which
+the app's `WeakMatchBelow` setting is chosen from; with it off, it is a fused rank score that says little
+about relevance. MRR uses the final order of the hits, which the lost-in-the-middle
 reordering changes, so read it as a rough signal only.
 
 Recorded on the default settings of the app: 400-token chunks, 6 passages, reranker on. The regression
@@ -32,26 +34,28 @@ check compares the *All* column of that row.
 
 | Chunk | K | Rerank | All | basic | paraphrase | stale | long-doc | format | multi-hop | follow-up | aggregation | Evidence recall | MRR | Abstain |
 |---:|---:|:---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 200 | 3 | off | **90 %** | 97 % | 78 % | 83 % | 100 % | 100 % | 71 % | 88 % | 67 % | 90 % | 0.769 | 0.80 |
-| 200 | 3 | on | **92 %** | 97 % | 89 % | 83 % | 100 % | 100 % | 71 % | 88 % | 67 % | 91 % | 0.789 | 0.80 |
-| 200 | 6 | off | **93 %** | 97 % | 89 % | 83 % | 100 % | 100 % | 71 % | 100 % | 67 % | 92 % | 0.741 | 0.80 |
-| 200 | 6 | on | **93 %** | 97 % | 89 % | 83 % | 100 % | 100 % | 71 % | 100 % | 67 % | 92 % | 0.761 | 0.80 |
-| 400 | 3 | off | **92 %** | 97 % | 89 % | 83 % | 100 % | 100 % | 71 % | 88 % | 67 % | 90 % | 0.775 | 0.79 |
-| 400 | 3 | on | **92 %** | 97 % | 89 % | 83 % | 100 % | 100 % | 71 % | 88 % | 67 % | 90 % | 0.799 | 0.79 |
-| 400 | 6 | off | **94 %** | 97 % | 100 % | 83 % | 100 % | 100 % | 71 % | 100 % | 67 % | 93 % | 0.748 | 0.79 |
-| 400 | 6 | on | **94 %** | 97 % | 100 % | 83 % | 100 % | 100 % | 71 % | 100 % | 67 % | 93 % | 0.779 | 0.79 |
-| 800 | 3 | off | **92 %** | 97 % | 89 % | 83 % | 100 % | 100 % | 71 % | 88 % | 67 % | 90 % | 0.775 | 0.79 |
-| 800 | 3 | on | **92 %** | 97 % | 89 % | 83 % | 100 % | 100 % | 71 % | 88 % | 67 % | 90 % | 0.799 | 0.79 |
-| 800 | 6 | off | **94 %** | 97 % | 100 % | 83 % | 100 % | 100 % | 71 % | 100 % | 67 % | 93 % | 0.748 | 0.79 |
-| 800 | 6 | on | **94 %** | 97 % | 100 % | 83 % | 100 % | 100 % | 71 % | 100 % | 67 % | 93 % | 0.779 | 0.79 |
+| 200 | 3 | off | **94 %** | 100 % | 89 % | 83 % | 100 % | 100 % | 86 % | 88 % | 67 % | 93 % | 0.777 | 0.80 |
+| 200 | 3 | on | **96 %** | 100 % | 100 % | 100 % | 100 % | 100 % | 86 % | 88 % | 67 % | 96 % | 0.804 | 0.84 |
+| 200 | 6 | off | **98 %** | 100 % | 100 % | 100 % | 100 % | 100 % | 86 % | 100 % | 67 % | 97 % | 0.752 | 0.80 |
+| 200 | 6 | on | **99 %** | 100 % | 100 % | 100 % | 100 % | 100 % | 100 % | 100 % | 67 % | 99 % | 0.778 | 0.84 |
+| 400 | 3 | off | **94 %** | 100 % | 89 % | 83 % | 100 % | 100 % | 86 % | 88 % | 67 % | 92 % | 0.779 | 0.79 |
+| 400 | 3 | on | **96 %** | 100 % | 100 % | 100 % | 100 % | 100 % | 86 % | 88 % | 67 % | 96 % | 0.820 | 0.83 |
+| 400 | 6 | off | **98 %** | 100 % | 100 % | 100 % | 100 % | 100 % | 86 % | 100 % | 67 % | 97 % | 0.756 | 0.79 |
+| 400 | 6 | on | **99 %** | 100 % | 100 % | 100 % | 100 % | 100 % | 100 % | 100 % | 67 % | 99 % | 0.798 | 0.83 |
+| 800 | 3 | off | **94 %** | 100 % | 89 % | 83 % | 100 % | 100 % | 86 % | 88 % | 67 % | 92 % | 0.779 | 0.79 |
+| 800 | 3 | on | **96 %** | 100 % | 100 % | 100 % | 100 % | 100 % | 86 % | 88 % | 67 % | 96 % | 0.820 | 0.83 |
+| 800 | 6 | off | **98 %** | 100 % | 100 % | 100 % | 100 % | 100 % | 86 % | 100 % | 67 % | 97 % | 0.756 | 0.79 |
+| 800 | 6 | on | **99 %** | 100 % | 100 % | 100 % | 100 % | 100 % | 100 % | 100 % | 67 % | 99 % | 0.798 | 0.83 |
 
 Missed at the default setting (400 tokens, top 6, reranker on):
 
-- **basic**: security-password
-- **stale**: stale-hotel-cap
-- **multi-hop**: hop-berg-keys (2/3), hop-carvalho-manager (0/2)
-- **aggregation**: agg-working-days (2/4)
-- **unanswerable**: best-hit score 0.015 to 0.016; answerable questions 0.015 to 0.016 (median 0.016)
+- **aggregation**: agg-working-days (3/4)
+- **unanswerable**: best-hit score 0.000 to 1.000; answerable questions 0.000 to 1.000 (median 0.996); best threshold 0.706
+- **unanswerable, best-hit score each**: none-health-insurance (0.000), none-wifi (0.001), none-resignation (0.003), none-remote-work (0.008), none-radio-battery (0.042), none-enterprise-price (0.576), none-accra-launch (1.000)
+- **below 0.01**: 4 of 7 unanswerable, 9 of 83 answerable (security-password, para-password, para-holiday-carryover, para-doctor-note, para-big-claim, para-unlabelled, para-closed-account, fu-fuse-cause, agg-working-days)
+- **below 0.05**: 5 of 7 unanswerable, 13 of 83 answerable (security-password, para-password, para-page-escalation, para-holiday-carryover, para-doctor-note, para-big-claim, para-unlabelled, para-closed-account, pptx-churn, hop-contractor-payroll, hop-carvalho-manager, fu-fuse-cause, agg-working-days)
+- **below 0.10**: 5 of 7 unanswerable, 15 of 83 answerable (security-password, para-password, para-page-escalation, para-holiday-carryover, para-doctor-note, para-big-claim, para-unlabelled, para-closed-account, long-firmware, pdf-unit-price, pptx-churn, hop-contractor-payroll, hop-carvalho-manager, fu-fuse-cause, agg-working-days)
+- **below 0.20**: 5 of 7 unanswerable, 17 of 83 answerable (security-password, para-password, para-page-escalation, para-holiday-carryover, para-doctor-note, para-big-claim, para-unlabelled, para-stale-library, para-closed-account, long-firmware, pdf-liability, pdf-unit-price, pptx-churn, hop-contractor-payroll, hop-carvalho-manager, fu-fuse-cause, agg-working-days)
 
 The corpus is fictional. Replace it with your own documents, add your own questions to `eval/golden.json`
 and `eval/hard.json`, and record a new baseline before you change the defaults.

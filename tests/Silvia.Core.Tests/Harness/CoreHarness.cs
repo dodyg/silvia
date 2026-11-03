@@ -16,6 +16,9 @@ public sealed class CoreHarness : IDisposable
     public const string EmbedderId = "hashing-384";
     public const int Dimensions = 384;
 
+    /// <summary>The fake reranker; settings name it in <c>RerankModel</c> to use it.</summary>
+    public const string RerankerId = "word-overlap";
+
     private readonly string _root = Path.Combine(Path.GetTempPath(), "silvia-core-tests", Guid.NewGuid().ToString("N"));
     private readonly List<HashingEmbedder> _embedders = [];
 
@@ -39,7 +42,7 @@ public sealed class CoreHarness : IDisposable
                 _embedders.Add(embedder);
                 return embedder;
             },
-            createReranker: _ => throw new InvalidOperationException("Tests run without a reranker."),
+            createReranker: id => id == RerankerId ? new WordOverlapReranker() : throw new InvalidOperationException($"No fake reranker '{id}'."),
             createChatClient: (_, _, _) => Chat);
 
         var options = overrides ?? new ProjectManagerOptions { RootDirectory = _root };

@@ -65,6 +65,33 @@ public sealed class HashingEmbedder(int dimensions) : IEmbeddingGenerator<string
 }
 
 /// <summary>
+/// A deterministic reranker: a passage's relevance is the share of the query's words (three letters or
+/// more) that it contains, from 0 to 1, as a cross-encoder's would run.
+/// </summary>
+public sealed class WordOverlapReranker : Rag.NET.Abstractions.IReranker
+{
+    public Task<IReadOnlyList<RerankResult>> RerankAsync(string query, IReadOnlyList<SearchResult> results, CancellationToken cancellationToken)
+    {
+        var words = Words(query);
+        IReadOnlyList<RerankResult> ranked = results
+            .Select(r => new RerankResult
+            {
+                SearchResult = r,
+                RelevanceScore = words.Count == 0 ? 0 : words.Count(Words(r.Chunk.Text).Contains) / (double)words.Count,
+            })
+            .OrderByDescending(r => r.RelevanceScore)
+            .ToList();
+        return Task.FromResult(ranked);
+    }
+
+    private static HashSet<string> Words(string text) =>
+        text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Select(w => w.Trim('.', ',', '?', '!', ':', ';', '"').ToLowerInvariant())
+            .Where(w => w.Length >= 3)
+            .ToHashSet();
+}
+
+/// <summary>
 /// A chat model that records every request and answers with a fixed reply, or with what
 /// <see cref="Respond"/> returns for a request when that is set and gives a reply.
 /// </summary>
