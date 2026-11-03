@@ -232,6 +232,7 @@ public sealed partial class ProjectRuntime
         new("Passages per answer", Settings.TopK.ToString(System.Globalization.CultureInfo.InvariantCulture)),
         new("Document overviews", Settings.DocumentOverviews ? "On" : "Off"),
         new("Knowledge graph", UsesGraph ? "On" : "Off"),
+        new("Bridge searches", Settings.BridgeSearch ? "On" : "Off"),
         new("Project facts", _facts.List().Count.ToString(System.Globalization.CultureInfo.InvariantCulture)),
         new("Instructions", Settings.SystemPrompt),
     ];

@@ -16,6 +16,12 @@ The rewrites are kept in `results/rewrites.json`, so a rerun searches the same t
 changed follow-up is rewritten by the chat model when `DEEPSEEK_API_KEY` is set, and searched as asked otherwise;
 the run says which.
 
+Chat also reads the passages it found for a question and plans up to two bridge searches for what they point to but
+do not hold, such as what the person they name did elsewhere; each adds up to two passages. The evaluation plans
+them the same way from the passages of the default setting, which runs first, and keeps them in
+`results/bridges.json` by query, so every setting and every rerun searches the same text. Without a kept plan and
+without `DEEPSEEK_API_KEY`, a question is searched once; the run says how many were.
+
 The PDF, Word, Excel and PowerPoint documents are not checked in. `Silvia.Eval/Fixtures.cs` writes them from text
 at the start of every run, next to a temporary copy of `corpus/`.
 

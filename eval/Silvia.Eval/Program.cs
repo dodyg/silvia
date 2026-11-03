@@ -45,22 +45,30 @@ if (cases.FirstOrDefault(c => !Kinds.All.Contains(c.Kind)) is { } unknown)
 }
 
 var corpus = PrepareCorpus(Path.Combine(evalRoot, "corpus"));
+// The default setting runs first, so the further searches a missing bridge needs are planned from its passages.
 var configs = (from chunk in new[] { 200, 400, 800 }
                from topK in new[] { 3, 6 }
                from rerank in new[] { false, true }
-               select new Config(chunk, topK, rerank)).ToList();
+               select new Config(chunk, topK, rerank)).OrderByDescending(IsDefaultConfig).ToList();
 
 var results = new List<ConfigResult>();
 var rewritesPath = Path.Combine(resultsRoot, "rewrites.json");
 string rewriteNote;
 using (var models = ModelPoolFactory.Create(modelsRoot))
 {
-    (cases, rewriteNote) = await RewriteFollowUpsAsync(cases, rewritesPath, models, json);
+    var apiKey = Environment.GetEnvironmentVariable("DEEPSEEK_API_KEY");
+    var chat = string.IsNullOrWhiteSpace(apiKey)
+        ? null
+        : models.GetChatClient(new ProjectManagerOptions { RootDirectory = string.Empty }.DeepSeekEndpoint, apiKey, new ProjectSettings().ChatModel);
+    (cases, rewriteNote) = await RewriteFollowUpsAsync(cases, rewritesPath, chat, json);
     Console.WriteLine(rewriteNote);
+    var bridges = new BridgePlans(Path.Combine(resultsRoot, "bridges.json"), chat, json);
     foreach (var config in configs)
     {
-        results.Add(await RunAsync(config, cases, corpus, models));
+        results.Add(await RunAsync(config, cases, corpus, models, bridges));
     }
+
+    Console.WriteLine(bridges.Save());
 }
 
 TryDelete(corpus);
@@ -115,7 +123,9 @@ if (check)
 
 return 0;
 
-static bool IsDefault(ConfigResult r) => r.Config.Chunk == DefaultChunkTokens && r.Config.TopK == DefaultTopK && r.Config.Rerank;
+static bool IsDefault(ConfigResult r) => IsDefaultConfig(r.Config);
+
+static bool IsDefaultConfig(Config c) => c.Chunk == DefaultChunkTokens && c.TopK == DefaultTopK && c.Rerank;
 
 // A temporary copy of the Markdown corpus plus the generated PDF and Office documents.
 static string PrepareCorpus(string source)
@@ -131,7 +141,7 @@ static string PrepareCorpus(string source)
     return folder;
 }
 
-static async Task<ConfigResult> RunAsync(Config config, List<EvalCase> cases, string corpus, ModelPool models)
+static async Task<ConfigResult> RunAsync(Config config, List<EvalCase> cases, string corpus, ModelPool models, BridgePlans bridges)
 {
     var ct = CancellationToken.None;
     var root = Path.Combine(Path.GetTempPath(), "silvia-eval", Guid.NewGuid().ToString("N"));
@@ -167,8 +177,10 @@ static async Task<ConfigResult> RunAsync(Config config, List<EvalCase> cases, st
         var outcomes = new List<Outcome>();
         foreach (var item in cases)
         {
-            // A follow-up is searched by its standalone rewrite, as chat does; every other question as asked.
-            var hits = await runtime.SearchAsync(item.Query ?? item.Question, config.TopK, ct);
+            // A follow-up is searched by its standalone rewrite, as chat does; every other question as asked. Then
+            // the further searches that chat's bridge step plans from the first passages add theirs.
+            var query = item.Query ?? item.Question;
+            var hits = await runtime.SearchAsync(query, config.TopK, found => bridges.ForAsync(query, found), ct);
             var ranks = item.Evidence.Select(e => Rank(hits, e)).ToList();
             var found = ranks.Count(r => r > 0);
             var rank = item.Evidence.Count > 0 && found == item.Evidence.Count ? ranks.Max() : 0;
@@ -198,14 +210,11 @@ static async Task<ConfigResult> RunAsync(Config config, List<EvalCase> cases, st
 // kept in results/rewrites.json, keyed by the history and question, so a rerun searches the same text and
 // needs no API key. A follow-up with no kept rewrite and no DEEPSEEK_API_KEY is searched as asked.
 static async Task<(List<EvalCase> Cases, string Note)> RewriteFollowUpsAsync(
-    List<EvalCase> cases, string path, ModelPool models, JsonSerializerOptions json)
+    List<EvalCase> cases, string path, Microsoft.Extensions.AI.IChatClient? chat, JsonSerializerOptions json)
 {
     var kept = File.Exists(path)
         ? JsonSerializer.Deserialize<List<Rewrite>>(File.ReadAllText(path), json) ?? []
         : [];
-    var apiKey = Environment.GetEnvironmentVariable("DEEPSEEK_API_KEY");
-    var model = new ProjectSettings().ChatModel;
-    var chat = string.IsNullOrWhiteSpace(apiKey) ? null : models.GetChatClient(new ProjectManagerOptions { RootDirectory = string.Empty }.DeepSeekEndpoint, apiKey, model);
 
     var rewritten = new List<EvalCase>();
     var used = new List<Rewrite>();
@@ -349,7 +358,10 @@ static string Report(string table, string missed, List<EvalCase> cases)
 
         {cases.Count} questions over the synthetic corpus in `eval/corpus` plus the PDF and Office documents that
         `Fixtures.cs` writes at the start of each run ({counts}). Scores come from the real ONNX embedder
-        (bge-small-en-v1.5, 384 dimensions) and, where marked, the ms-marco MiniLM reranker. The only chat model call is the rewrite of each follow-up.
+        (bge-small-en-v1.5, 384 dimensions) and, where marked, the ms-marco MiniLM reranker. The only chat model calls are the rewrite of each
+        follow-up and the bridge searches: further searches for what the first passages point to, which add up to two
+        passages each, as chat does. Both are kept in `results/`, so a rerun needs no API key; without a kept plan or a
+        key, a question is searched once.
 
         A question is a hit when the top-K passages hold every piece of its evidence: a passage from the expected
         file that contains all the expected terms. Kinds:
@@ -368,7 +380,7 @@ static string Report(string table, string missed, List<EvalCase> cases)
         *All* is the hit rate over every answerable question. *Evidence recall* counts the pieces of evidence
         found, so a multi-hop question with one of two pieces counts half. *Abstain* is the balanced accuracy
         of the best single threshold on the top hit's score at telling unanswerable questions from the rest
-        (0.5 means the score says nothing). MRR uses the final order of the hits, which Rag.NET's lost-in-the-middle
+        (0.5 means the score says nothing). MRR uses the final order of the hits, which the lost-in-the-middle
         reordering changes, so read it as a rough signal only.
 
         Recorded on the default settings of the app: 400-token chunks, 6 passages, reranker on. The regression
@@ -405,6 +417,56 @@ internal sealed record EvalCase(string Id, string Kind, List<string>? History, s
 
 /// <summary>A follow-up's standalone rewrite, kept so a rerun searches the same text.</summary>
 internal sealed record Rewrite(List<string> History, string Question, string Query);
+
+/// <summary>The further searches chat's bridge step planned for a query, kept so a rerun searches the same text.</summary>
+internal sealed record Bridge(string Query, List<string> Searches);
+
+/// <summary>
+/// The further searches for each query, as chat's bridge step plans them from the first passages. They are kept in
+/// <c>results/bridges.json</c> by query, planned from the passages of the first setting that runs (the default), so
+/// every setting and every rerun searches the same text and needs no API key. A query with no kept plan and no chat
+/// model gets no further search.
+/// </summary>
+internal sealed class BridgePlans(string path, Microsoft.Extensions.AI.IChatClient? chat, JsonSerializerOptions json)
+{
+    private readonly Dictionary<string, List<string>> _kept = File.Exists(path)
+        ? (JsonSerializer.Deserialize<List<Bridge>>(File.ReadAllText(path), json) ?? []).ToDictionary(b => b.Query, b => b.Searches)
+        : [];
+
+    private readonly Dictionary<string, List<string>> _used = [];
+    private readonly HashSet<string> _unplanned = [];
+
+    public async Task<IReadOnlyList<string>> ForAsync(string query, IReadOnlyList<Rag.NET.Models.SearchResult> found)
+    {
+        if (_used.TryGetValue(query, out var searches) || _kept.TryGetValue(query, out searches))
+        {
+            return _used[query] = searches;
+        }
+
+        if (chat is null)
+        {
+            _unplanned.Add(query);
+            return [];
+        }
+
+        var reply = await chat.GetResponseAsync(BridgeQuestion.Prompt(query, found));
+        return _used[query] = [.. BridgeQuestion.Parse(reply.Text, query)];
+    }
+
+    /// <summary>Writes the plans this run used, and says how many queries had one.</summary>
+    public string Save()
+    {
+        if (_used.Count > 0)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, JsonSerializer.Serialize(_used.Select(u => new Bridge(u.Key, u.Value)).OrderBy(b => b.Query, StringComparer.Ordinal).ToList(), json));
+        }
+
+        return _unplanned.Count == 0
+            ? $"Bridge searches: {_used.Count(u => u.Value.Count > 0)} of {_used.Count} queries searched further ({path})."
+            : $"Bridge searches: {_unplanned.Count} queries had no kept plan and no DEEPSEEK_API_KEY, so they searched only once.";
+    }
+}
 
 /// <summary>A passage a full answer needs: from <see cref="File"/>, containing every one of <see cref="Terms"/>.</summary>
 internal sealed record Evidence(string File, List<string> Terms);

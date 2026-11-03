@@ -77,7 +77,8 @@ public sealed record ProjectSettingsDto(
     string SystemPrompt,
     bool DocumentOverviews,
     bool GraphRag,
-    string? JudgeModel);
+    string? JudgeModel,
+    bool BridgeSearch);
 
 public sealed record FactDto(string Id, string Text, string CreatedUtc);
 

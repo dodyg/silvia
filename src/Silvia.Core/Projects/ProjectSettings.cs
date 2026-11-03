@@ -48,6 +48,14 @@ public sealed record ProjectSettings
     /// </summary>
     public bool GraphRag { get; init; }
 
+    /// <summary>
+    /// Whether the chat model reads the passages a question finds and writes further searches for the facts
+    /// they point to but do not hold, such as what the person they name did elsewhere. Each search adds up to
+    /// <see cref="Runtime.ProjectRuntime.BridgePassages"/> passages. Costs one short chat call per question,
+    /// before the answer. Only when the project can answer with a chat model.
+    /// </summary>
+    public bool BridgeSearch { get; init; } = true;
+
     public int ChunkTokens { get; init; } = 400;
 
     public int ChunkOverlap { get; init; } = 60;

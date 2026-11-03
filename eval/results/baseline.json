@@ -1,7 +1,751 @@
 {
-  "RecordedUtc": "2026-11-03T02:53:59.2799136\u002B00:00",
+  "RecordedUtc": "2026-11-03T03:38:21.8654632\u002B00:00",
   "Questions": 90,
   "Results": [
+    {
+      "Config": {
+        "Chunk": 400,
+        "TopK": 6,
+        "Rerank": true,
+        "Label": "c400-k6-rr"
+      },
+      "HitRate": 0.9397590361445783,
+      "Mrr": 0.7785140562248993,
+      "Recall": 0.9285714285714286,
+      "Abstain": 0.7908777969018933,
+      "ByKind": {
+        "basic": 0.9705882352941176,
+        "paraphrase": 1,
+        "stale": 0.8333333333333334,
+        "long-doc": 1,
+        "format": 1,
+        "multi-hop": 0.7142857142857143,
+        "follow-up": 1,
+        "aggregation": 0.6666666666666666
+      },
+      "Outcomes": [
+        {
+          "Id": "lumen-launch-date",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "lumen-owner",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "lumen-training",
+          "Kind": "basic",
+          "Rank": 6,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.016009221311475412
+        },
+        {
+          "Id": "lumen-battery",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "lumen-team-size",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "lumen-returns",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "security-reviewer",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "security-revocation",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "security-password",
+          "Kind": "basic",
+          "Rank": 0,
+          "Found": 0,
+          "Of": 1,
+          "TopScore": 0.014938684503901897
+        },
+        {
+          "Id": "security-admin-signin",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "security-incident-time",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "travel-hotel-cap",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "travel-meals-abroad",
+          "Kind": "basic",
+          "Rank": 6,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "travel-economy",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "leave-annual",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "leave-sickness",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "leave-parental",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "oncall-rotation",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "oncall-failover",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "oncall-status-page",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "faq-log-retention",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "faq-team-price",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "faq-sso",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "meeting-budget",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "meeting-office",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "expense-mileage",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "expense-deadline",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "classification-eu",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "classification-backups",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "vendor-approver",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "vendor-soc2",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "engineering-approvals",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "engineering-coverage",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "onboarding-badge",
+          "Kind": "basic",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "para-password",
+          "Kind": "paraphrase",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "para-page-escalation",
+          "Kind": "paraphrase",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "para-holiday-carryover",
+          "Kind": "paraphrase",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "para-doctor-note",
+          "Kind": "paraphrase",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.014690227804981904
+        },
+        {
+          "Id": "para-big-claim",
+          "Kind": "paraphrase",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.016133229247983348
+        },
+        {
+          "Id": "para-receipt-photo",
+          "Kind": "paraphrase",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "para-unlabelled",
+          "Kind": "paraphrase",
+          "Rank": 4,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "para-stale-library",
+          "Kind": "paraphrase",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "para-closed-account",
+          "Kind": "paraphrase",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.015877016129032258
+        },
+        {
+          "Id": "stale-hotel-cap",
+          "Kind": "stale",
+          "Rank": 0,
+          "Found": 0,
+          "Of": 1,
+          "TopScore": 0.016009221311475412
+        },
+        {
+          "Id": "stale-meals-abroad",
+          "Kind": "stale",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "stale-economy",
+          "Kind": "stale",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "stale-reviewer-april",
+          "Kind": "stale",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "stale-nairobi-launch",
+          "Kind": "stale",
+          "Rank": 6,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "stale-main-battery",
+          "Kind": "stale",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "long-calibration",
+          "Kind": "long-doc",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "long-fuse-rating",
+          "Kind": "long-doc",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "long-amber-beacon",
+          "Kind": "long-doc",
+          "Rank": 2,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.016133229247983348
+        },
+        {
+          "Id": "long-radio",
+          "Kind": "long-doc",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "long-storage",
+          "Kind": "long-doc",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "long-connect-order",
+          "Kind": "long-doc",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "long-firmware",
+          "Kind": "long-doc",
+          "Rank": 6,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.016133229247983348
+        },
+        {
+          "Id": "pdf-termination",
+          "Kind": "format",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "pdf-liability",
+          "Kind": "format",
+          "Rank": 6,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.016133229247983348
+        },
+        {
+          "Id": "pdf-unit-price",
+          "Kind": "format",
+          "Rank": 6,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "xlsx-zurich-hotel",
+          "Kind": "format",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "xlsx-oslo-meals",
+          "Kind": "format",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "pptx-churn",
+          "Kind": "format",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "pptx-nrr",
+          "Kind": "format",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "docx-contractor-laptop",
+          "Kind": "format",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "docx-contractor-invoices",
+          "Kind": "format",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "hop-berg-keys",
+          "Kind": "multi-hop",
+          "Rank": 0,
+          "Found": 2,
+          "Of": 3,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "hop-customs-cost",
+          "Kind": "multi-hop",
+          "Rank": 6,
+          "Found": 2,
+          "Of": 2,
+          "TopScore": 0.016129032258064516
+        },
+        {
+          "Id": "hop-zurich-difference",
+          "Kind": "multi-hop",
+          "Rank": 2,
+          "Found": 2,
+          "Of": 2,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "hop-contractor-payroll",
+          "Kind": "multi-hop",
+          "Rank": 6,
+          "Found": 2,
+          "Of": 2,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "hop-carvalho-manager",
+          "Kind": "multi-hop",
+          "Rank": 0,
+          "Found": 0,
+          "Of": 2,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "hop-dana-may",
+          "Kind": "multi-hop",
+          "Rank": 6,
+          "Found": 2,
+          "Of": 2,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "hop-contractor-repo-access",
+          "Kind": "multi-hop",
+          "Rank": 6,
+          "Found": 2,
+          "Of": 2,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "fu-premium",
+          "Kind": "follow-up",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "fu-meals-abroad",
+          "Kind": "follow-up",
+          "Rank": 6,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "fu-restore-tests",
+          "Kind": "follow-up",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "fu-postmortem",
+          "Kind": "follow-up",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "fu-fuse-cause",
+          "Kind": "follow-up",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "fu-next-plan",
+          "Kind": "follow-up",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "fu-dana-leave",
+          "Kind": "follow-up",
+          "Rank": 5,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "fu-parental-request",
+          "Kind": "follow-up",
+          "Rank": 1,
+          "Found": 1,
+          "Of": 1,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "agg-working-days",
+          "Kind": "aggregation",
+          "Rank": 0,
+          "Found": 2,
+          "Of": 4,
+          "TopScore": 0.016133229247983348
+        },
+        {
+          "Id": "agg-dana",
+          "Kind": "aggregation",
+          "Rank": 6,
+          "Found": 3,
+          "Of": 3,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "agg-berg",
+          "Kind": "aggregation",
+          "Rank": 6,
+          "Found": 3,
+          "Of": 3,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "none-health-insurance",
+          "Kind": "unanswerable",
+          "Rank": 0,
+          "Found": 0,
+          "Of": 0,
+          "TopScore": 0.015549662487945998
+        },
+        {
+          "Id": "none-remote-work",
+          "Kind": "unanswerable",
+          "Rank": 0,
+          "Found": 0,
+          "Of": 0,
+          "TopScore": 0.014953478068232167
+        },
+        {
+          "Id": "none-resignation",
+          "Kind": "unanswerable",
+          "Rank": 0,
+          "Found": 0,
+          "Of": 0,
+          "TopScore": 0.015749007936507936
+        },
+        {
+          "Id": "none-wifi",
+          "Kind": "unanswerable",
+          "Rank": 0,
+          "Found": 0,
+          "Of": 0,
+          "TopScore": 0.015772478887232988
+        },
+        {
+          "Id": "none-enterprise-price",
+          "Kind": "unanswerable",
+          "Rank": 0,
+          "Found": 0,
+          "Of": 0,
+          "TopScore": 0.01639344262295082
+        },
+        {
+          "Id": "none-accra-launch",
+          "Kind": "unanswerable",
+          "Rank": 0,
+          "Found": 0,
+          "Of": 0,
+          "TopScore": 0.01626123744050767
+        },
+        {
+          "Id": "none-radio-battery",
+          "Kind": "unanswerable",
+          "Rank": 0,
+          "Found": 0,
+          "Of": 0,
+          "TopScore": 0.016133229247983348
+        }
+      ]
+    },
     {
       "Config": {
         "Chunk": 200,
@@ -10,17 +754,17 @@
         "Label": "c200-k3-norr"
       },
       "HitRate": 0.9036144578313253,
-      "Mrr": 0.7831325301204819,
+      "Mrr": 0.7690763052208838,
       "Recall": 0.8979591836734694,
       "Abstain": 0.8029259896729777,
       "ByKind": {
         "basic": 0.9705882352941176,
-        "paraphrase": 1,
-        "stale": 0.6666666666666666,
+        "paraphrase": 0.7777777777777778,
+        "stale": 0.8333333333333334,
         "long-doc": 1,
         "format": 1,
         "multi-hop": 0.7142857142857143,
-        "follow-up": 0.75,
+        "follow-up": 0.875,
         "aggregation": 0.6666666666666666
       },
       "Outcomes": [
@@ -91,8 +835,8 @@
         {
           "Id": "security-password",
           "Kind": "basic",
-          "Rank": 2,
-          "Found": 1,
+          "Rank": 0,
+          "Found": 0,
           "Of": 1,
           "TopScore": 0.014938684503901897
         },
@@ -123,8 +867,8 @@
         {
           "Id": "travel-meals-abroad",
           "Kind": "basic",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 3,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -323,10 +1067,10 @@
         {
           "Id": "para-doctor-note",
           "Kind": "paraphrase",
-          "Rank": 1,
-          "Found": 1,
+          "Rank": 0,
+          "Found": 0,
           "Of": 1,
-          "TopScore": 0.00819672131147541
+          "TopScore": 0.014854753521126762
         },
         {
           "Id": "para-big-claim",
@@ -347,8 +1091,8 @@
         {
           "Id": "para-unlabelled",
           "Kind": "paraphrase",
-          "Rank": 2,
-          "Found": 1,
+          "Rank": 0,
+          "Found": 0,
           "Of": 1,
           "TopScore": 0.01626123744050767
         },
@@ -379,8 +1123,8 @@
         {
           "Id": "stale-meals-abroad",
           "Kind": "stale",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 3,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01626123744050767
         },
@@ -563,7 +1307,7 @@
         {
           "Id": "hop-zurich-difference",
           "Kind": "multi-hop",
-          "Rank": 2,
+          "Rank": 3,
           "Found": 2,
           "Of": 2,
           "TopScore": 0.01639344262295082
@@ -611,8 +1355,8 @@
         {
           "Id": "fu-meals-abroad",
           "Kind": "follow-up",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 3,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -702,7 +1446,7 @@
           "Rank": 0,
           "Found": 0,
           "Of": 0,
-          "TopScore": 0.014709063378758382
+          "TopScore": 0.014953478068232167
         },
         {
           "Id": "none-resignation",
@@ -753,18 +1497,18 @@
         "Rerank": true,
         "Label": "c200-k3-rr"
       },
-      "HitRate": 0.891566265060241,
-      "Mrr": 0.781124497991968,
-      "Recall": 0.8877551020408163,
-      "Abstain": 0.7969018932874354,
+      "HitRate": 0.9156626506024096,
+      "Mrr": 0.7891566265060243,
+      "Recall": 0.9081632653061225,
+      "Abstain": 0.8029259896729777,
       "ByKind": {
-        "basic": 0.9411764705882353,
-        "paraphrase": 1,
+        "basic": 0.9705882352941176,
+        "paraphrase": 0.8888888888888888,
         "stale": 0.8333333333333334,
         "long-doc": 1,
         "format": 1,
-        "multi-hop": 0.5714285714285714,
-        "follow-up": 0.75,
+        "multi-hop": 0.7142857142857143,
+        "follow-up": 0.875,
         "aggregation": 0.6666666666666666
       },
       "Outcomes": [
@@ -867,8 +1611,8 @@
         {
           "Id": "travel-meals-abroad",
           "Kind": "basic",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 3,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -1091,10 +1835,10 @@
         {
           "Id": "para-unlabelled",
           "Kind": "paraphrase",
-          "Rank": 2,
-          "Found": 1,
+          "Rank": 0,
+          "Found": 0,
           "Of": 1,
-          "TopScore": 0.014479166666666668
+          "TopScore": 0.01626123744050767
         },
         {
           "Id": "para-stale-library",
@@ -1307,8 +2051,8 @@
         {
           "Id": "hop-zurich-difference",
           "Kind": "multi-hop",
-          "Rank": 0,
-          "Found": 1,
+          "Rank": 2,
+          "Found": 2,
           "Of": 2,
           "TopScore": 0.01639344262295082
         },
@@ -1355,8 +2099,8 @@
         {
           "Id": "fu-meals-abroad",
           "Kind": "follow-up",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 3,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -1446,7 +2190,7 @@
           "Rank": 0,
           "Found": 0,
           "Of": 0,
-          "TopScore": 0.01488095238095238
+          "TopScore": 0.014953478068232167
         },
         {
           "Id": "none-resignation",
@@ -1454,7 +2198,7 @@
           "Rank": 0,
           "Found": 0,
           "Of": 0,
-          "TopScore": 0.015512265512265512
+          "TopScore": 0.01562881562881563
         },
         {
           "Id": "none-wifi",
@@ -1497,18 +2241,18 @@
         "Rerank": false,
         "Label": "c200-k6-norr"
       },
-      "HitRate": 0.891566265060241,
-      "Mrr": 0.7371485943775099,
-      "Recall": 0.8877551020408163,
+      "HitRate": 0.927710843373494,
+      "Mrr": 0.7413654618473893,
+      "Recall": 0.9183673469387755,
       "Abstain": 0.8029259896729777,
       "ByKind": {
-        "basic": 0.9411764705882353,
+        "basic": 0.9705882352941176,
         "paraphrase": 0.8888888888888888,
-        "stale": 0.6666666666666666,
+        "stale": 0.8333333333333334,
         "long-doc": 1,
         "format": 1,
         "multi-hop": 0.7142857142857143,
-        "follow-up": 0.875,
+        "follow-up": 1,
         "aggregation": 0.6666666666666666
       },
       "Outcomes": [
@@ -1611,8 +2355,8 @@
         {
           "Id": "travel-meals-abroad",
           "Kind": "basic",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 6,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -1811,7 +2555,7 @@
         {
           "Id": "para-doctor-note",
           "Kind": "paraphrase",
-          "Rank": 4,
+          "Rank": 6,
           "Found": 1,
           "Of": 1,
           "TopScore": 0.014854753521126762
@@ -1867,8 +2611,8 @@
         {
           "Id": "stale-meals-abroad",
           "Kind": "stale",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 6,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01626123744050767
         },
@@ -1883,7 +2627,7 @@
         {
           "Id": "stale-reviewer-april",
           "Kind": "stale",
-          "Rank": 5,
+          "Rank": 6,
           "Found": 1,
           "Of": 1,
           "TopScore": 0.01626123744050767
@@ -2051,7 +2795,7 @@
         {
           "Id": "hop-zurich-difference",
           "Kind": "multi-hop",
-          "Rank": 5,
+          "Rank": 6,
           "Found": 2,
           "Of": 2,
           "TopScore": 0.01639344262295082
@@ -2099,8 +2843,8 @@
         {
           "Id": "fu-meals-abroad",
           "Kind": "follow-up",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 6,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -2241,18 +2985,18 @@
         "Rerank": true,
         "Label": "c200-k6-rr"
       },
-      "HitRate": 0.891566265060241,
-      "Mrr": 0.7514056224899595,
-      "Recall": 0.8877551020408163,
+      "HitRate": 0.927710843373494,
+      "Mrr": 0.7614457831325299,
+      "Recall": 0.9183673469387755,
       "Abstain": 0.8029259896729777,
       "ByKind": {
-        "basic": 0.9411764705882353,
+        "basic": 0.9705882352941176,
         "paraphrase": 0.8888888888888888,
         "stale": 0.8333333333333334,
         "long-doc": 1,
         "format": 1,
-        "multi-hop": 0.5714285714285714,
-        "follow-up": 0.875,
+        "multi-hop": 0.7142857142857143,
+        "follow-up": 1,
         "aggregation": 0.6666666666666666
       },
       "Outcomes": [
@@ -2355,8 +3099,8 @@
         {
           "Id": "travel-meals-abroad",
           "Kind": "basic",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 6,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -2795,8 +3539,8 @@
         {
           "Id": "hop-zurich-difference",
           "Kind": "multi-hop",
-          "Rank": 0,
-          "Found": 1,
+          "Rank": 2,
+          "Found": 2,
           "Of": 2,
           "TopScore": 0.01639344262295082
         },
@@ -2843,8 +3587,8 @@
         {
           "Id": "fu-meals-abroad",
           "Kind": "follow-up",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 6,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -2950,7 +3694,7 @@
           "Rank": 0,
           "Found": 0,
           "Of": 0,
-          "TopScore": 0.014938684503901897
+          "TopScore": 0.015772478887232988
         },
         {
           "Id": "none-enterprise-price",
@@ -2985,18 +3729,18 @@
         "Rerank": false,
         "Label": "c400-k3-norr"
       },
-      "HitRate": 0.9036144578313253,
-      "Mrr": 0.77710843373494,
-      "Recall": 0.8877551020408163,
+      "HitRate": 0.9156626506024096,
+      "Mrr": 0.775100401606426,
+      "Recall": 0.8979591836734694,
       "Abstain": 0.7908777969018933,
       "ByKind": {
         "basic": 0.9705882352941176,
-        "paraphrase": 1,
-        "stale": 0.6666666666666666,
+        "paraphrase": 0.8888888888888888,
+        "stale": 0.8333333333333334,
         "long-doc": 1,
         "format": 1,
         "multi-hop": 0.7142857142857143,
-        "follow-up": 0.75,
+        "follow-up": 0.875,
         "aggregation": 0.6666666666666666
       },
       "Outcomes": [
@@ -3067,8 +3811,8 @@
         {
           "Id": "security-password",
           "Kind": "basic",
-          "Rank": 2,
-          "Found": 1,
+          "Rank": 0,
+          "Found": 0,
           "Of": 1,
           "TopScore": 0.014938684503901897
         },
@@ -3099,8 +3843,8 @@
         {
           "Id": "travel-meals-abroad",
           "Kind": "basic",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 3,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -3302,7 +4046,7 @@
           "Rank": 1,
           "Found": 1,
           "Of": 1,
-          "TopScore": 0.00819672131147541
+          "TopScore": 0.014690227804981904
         },
         {
           "Id": "para-big-claim",
@@ -3323,8 +4067,8 @@
         {
           "Id": "para-unlabelled",
           "Kind": "paraphrase",
-          "Rank": 2,
-          "Found": 1,
+          "Rank": 0,
+          "Found": 0,
           "Of": 1,
           "TopScore": 0.01626123744050767
         },
@@ -3355,8 +4099,8 @@
         {
           "Id": "stale-meals-abroad",
           "Kind": "stale",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 3,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01626123744050767
         },
@@ -3539,7 +4283,7 @@
         {
           "Id": "hop-zurich-difference",
           "Kind": "multi-hop",
-          "Rank": 2,
+          "Rank": 3,
           "Found": 2,
           "Of": 2,
           "TopScore": 0.01639344262295082
@@ -3587,8 +4331,8 @@
         {
           "Id": "fu-meals-abroad",
           "Kind": "follow-up",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 3,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -3678,7 +4422,7 @@
           "Rank": 0,
           "Found": 0,
           "Of": 0,
-          "TopScore": 0.014815627743634766
+          "TopScore": 0.014953478068232167
         },
         {
           "Id": "none-resignation",
@@ -3729,18 +4473,18 @@
         "Rerank": true,
         "Label": "c400-k3-rr"
       },
-      "HitRate": 0.9036144578313253,
-      "Mrr": 0.7951807228915664,
+      "HitRate": 0.9156626506024096,
+      "Mrr": 0.7991967871485945,
       "Recall": 0.8979591836734694,
-      "Abstain": 0.7848537005163512,
+      "Abstain": 0.7908777969018933,
       "ByKind": {
         "basic": 0.9705882352941176,
-        "paraphrase": 1,
+        "paraphrase": 0.8888888888888888,
         "stale": 0.8333333333333334,
         "long-doc": 1,
         "format": 1,
-        "multi-hop": 0.5714285714285714,
-        "follow-up": 0.75,
+        "multi-hop": 0.7142857142857143,
+        "follow-up": 0.875,
         "aggregation": 0.6666666666666666
       },
       "Outcomes": [
@@ -3811,8 +4555,8 @@
         {
           "Id": "security-password",
           "Kind": "basic",
-          "Rank": 2,
-          "Found": 1,
+          "Rank": 0,
+          "Found": 0,
           "Of": 1,
           "TopScore": 0.014938684503901897
         },
@@ -3843,8 +4587,8 @@
         {
           "Id": "travel-meals-abroad",
           "Kind": "basic",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 3,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -4067,10 +4811,10 @@
         {
           "Id": "para-unlabelled",
           "Kind": "paraphrase",
-          "Rank": 3,
-          "Found": 1,
+          "Rank": 0,
+          "Found": 0,
           "Of": 1,
-          "TopScore": 0.014756944444444444
+          "TopScore": 0.01626123744050767
         },
         {
           "Id": "para-stale-library",
@@ -4283,8 +5027,8 @@
         {
           "Id": "hop-zurich-difference",
           "Kind": "multi-hop",
-          "Rank": 0,
-          "Found": 1,
+          "Rank": 2,
+          "Found": 2,
           "Of": 2,
           "TopScore": 0.01639344262295082
         },
@@ -4331,8 +5075,8 @@
         {
           "Id": "fu-meals-abroad",
           "Kind": "follow-up",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 3,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -4388,7 +5132,7 @@
           "Id": "agg-working-days",
           "Kind": "aggregation",
           "Rank": 0,
-          "Found": 2,
+          "Found": 1,
           "Of": 4,
           "TopScore": 0.016133229247983348
         },
@@ -4422,7 +5166,7 @@
           "Rank": 0,
           "Found": 0,
           "Of": 0,
-          "TopScore": 0.01488095238095238
+          "TopScore": 0.014953478068232167
         },
         {
           "Id": "none-resignation",
@@ -4430,7 +5174,7 @@
           "Rank": 0,
           "Found": 0,
           "Of": 0,
-          "TopScore": 0.015512265512265512
+          "TopScore": 0.015749007936507936
         },
         {
           "Id": "none-wifi",
@@ -4473,18 +5217,18 @@
         "Rerank": false,
         "Label": "c400-k6-norr"
       },
-      "HitRate": 0.9036144578313253,
-      "Mrr": 0.743172690763052,
-      "Recall": 0.8979591836734694,
+      "HitRate": 0.9397590361445783,
+      "Mrr": 0.7483935742971884,
+      "Recall": 0.9285714285714286,
       "Abstain": 0.7908777969018933,
       "ByKind": {
-        "basic": 0.9411764705882353,
+        "basic": 0.9705882352941176,
         "paraphrase": 1,
-        "stale": 0.6666666666666666,
+        "stale": 0.8333333333333334,
         "long-doc": 1,
         "format": 1,
         "multi-hop": 0.7142857142857143,
-        "follow-up": 0.875,
+        "follow-up": 1,
         "aggregation": 0.6666666666666666
       },
       "Outcomes": [
@@ -4587,8 +5331,8 @@
         {
           "Id": "travel-meals-abroad",
           "Kind": "basic",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 6,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -4843,8 +5587,8 @@
         {
           "Id": "stale-meals-abroad",
           "Kind": "stale",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 6,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01626123744050767
         },
@@ -4859,7 +5603,7 @@
         {
           "Id": "stale-reviewer-april",
           "Kind": "stale",
-          "Rank": 5,
+          "Rank": 6,
           "Found": 1,
           "Of": 1,
           "TopScore": 0.01626123744050767
@@ -5027,7 +5771,7 @@
         {
           "Id": "hop-zurich-difference",
           "Kind": "multi-hop",
-          "Rank": 5,
+          "Rank": 6,
           "Found": 2,
           "Of": 2,
           "TopScore": 0.01639344262295082
@@ -5075,8 +5819,8 @@
         {
           "Id": "fu-meals-abroad",
           "Kind": "follow-up",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 6,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -5212,22 +5956,22 @@
     },
     {
       "Config": {
-        "Chunk": 400,
-        "TopK": 6,
-        "Rerank": true,
-        "Label": "c400-k6-rr"
+        "Chunk": 800,
+        "TopK": 3,
+        "Rerank": false,
+        "Label": "c800-k3-norr"
       },
-      "HitRate": 0.9036144578313253,
-      "Mrr": 0.7694779116465861,
+      "HitRate": 0.9156626506024096,
+      "Mrr": 0.775100401606426,
       "Recall": 0.8979591836734694,
       "Abstain": 0.7908777969018933,
       "ByKind": {
-        "basic": 0.9411764705882353,
-        "paraphrase": 1,
+        "basic": 0.9705882352941176,
+        "paraphrase": 0.8888888888888888,
         "stale": 0.8333333333333334,
         "long-doc": 1,
         "format": 1,
-        "multi-hop": 0.5714285714285714,
+        "multi-hop": 0.7142857142857143,
         "follow-up": 0.875,
         "aggregation": 0.6666666666666666
       },
@@ -5251,7 +5995,7 @@
         {
           "Id": "lumen-training",
           "Kind": "basic",
-          "Rank": 6,
+          "Rank": 3,
           "Found": 1,
           "Of": 1,
           "TopScore": 0.016009221311475412
@@ -5331,8 +6075,8 @@
         {
           "Id": "travel-meals-abroad",
           "Kind": "basic",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 3,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -5459,7 +6203,7 @@
         {
           "Id": "classification-backups",
           "Kind": "basic",
-          "Rank": 1,
+          "Rank": 3,
           "Found": 1,
           "Of": 1,
           "TopScore": 0.01626123744050767
@@ -5555,8 +6299,8 @@
         {
           "Id": "para-unlabelled",
           "Kind": "paraphrase",
-          "Rank": 3,
-          "Found": 1,
+          "Rank": 0,
+          "Found": 0,
           "Of": 1,
           "TopScore": 0.01626123744050767
         },
@@ -5587,7 +6331,7 @@
         {
           "Id": "stale-meals-abroad",
           "Kind": "stale",
-          "Rank": 1,
+          "Rank": 3,
           "Found": 1,
           "Of": 1,
           "TopScore": 0.01626123744050767
@@ -5603,7 +6347,7 @@
         {
           "Id": "stale-reviewer-april",
           "Kind": "stale",
-          "Rank": 1,
+          "Rank": 3,
           "Found": 1,
           "Of": 1,
           "TopScore": 0.01626123744050767
@@ -5611,7 +6355,7 @@
         {
           "Id": "stale-nairobi-launch",
           "Kind": "stale",
-          "Rank": 6,
+          "Rank": 3,
           "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
@@ -5675,7 +6419,7 @@
         {
           "Id": "long-firmware",
           "Kind": "long-doc",
-          "Rank": 6,
+          "Rank": 3,
           "Found": 1,
           "Of": 1,
           "TopScore": 0.016133229247983348
@@ -5691,7 +6435,7 @@
         {
           "Id": "pdf-liability",
           "Kind": "format",
-          "Rank": 6,
+          "Rank": 3,
           "Found": 1,
           "Of": 1,
           "TopScore": 0.016133229247983348
@@ -5699,7 +6443,7 @@
         {
           "Id": "pdf-unit-price",
           "Kind": "format",
-          "Rank": 6,
+          "Rank": 3,
           "Found": 1,
           "Of": 1,
           "TopScore": 0.01626123744050767
@@ -5763,7 +6507,7 @@
         {
           "Id": "hop-customs-cost",
           "Kind": "multi-hop",
-          "Rank": 6,
+          "Rank": 2,
           "Found": 2,
           "Of": 2,
           "TopScore": 0.016129032258064516
@@ -5771,15 +6515,15 @@
         {
           "Id": "hop-zurich-difference",
           "Kind": "multi-hop",
-          "Rank": 0,
-          "Found": 1,
+          "Rank": 3,
+          "Found": 2,
           "Of": 2,
           "TopScore": 0.01639344262295082
         },
         {
           "Id": "hop-contractor-payroll",
           "Kind": "multi-hop",
-          "Rank": 6,
+          "Rank": 3,
           "Found": 2,
           "Of": 2,
           "TopScore": 0.01626123744050767
@@ -5795,7 +6539,7 @@
         {
           "Id": "hop-dana-may",
           "Kind": "multi-hop",
-          "Rank": 6,
+          "Rank": 3,
           "Found": 2,
           "Of": 2,
           "TopScore": 0.01639344262295082
@@ -5803,7 +6547,7 @@
         {
           "Id": "hop-contractor-repo-access",
           "Kind": "multi-hop",
-          "Rank": 6,
+          "Rank": 3,
           "Found": 2,
           "Of": 2,
           "TopScore": 0.01639344262295082
@@ -5819,8 +6563,8 @@
         {
           "Id": "fu-meals-abroad",
           "Kind": "follow-up",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 3,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -5859,8 +6603,8 @@
         {
           "Id": "fu-dana-leave",
           "Kind": "follow-up",
-          "Rank": 5,
-          "Found": 1,
+          "Rank": 0,
+          "Found": 0,
           "Of": 1,
           "TopScore": 0.01626123744050767
         },
@@ -5876,14 +6620,14 @@
           "Id": "agg-working-days",
           "Kind": "aggregation",
           "Rank": 0,
-          "Found": 2,
+          "Found": 1,
           "Of": 4,
           "TopScore": 0.016133229247983348
         },
         {
           "Id": "agg-dana",
           "Kind": "aggregation",
-          "Rank": 6,
+          "Rank": 3,
           "Found": 3,
           "Of": 3,
           "TopScore": 0.01626123744050767
@@ -5891,7 +6635,7 @@
         {
           "Id": "agg-berg",
           "Kind": "aggregation",
-          "Rank": 6,
+          "Rank": 3,
           "Found": 3,
           "Of": 3,
           "TopScore": 0.01639344262295082
@@ -5911,750 +6655,6 @@
           "Found": 0,
           "Of": 0,
           "TopScore": 0.014953478068232167
-        },
-        {
-          "Id": "none-resignation",
-          "Kind": "unanswerable",
-          "Rank": 0,
-          "Found": 0,
-          "Of": 0,
-          "TopScore": 0.015749007936507936
-        },
-        {
-          "Id": "none-wifi",
-          "Kind": "unanswerable",
-          "Rank": 0,
-          "Found": 0,
-          "Of": 0,
-          "TopScore": 0.014938684503901897
-        },
-        {
-          "Id": "none-enterprise-price",
-          "Kind": "unanswerable",
-          "Rank": 0,
-          "Found": 0,
-          "Of": 0,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "none-accra-launch",
-          "Kind": "unanswerable",
-          "Rank": 0,
-          "Found": 0,
-          "Of": 0,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "none-radio-battery",
-          "Kind": "unanswerable",
-          "Rank": 0,
-          "Found": 0,
-          "Of": 0,
-          "TopScore": 0.016133229247983348
-        }
-      ]
-    },
-    {
-      "Config": {
-        "Chunk": 800,
-        "TopK": 3,
-        "Rerank": false,
-        "Label": "c800-k3-norr"
-      },
-      "HitRate": 0.9036144578313253,
-      "Mrr": 0.77710843373494,
-      "Recall": 0.8877551020408163,
-      "Abstain": 0.7908777969018933,
-      "ByKind": {
-        "basic": 0.9705882352941176,
-        "paraphrase": 1,
-        "stale": 0.6666666666666666,
-        "long-doc": 1,
-        "format": 1,
-        "multi-hop": 0.7142857142857143,
-        "follow-up": 0.75,
-        "aggregation": 0.6666666666666666
-      },
-      "Outcomes": [
-        {
-          "Id": "lumen-launch-date",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "lumen-owner",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "lumen-training",
-          "Kind": "basic",
-          "Rank": 3,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.016009221311475412
-        },
-        {
-          "Id": "lumen-battery",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "lumen-team-size",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "lumen-returns",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "security-reviewer",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "security-revocation",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "security-password",
-          "Kind": "basic",
-          "Rank": 2,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.014938684503901897
-        },
-        {
-          "Id": "security-admin-signin",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "security-incident-time",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "travel-hotel-cap",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "travel-meals-abroad",
-          "Kind": "basic",
-          "Rank": 0,
-          "Found": 0,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "travel-economy",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "leave-annual",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "leave-sickness",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "leave-parental",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "oncall-rotation",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "oncall-failover",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "oncall-status-page",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "faq-log-retention",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "faq-team-price",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "faq-sso",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "meeting-budget",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "meeting-office",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "expense-mileage",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "expense-deadline",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "classification-eu",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "classification-backups",
-          "Kind": "basic",
-          "Rank": 3,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "vendor-approver",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "vendor-soc2",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "engineering-approvals",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "engineering-coverage",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "onboarding-badge",
-          "Kind": "basic",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "para-password",
-          "Kind": "paraphrase",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "para-page-escalation",
-          "Kind": "paraphrase",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "para-holiday-carryover",
-          "Kind": "paraphrase",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "para-doctor-note",
-          "Kind": "paraphrase",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.00819672131147541
-        },
-        {
-          "Id": "para-big-claim",
-          "Kind": "paraphrase",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.016133229247983348
-        },
-        {
-          "Id": "para-receipt-photo",
-          "Kind": "paraphrase",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "para-unlabelled",
-          "Kind": "paraphrase",
-          "Rank": 2,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "para-stale-library",
-          "Kind": "paraphrase",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "para-closed-account",
-          "Kind": "paraphrase",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.015877016129032258
-        },
-        {
-          "Id": "stale-hotel-cap",
-          "Kind": "stale",
-          "Rank": 0,
-          "Found": 0,
-          "Of": 1,
-          "TopScore": 0.016009221311475412
-        },
-        {
-          "Id": "stale-meals-abroad",
-          "Kind": "stale",
-          "Rank": 0,
-          "Found": 0,
-          "Of": 1,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "stale-economy",
-          "Kind": "stale",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "stale-reviewer-april",
-          "Kind": "stale",
-          "Rank": 3,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "stale-nairobi-launch",
-          "Kind": "stale",
-          "Rank": 3,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "stale-main-battery",
-          "Kind": "stale",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "long-calibration",
-          "Kind": "long-doc",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "long-fuse-rating",
-          "Kind": "long-doc",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "long-amber-beacon",
-          "Kind": "long-doc",
-          "Rank": 2,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.016133229247983348
-        },
-        {
-          "Id": "long-radio",
-          "Kind": "long-doc",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "long-storage",
-          "Kind": "long-doc",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "long-connect-order",
-          "Kind": "long-doc",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "long-firmware",
-          "Kind": "long-doc",
-          "Rank": 3,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.016133229247983348
-        },
-        {
-          "Id": "pdf-termination",
-          "Kind": "format",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "pdf-liability",
-          "Kind": "format",
-          "Rank": 3,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.016133229247983348
-        },
-        {
-          "Id": "pdf-unit-price",
-          "Kind": "format",
-          "Rank": 3,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "xlsx-zurich-hotel",
-          "Kind": "format",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "xlsx-oslo-meals",
-          "Kind": "format",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "pptx-churn",
-          "Kind": "format",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "pptx-nrr",
-          "Kind": "format",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "docx-contractor-laptop",
-          "Kind": "format",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "docx-contractor-invoices",
-          "Kind": "format",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "hop-berg-keys",
-          "Kind": "multi-hop",
-          "Rank": 0,
-          "Found": 2,
-          "Of": 3,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "hop-customs-cost",
-          "Kind": "multi-hop",
-          "Rank": 2,
-          "Found": 2,
-          "Of": 2,
-          "TopScore": 0.016129032258064516
-        },
-        {
-          "Id": "hop-zurich-difference",
-          "Kind": "multi-hop",
-          "Rank": 2,
-          "Found": 2,
-          "Of": 2,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "hop-contractor-payroll",
-          "Kind": "multi-hop",
-          "Rank": 3,
-          "Found": 2,
-          "Of": 2,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "hop-carvalho-manager",
-          "Kind": "multi-hop",
-          "Rank": 0,
-          "Found": 0,
-          "Of": 2,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "hop-dana-may",
-          "Kind": "multi-hop",
-          "Rank": 3,
-          "Found": 2,
-          "Of": 2,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "hop-contractor-repo-access",
-          "Kind": "multi-hop",
-          "Rank": 3,
-          "Found": 2,
-          "Of": 2,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "fu-premium",
-          "Kind": "follow-up",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "fu-meals-abroad",
-          "Kind": "follow-up",
-          "Rank": 0,
-          "Found": 0,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "fu-restore-tests",
-          "Kind": "follow-up",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "fu-postmortem",
-          "Kind": "follow-up",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "fu-fuse-cause",
-          "Kind": "follow-up",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "fu-next-plan",
-          "Kind": "follow-up",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "fu-dana-leave",
-          "Kind": "follow-up",
-          "Rank": 0,
-          "Found": 0,
-          "Of": 1,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "fu-parental-request",
-          "Kind": "follow-up",
-          "Rank": 1,
-          "Found": 1,
-          "Of": 1,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "agg-working-days",
-          "Kind": "aggregation",
-          "Rank": 0,
-          "Found": 1,
-          "Of": 4,
-          "TopScore": 0.016133229247983348
-        },
-        {
-          "Id": "agg-dana",
-          "Kind": "aggregation",
-          "Rank": 3,
-          "Found": 3,
-          "Of": 3,
-          "TopScore": 0.01626123744050767
-        },
-        {
-          "Id": "agg-berg",
-          "Kind": "aggregation",
-          "Rank": 3,
-          "Found": 3,
-          "Of": 3,
-          "TopScore": 0.01639344262295082
-        },
-        {
-          "Id": "none-health-insurance",
-          "Kind": "unanswerable",
-          "Rank": 0,
-          "Found": 0,
-          "Of": 0,
-          "TopScore": 0.015549662487945998
-        },
-        {
-          "Id": "none-remote-work",
-          "Kind": "unanswerable",
-          "Rank": 0,
-          "Found": 0,
-          "Of": 0,
-          "TopScore": 0.014815627743634766
         },
         {
           "Id": "none-resignation",
@@ -6705,18 +6705,18 @@
         "Rerank": true,
         "Label": "c800-k3-rr"
       },
-      "HitRate": 0.9036144578313253,
-      "Mrr": 0.7951807228915664,
+      "HitRate": 0.9156626506024096,
+      "Mrr": 0.7991967871485945,
       "Recall": 0.8979591836734694,
-      "Abstain": 0.7848537005163512,
+      "Abstain": 0.7908777969018933,
       "ByKind": {
         "basic": 0.9705882352941176,
-        "paraphrase": 1,
+        "paraphrase": 0.8888888888888888,
         "stale": 0.8333333333333334,
         "long-doc": 1,
         "format": 1,
-        "multi-hop": 0.5714285714285714,
-        "follow-up": 0.75,
+        "multi-hop": 0.7142857142857143,
+        "follow-up": 0.875,
         "aggregation": 0.6666666666666666
       },
       "Outcomes": [
@@ -6787,8 +6787,8 @@
         {
           "Id": "security-password",
           "Kind": "basic",
-          "Rank": 2,
-          "Found": 1,
+          "Rank": 0,
+          "Found": 0,
           "Of": 1,
           "TopScore": 0.014938684503901897
         },
@@ -6819,8 +6819,8 @@
         {
           "Id": "travel-meals-abroad",
           "Kind": "basic",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 3,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -7043,10 +7043,10 @@
         {
           "Id": "para-unlabelled",
           "Kind": "paraphrase",
-          "Rank": 3,
-          "Found": 1,
+          "Rank": 0,
+          "Found": 0,
           "Of": 1,
-          "TopScore": 0.014756944444444444
+          "TopScore": 0.01626123744050767
         },
         {
           "Id": "para-stale-library",
@@ -7259,8 +7259,8 @@
         {
           "Id": "hop-zurich-difference",
           "Kind": "multi-hop",
-          "Rank": 0,
-          "Found": 1,
+          "Rank": 2,
+          "Found": 2,
           "Of": 2,
           "TopScore": 0.01639344262295082
         },
@@ -7307,8 +7307,8 @@
         {
           "Id": "fu-meals-abroad",
           "Kind": "follow-up",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 3,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -7364,7 +7364,7 @@
           "Id": "agg-working-days",
           "Kind": "aggregation",
           "Rank": 0,
-          "Found": 2,
+          "Found": 1,
           "Of": 4,
           "TopScore": 0.016133229247983348
         },
@@ -7398,7 +7398,7 @@
           "Rank": 0,
           "Found": 0,
           "Of": 0,
-          "TopScore": 0.01488095238095238
+          "TopScore": 0.014953478068232167
         },
         {
           "Id": "none-resignation",
@@ -7406,7 +7406,7 @@
           "Rank": 0,
           "Found": 0,
           "Of": 0,
-          "TopScore": 0.015512265512265512
+          "TopScore": 0.015749007936507936
         },
         {
           "Id": "none-wifi",
@@ -7449,18 +7449,18 @@
         "Rerank": false,
         "Label": "c800-k6-norr"
       },
-      "HitRate": 0.9036144578313253,
-      "Mrr": 0.743172690763052,
-      "Recall": 0.8979591836734694,
+      "HitRate": 0.9397590361445783,
+      "Mrr": 0.7483935742971884,
+      "Recall": 0.9285714285714286,
       "Abstain": 0.7908777969018933,
       "ByKind": {
-        "basic": 0.9411764705882353,
+        "basic": 0.9705882352941176,
         "paraphrase": 1,
-        "stale": 0.6666666666666666,
+        "stale": 0.8333333333333334,
         "long-doc": 1,
         "format": 1,
         "multi-hop": 0.7142857142857143,
-        "follow-up": 0.875,
+        "follow-up": 1,
         "aggregation": 0.6666666666666666
       },
       "Outcomes": [
@@ -7563,8 +7563,8 @@
         {
           "Id": "travel-meals-abroad",
           "Kind": "basic",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 6,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -7819,8 +7819,8 @@
         {
           "Id": "stale-meals-abroad",
           "Kind": "stale",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 6,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01626123744050767
         },
@@ -7835,7 +7835,7 @@
         {
           "Id": "stale-reviewer-april",
           "Kind": "stale",
-          "Rank": 5,
+          "Rank": 6,
           "Found": 1,
           "Of": 1,
           "TopScore": 0.01626123744050767
@@ -8003,7 +8003,7 @@
         {
           "Id": "hop-zurich-difference",
           "Kind": "multi-hop",
-          "Rank": 5,
+          "Rank": 6,
           "Found": 2,
           "Of": 2,
           "TopScore": 0.01639344262295082
@@ -8051,8 +8051,8 @@
         {
           "Id": "fu-meals-abroad",
           "Kind": "follow-up",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 6,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -8193,18 +8193,18 @@
         "Rerank": true,
         "Label": "c800-k6-rr"
       },
-      "HitRate": 0.9036144578313253,
-      "Mrr": 0.7694779116465861,
-      "Recall": 0.8979591836734694,
+      "HitRate": 0.9397590361445783,
+      "Mrr": 0.7785140562248993,
+      "Recall": 0.9285714285714286,
       "Abstain": 0.7908777969018933,
       "ByKind": {
-        "basic": 0.9411764705882353,
+        "basic": 0.9705882352941176,
         "paraphrase": 1,
         "stale": 0.8333333333333334,
         "long-doc": 1,
         "format": 1,
-        "multi-hop": 0.5714285714285714,
-        "follow-up": 0.875,
+        "multi-hop": 0.7142857142857143,
+        "follow-up": 1,
         "aggregation": 0.6666666666666666
       },
       "Outcomes": [
@@ -8307,8 +8307,8 @@
         {
           "Id": "travel-meals-abroad",
           "Kind": "basic",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 6,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -8531,7 +8531,7 @@
         {
           "Id": "para-unlabelled",
           "Kind": "paraphrase",
-          "Rank": 3,
+          "Rank": 4,
           "Found": 1,
           "Of": 1,
           "TopScore": 0.01626123744050767
@@ -8747,8 +8747,8 @@
         {
           "Id": "hop-zurich-difference",
           "Kind": "multi-hop",
-          "Rank": 0,
-          "Found": 1,
+          "Rank": 2,
+          "Found": 2,
           "Of": 2,
           "TopScore": 0.01639344262295082
         },
@@ -8795,8 +8795,8 @@
         {
           "Id": "fu-meals-abroad",
           "Kind": "follow-up",
-          "Rank": 0,
-          "Found": 0,
+          "Rank": 6,
+          "Found": 1,
           "Of": 1,
           "TopScore": 0.01639344262295082
         },
@@ -8902,7 +8902,7 @@
           "Rank": 0,
           "Found": 0,
           "Of": 0,
-          "TopScore": 0.014938684503901897
+          "TopScore": 0.015772478887232988
         },
         {
           "Id": "none-enterprise-price",

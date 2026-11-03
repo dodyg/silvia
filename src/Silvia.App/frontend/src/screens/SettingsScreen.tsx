@@ -41,7 +41,7 @@ export function SettingsScreen({ projectId, appearance, onAppearance, onError, o
 
 /** Settings that change what an answer says, so a test set run before and after them can differ. */
 const ANSWER_SETTINGS: ReadonlyArray<keyof ProjectSettingsDto> = [
-  "embedModel", "rerankModel", "chatModel", "judgeModel", "cloudPolicy", "chunkTokens", "chunkOverlap", "topK", "systemPrompt", "documentOverviews", "graphRag",
+  "embedModel", "rerankModel", "chatModel", "judgeModel", "cloudPolicy", "chunkTokens", "chunkOverlap", "topK", "systemPrompt", "documentOverviews", "graphRag", "bridgeSearch",
 ];
 
 /** After a save that changes answers: how many test questions there are, and when the set last ran. */
@@ -246,6 +246,27 @@ function ProjectSettings({ projectId, onError, onEvaluate }: { projectId: string
               <span className="field-hint">
                 {usesCloud
                   ? "Each document's text is sent to DeepSeek once when it is indexed or changes, not only the passages an answer uses."
+                  : "Needs the deepseek cloud policy."}
+              </span>
+            </span>
+          </label>
+        </Card>
+      </Section>
+
+      <Section title="Bridge searches" description="For a question that joins two facts, such as what the person who approves something did elsewhere, a second search for what the first passages point to.">
+        <Card>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={draft.bridgeSearch}
+              disabled={!usesCloud}
+              onChange={(event) => set("bridgeSearch", event.target.checked)}
+            />
+            <span>
+              Search again for what the first passages point to
+              <span className="field-hint">
+                {usesCloud
+                  ? "The chat model reads the passages found for each question and writes up to two further searches, each adding up to two passages. One more short DeepSeek call per question, before the answer starts."
                   : "Needs the deepseek cloud policy."}
               </span>
             </span>

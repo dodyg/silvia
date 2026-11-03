@@ -218,7 +218,8 @@ public sealed class SettingsService(AppHost host)
         s.SystemPrompt,
         s.DocumentOverviews,
         s.GraphRag,
-        s.JudgeModel);
+        s.JudgeModel,
+        s.BridgeSearch);
 
     /// <summary>Applies the editable fields to the stored settings. The embedder keeps its dimension.</summary>
     private static ProjectSettings FromDto(ProjectSettingsDto dto, ProjectSettings current)
@@ -263,6 +264,7 @@ public sealed class SettingsService(AppHost host)
             SystemPrompt = dto.SystemPrompt,
             DocumentOverviews = dto.DocumentOverviews,
             GraphRag = dto.GraphRag,
+            BridgeSearch = dto.BridgeSearch,
             JudgeModel = dto.JudgeModel?.Trim() ?? string.Empty,
         };
     }

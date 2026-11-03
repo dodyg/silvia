@@ -2,7 +2,10 @@
 
 90 questions over the synthetic corpus in `eval/corpus` plus the PDF and Office documents that
 `Fixtures.cs` writes at the start of each run (basic 34, paraphrase 9, stale 6, long-doc 7, format 9, multi-hop 7, follow-up 8, aggregation 3, unanswerable 7). Scores come from the real ONNX embedder
-(bge-small-en-v1.5, 384 dimensions) and, where marked, the ms-marco MiniLM reranker. The only chat model call is the rewrite of each follow-up.
+(bge-small-en-v1.5, 384 dimensions) and, where marked, the ms-marco MiniLM reranker. The only chat model calls are the rewrite of each
+follow-up and the bridge searches: further searches for what the first passages point to, which add up to two
+passages each, as chat does. Both are kept in `results/`, so a rerun needs no API key; without a kept plan or a
+key, a question is searched once.
 
 A question is a hit when the top-K passages hold every piece of its evidence: a passage from the expected
 file that contains all the expected terms. Kinds:
@@ -21,7 +24,7 @@ file that contains all the expected terms. Kinds:
 *All* is the hit rate over every answerable question. *Evidence recall* counts the pieces of evidence
 found, so a multi-hop question with one of two pieces counts half. *Abstain* is the balanced accuracy
 of the best single threshold on the top hit's score at telling unanswerable questions from the rest
-(0.5 means the score says nothing). MRR uses the final order of the hits, which Rag.NET's lost-in-the-middle
+(0.5 means the score says nothing). MRR uses the final order of the hits, which the lost-in-the-middle
 reordering changes, so read it as a rough signal only.
 
 Recorded on the default settings of the app: 400-token chunks, 6 passages, reranker on. The regression
@@ -29,25 +32,24 @@ check compares the *All* column of that row.
 
 | Chunk | K | Rerank | All | basic | paraphrase | stale | long-doc | format | multi-hop | follow-up | aggregation | Evidence recall | MRR | Abstain |
 |---:|---:|:---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 200 | 3 | off | **90 %** | 97 % | 100 % | 67 % | 100 % | 100 % | 71 % | 75 % | 67 % | 90 % | 0.783 | 0.80 |
-| 200 | 3 | on | **89 %** | 94 % | 100 % | 83 % | 100 % | 100 % | 57 % | 75 % | 67 % | 89 % | 0.781 | 0.80 |
-| 200 | 6 | off | **89 %** | 94 % | 89 % | 67 % | 100 % | 100 % | 71 % | 88 % | 67 % | 89 % | 0.737 | 0.80 |
-| 200 | 6 | on | **89 %** | 94 % | 89 % | 83 % | 100 % | 100 % | 57 % | 88 % | 67 % | 89 % | 0.751 | 0.80 |
-| 400 | 3 | off | **90 %** | 97 % | 100 % | 67 % | 100 % | 100 % | 71 % | 75 % | 67 % | 89 % | 0.777 | 0.79 |
-| 400 | 3 | on | **90 %** | 97 % | 100 % | 83 % | 100 % | 100 % | 57 % | 75 % | 67 % | 90 % | 0.795 | 0.78 |
-| 400 | 6 | off | **90 %** | 94 % | 100 % | 67 % | 100 % | 100 % | 71 % | 88 % | 67 % | 90 % | 0.743 | 0.79 |
-| 400 | 6 | on | **90 %** | 94 % | 100 % | 83 % | 100 % | 100 % | 57 % | 88 % | 67 % | 90 % | 0.769 | 0.79 |
-| 800 | 3 | off | **90 %** | 97 % | 100 % | 67 % | 100 % | 100 % | 71 % | 75 % | 67 % | 89 % | 0.777 | 0.79 |
-| 800 | 3 | on | **90 %** | 97 % | 100 % | 83 % | 100 % | 100 % | 57 % | 75 % | 67 % | 90 % | 0.795 | 0.78 |
-| 800 | 6 | off | **90 %** | 94 % | 100 % | 67 % | 100 % | 100 % | 71 % | 88 % | 67 % | 90 % | 0.743 | 0.79 |
-| 800 | 6 | on | **90 %** | 94 % | 100 % | 83 % | 100 % | 100 % | 57 % | 88 % | 67 % | 90 % | 0.769 | 0.79 |
+| 200 | 3 | off | **90 %** | 97 % | 78 % | 83 % | 100 % | 100 % | 71 % | 88 % | 67 % | 90 % | 0.769 | 0.80 |
+| 200 | 3 | on | **92 %** | 97 % | 89 % | 83 % | 100 % | 100 % | 71 % | 88 % | 67 % | 91 % | 0.789 | 0.80 |
+| 200 | 6 | off | **93 %** | 97 % | 89 % | 83 % | 100 % | 100 % | 71 % | 100 % | 67 % | 92 % | 0.741 | 0.80 |
+| 200 | 6 | on | **93 %** | 97 % | 89 % | 83 % | 100 % | 100 % | 71 % | 100 % | 67 % | 92 % | 0.761 | 0.80 |
+| 400 | 3 | off | **92 %** | 97 % | 89 % | 83 % | 100 % | 100 % | 71 % | 88 % | 67 % | 90 % | 0.775 | 0.79 |
+| 400 | 3 | on | **92 %** | 97 % | 89 % | 83 % | 100 % | 100 % | 71 % | 88 % | 67 % | 90 % | 0.799 | 0.79 |
+| 400 | 6 | off | **94 %** | 97 % | 100 % | 83 % | 100 % | 100 % | 71 % | 100 % | 67 % | 93 % | 0.748 | 0.79 |
+| 400 | 6 | on | **94 %** | 97 % | 100 % | 83 % | 100 % | 100 % | 71 % | 100 % | 67 % | 93 % | 0.779 | 0.79 |
+| 800 | 3 | off | **92 %** | 97 % | 89 % | 83 % | 100 % | 100 % | 71 % | 88 % | 67 % | 90 % | 0.775 | 0.79 |
+| 800 | 3 | on | **92 %** | 97 % | 89 % | 83 % | 100 % | 100 % | 71 % | 88 % | 67 % | 90 % | 0.799 | 0.79 |
+| 800 | 6 | off | **94 %** | 97 % | 100 % | 83 % | 100 % | 100 % | 71 % | 100 % | 67 % | 93 % | 0.748 | 0.79 |
+| 800 | 6 | on | **94 %** | 97 % | 100 % | 83 % | 100 % | 100 % | 71 % | 100 % | 67 % | 93 % | 0.779 | 0.79 |
 
 Missed at the default setting (400 tokens, top 6, reranker on):
 
-- **basic**: security-password, travel-meals-abroad
+- **basic**: security-password
 - **stale**: stale-hotel-cap
-- **multi-hop**: hop-berg-keys (2/3), hop-zurich-difference (1/2), hop-carvalho-manager (0/2)
-- **follow-up**: fu-meals-abroad
+- **multi-hop**: hop-berg-keys (2/3), hop-carvalho-manager (0/2)
 - **aggregation**: agg-working-days (2/4)
 - **unanswerable**: best-hit score 0.015 to 0.016; answerable questions 0.015 to 0.016 (median 0.016)
 

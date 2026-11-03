@@ -321,18 +321,66 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
     }
 
     /// <summary>Retrieves the best chunks for a query without calling any model.</summary>
-    public async Task<IReadOnlyList<SearchResult>> SearchAsync(string query, int? topK = null, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<SearchResult>> SearchAsync(string query, int? topK = null, CancellationToken cancellationToken = default) =>
+        SearchAsync(query, topK, bridges: null, cancellationToken);
+
+    /// <summary>The most passages each further search of <see cref="BridgeQuestion"/> adds to the first.</summary>
+    public const int BridgePassages = 2;
+
+    /// <summary>
+    /// Retrieves the best chunks for a query. When <paramref name="bridges"/> is given, it sees those chunks in
+    /// rank order and returns further searches for what they point to; the best new chunks of each are added.
+    /// The result is in lost-in-the-middle order: the strongest passages first and last.
+    /// </summary>
+    public async Task<IReadOnlyList<SearchResult>> SearchAsync(
+        string query, int? topK, Func<IReadOnlyList<SearchResult>, Task<IReadOnlyList<string>>>? bridges, CancellationToken cancellationToken)
     {
-        if (_keywords is not null)
+        var k = topK ?? Settings.TopK;
+        var hits = await RankedAsync(query, k, cancellationToken);
+        if (bridges is not null && hits.Count > 0)
         {
-            return await _keywords.SearchAsync(query, topK ?? Settings.TopK, cancellationToken);
+            var seen = hits.Select(h => PassageKey(h.Chunk.Text)).ToHashSet(StringComparer.Ordinal);
+            foreach (var bridge in await bridges(hits))
+            {
+                var more = await RankedAsync(bridge, k, cancellationToken);
+                hits.AddRange(more.Where(h => seen.Add(PassageKey(h.Chunk.Text))).Take(BridgePassages));
+            }
         }
 
-        var result = await _pipeline.RetrieveAsync(query, Retrieval(topK ?? Settings.TopK), cancellationToken);
-        return result.IsSuccess
-            ? result.Value
-            : throw new InvalidOperationException($"Search failed: {result.Error}");
+        return LostInTheMiddle(hits);
     }
+
+    /// <summary>
+    /// The best chunks for a query, best first, without repeating a passage. Only identical text counts as a
+    /// repeat: two versions of a policy that differ in one number are near duplicates to an embedder, but the
+    /// number is the answer, so both stay.
+    /// </summary>
+    private async Task<List<SearchResult>> RankedAsync(string query, int topK, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<SearchResult> hits;
+        if (_keywords is not null)
+        {
+            hits = await _keywords.SearchAsync(query, topK * 2, cancellationToken);
+        }
+        else
+        {
+            var result = await _pipeline.RetrieveAsync(query, Retrieval(topK * 2), cancellationToken);
+            hits = result.IsSuccess
+                ? result.Value
+                : throw new InvalidOperationException($"Search failed: {result.Error}");
+        }
+
+        return hits.DistinctBy(h => PassageKey(h.Chunk.Text), StringComparer.Ordinal).Take(topK).ToList();
+    }
+
+    private static string PassageKey(string text) => string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+    /// <summary>
+    /// Ranked chunks reordered so the strongest sit at the edges of the context, where a model attends best:
+    /// the 1st, 3rd, 5th… from the start, then the …6th, 4th, 2nd to the end.
+    /// </summary>
+    private static List<SearchResult> LostInTheMiddle(List<SearchResult> ranked) =>
+        ranked.Where((_, i) => i % 2 == 0).Concat(ranked.Where((_, i) => i % 2 == 1).Reverse()).ToList();
 
     /// <summary>
     /// Answers a question from this project's documents and remembers the exchange in this project's
@@ -399,16 +447,12 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
         List<ChatMessage> history = evaluation ? [] : History(conversationId!);
         var query = await StandaloneAsync(history, question, cancellationToken);
 
-        IReadOnlyList<SearchResult> hits;
-        if (_keywords is not null)
-        {
-            var terms = await SearchTermsAsync(query, evaluation, cancellationToken);
-            hits = await _keywords.SearchAsync($"{query} {terms}", Settings.TopK, cancellationToken);
-        }
-        else
-        {
-            hits = await SearchAsync(query, cancellationToken: cancellationToken);
-        }
+        var search = _keywords is null ? query : $"{query} {await SearchTermsAsync(query, evaluation, cancellationToken)}";
+        var hits = await SearchAsync(
+            search,
+            Settings.TopK,
+            Settings.BridgeSearch ? found => BridgesAsync(query, found, evaluation, cancellationToken) : null,
+            cancellationToken);
 
         var passages = hits.Select(CitedChunk.From).ToList();
         var sources = Overviews(passages).Concat(passages).ToList();
@@ -519,6 +563,35 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
         catch (Exception) when (!cancellationToken.IsCancellationRequested)
         {
             return question;
+        }
+    }
+
+    /// <summary>
+    /// Further searches for what the first passages point to but do not hold, or none if the model cannot give
+    /// them. An evaluation reuses the reply from an earlier run, so a rerun retrieves the same passages.
+    /// </summary>
+    private async Task<IReadOnlyList<string>> BridgesAsync(string question, IReadOnlyList<SearchResult> hits, bool cached, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var messages = BridgeQuestion.Prompt(question, hits);
+            string text;
+            if (cached)
+            {
+                text = await _replies.GetAsync(_chat!, Settings.ChatModel, messages, null, cancellationToken);
+                _replies.Keep(Settings.ChatModel, messages, null, text);
+            }
+            else
+            {
+                text = (await _chat!.GetResponseAsync(messages, cancellationToken: cancellationToken)).Text;
+            }
+
+            return BridgeQuestion.Parse(text, question);
+        }
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            // The first passages still answer; the further searches only add to them.
+            return [];
         }
     }
 
@@ -796,8 +869,9 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
         UseHybridSearch = true,
         UseHyde = false,
         UseMultiQuery = false,
-        UseLostInTheMiddleReordering = true,
-        UseRedundancyFilter = true,
+        // SearchAsync reorders and removes repeats itself, after it has added the passages of any further search.
+        UseLostInTheMiddleReordering = false,
+        UseRedundancyFilter = false,
     };
 
     /// <summary>Tunables for opening a runtime. Defaults match the app; tests shorten the timers.</summary>

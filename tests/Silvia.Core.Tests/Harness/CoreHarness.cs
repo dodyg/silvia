@@ -78,6 +78,8 @@ public sealed class CoreHarness : IDisposable
         EmbedDims = dims,
         RerankModel = string.Empty,
         CloudPolicy = cloudPolicy,
+        // The fake chat answers every request alike; BridgeSearchTests turn this on with replies of their own.
+        BridgeSearch = false,
     };
 
     /// <summary>Makes a new manager over the same data folder, as a process restart would.</summary>
