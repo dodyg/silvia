@@ -12,8 +12,10 @@ import { MapScreen } from "./screens/MapScreen";
 import { ProjectsScreen } from "./screens/ProjectsScreen";
 import { SearchScreen } from "./screens/SearchScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
+import { HelpScreen } from "./screens/HelpScreen";
+import type { HelpTopicId } from "./help";
 
-type Screen = "chat" | "search" | "library" | "map" | "graph" | "facts" | "evaluate" | "activity" | "projects" | "settings";
+type Screen = "chat" | "search" | "library" | "map" | "graph" | "facts" | "evaluate" | "activity" | "projects" | "settings" | "help";
 
 // Project screens need an open project; the app screens below them work without one.
 const PROJECT_SCREENS: Array<{ id: Screen; label: string; icon: IconName }> = [
@@ -30,6 +32,7 @@ const PROJECT_SCREENS: Array<{ id: Screen; label: string; icon: IconName }> = [
 const APP_SCREENS: Array<{ id: Screen; label: string; icon: IconName }> = [
   { id: "projects", label: "Projects", icon: "projects" },
   { id: "settings", label: "Settings", icon: "settings" },
+  { id: "help", label: "Help", icon: "help" },
 ];
 
 const PROJECT_KEY = "silvia.project.v1";
@@ -39,6 +42,7 @@ export function App() {
   const [projectList, setProjectList] = useState<ProjectDto[] | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [screen, setScreen] = useState<Screen>("chat");
+  const [helpTopic, setHelpTopic] = useState<HelpTopicId>("start");
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,6 +104,13 @@ export function App() {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setSwitcherOpen(false);
+        return;
+      }
+
+      if (event.key === "F1") {
+        event.preventDefault();
+        setSwitcherOpen(false);
+        setScreen("help");
         return;
       }
 
@@ -235,7 +246,13 @@ export function App() {
               onAppearance={changeAppearance}
               onError={setError}
               onEvaluate={() => setScreen("evaluate")}
+              onHelp={(topic) => {
+                setHelpTopic(topic);
+                setScreen("help");
+              }}
             />
+          ) : screen === "help" ? (
+            <HelpScreen topic={helpTopic} onTopic={setHelpTopic} />
           ) : !project ? (
             <Empty title="Create a project to start" icon="projects">
               Each project keeps its own folders, index and conversations.

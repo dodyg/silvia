@@ -2407,3 +2407,139 @@ mark.unsupported {
 .banner-actions {
   margin-top: 0.5rem;
 }
+
+/* Help: a topic list with a search box beside the chosen topic. */
+.help {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.help-topics {
+  position: sticky;
+  top: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.help-topics ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.help-topics button {
+  display: grid;
+  gap: 0.1rem;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+  text-align: start;
+}
+
+.help-topics button:hover {
+  background: var(--accent-soft);
+}
+
+.help-topics button[aria-current="page"] {
+  background: var(--surface);
+  box-shadow: inset 3px 0 0 var(--rubric), var(--shadow-sm);
+}
+
+[dir="rtl"] .help-topics button[aria-current="page"] {
+  box-shadow: inset -3px 0 0 var(--rubric), var(--shadow-sm);
+}
+
+.help-topic-title {
+  font-weight: 600;
+}
+
+.help-topic-summary {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.help-body {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem 1.75rem;
+  font-size: var(--font-size-reading);
+  line-height: var(--line-height);
+  min-width: 0;
+}
+
+.help-body h2 {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+}
+
+.help-body h3 {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1.05em;
+}
+
+.help-body p,
+.help-body ul,
+.help-body ol {
+  margin: 0.6rem 0;
+}
+
+.help-body ul {
+  list-style: disc;
+  padding-inline-start: 1.4rem;
+}
+
+.help-body ol {
+  list-style: decimal;
+  padding-inline-start: 1.6rem;
+}
+
+.help-body li + li {
+  margin-top: 0.3rem;
+}
+
+.help-body code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--code-bg);
+  border-radius: var(--radius-sm);
+  padding: 0.05rem 0.3rem;
+}
+
+.help-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.92em;
+}
+
+.help-body th,
+.help-body td {
+  padding: 0.5rem 0.65rem;
+  border-top: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.help-body thead th {
+  border-top: none;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+@media (max-width: 960px) {
+  .help {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .help-topics {
+    position: static;
+  }
+}

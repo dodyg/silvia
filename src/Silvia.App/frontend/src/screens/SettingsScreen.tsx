@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { describeError, evaluation, formatWhen, settings, type ChatProviderDto, type FontListDto, type GlobalSettingsDto, type ModelDto, type ProjectSettingsDto } from "../api";
 import { INTERFACE_SIZE, READING_SIZE, SYSTEM_FONT, type Appearance, type LineHeightChoice, type ReadingWidthChoice, type ThemeChoice } from "../theme";
 import { renderMarkdown } from "../markdown";
-import { Banner, Button, Card, Field, PageHeader, Section } from "../ui";
+import { Banner, Button, Card, Field, Icon, PageHeader, Section } from "../ui";
+import type { HelpTopicId } from "../help";
 
 interface Props {
   projectId: string | null;
@@ -11,16 +12,26 @@ interface Props {
   onError: (message: string | null) => void;
   /** Opens the Evaluate screen, after a run was started from here. */
   onEvaluate: () => void;
+  /** Opens the Help screen at a topic. */
+  onHelp: (topic: HelpTopicId) => void;
 }
 
 type Tab = "project" | "global" | "appearance";
 
-export function SettingsScreen({ projectId, appearance, onAppearance, onError, onEvaluate }: Props) {
+export function SettingsScreen({ projectId, appearance, onAppearance, onError, onEvaluate, onHelp }: Props) {
   const [tab, setTab] = useState<Tab>("appearance");
 
   return (
     <div>
-      <PageHeader title="Settings" description="How the open project searches and answers, what Silvia stores, and how it looks." />
+      <PageHeader
+        title="Settings"
+        description="How the open project searches and answers, what Silvia stores, and how it looks."
+        actions={
+          <Button variant="quiet" onClick={() => onHelp(tab === "project" ? "project-settings" : "app-settings")}>
+            <Icon name="help" /> What these settings mean
+          </Button>
+        }
+      />
       <div className="tabs" role="tablist" aria-label="Settings">
         {(["project", "global", "appearance"] as const).map((id) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
