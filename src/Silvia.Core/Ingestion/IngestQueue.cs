@@ -217,6 +217,10 @@ internal sealed class IngestQueue : IAsyncDisposable
             {
                 QueueOverviews();
                 await QueueGraphAsync(cancellationToken);
+                if (job.Kind == JobKind.Resume)
+                {
+                    await QueueMissingCommunitiesAsync(cancellationToken);
+                }
             }
             else if (job.Kind == JobKind.Graph)
             {
@@ -250,6 +254,12 @@ internal sealed class IngestQueue : IAsyncDisposable
         // A job queued before its source was removed must not bring the removed documents back.
         // Deletes still run, so the source's documents are cleared either way.
         if (job.Kind != JobKind.Delete && job.SourceId is { } sourceId && !IsSourceEnabled(sourceId))
+        {
+            return;
+        }
+
+        // Resuming indexes nothing: what it queues afterwards, like every other job, is the work.
+        if (job.Kind == JobKind.Resume)
         {
             return;
         }
@@ -446,6 +456,18 @@ internal sealed class IngestQueue : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Queues a communities rebuild when the graph holds documents but no communities, such as after the
+    /// last rebuild failed. A graph that has them is left alone: a rebuild rewrites every report.
+    /// </summary>
+    private async Task QueueMissingCommunitiesAsync(CancellationToken cancellationToken)
+    {
+        if (_graph is not null && await _graph.SizeAsync(cancellationToken) is { Documents: > 0, Communities: 0 })
+        {
+            QueueCommunities();
+        }
+    }
+
     /// <summary>The paths of the jobs of one kind that are pending or running.</summary>
     private HashSet<string> Waiting(JobKind kind)
     {
@@ -585,6 +607,9 @@ internal enum JobKind
     Overview,
     Graph,
     Communities,
+
+    /// <summary>Queues the overviews and graph documents still missing, without indexing anything.</summary>
+    Resume,
 }
 
 /// <summary>A watched folder as stored in <c>sources</c>.</summary>

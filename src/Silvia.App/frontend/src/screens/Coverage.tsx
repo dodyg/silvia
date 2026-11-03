@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { describeError, formatWhen, inspect, type CoverageDto } from "../api";
-import { Button, Empty, Icon, Section, Spinner } from "../ui";
+import { describeError, formatWhen, inspect, library, type CoverageDto } from "../api";
+import { Banner, Button, Empty, Icon, Section, Spinner } from "../ui";
 
 interface Props {
   projectId: string;
@@ -14,10 +14,20 @@ const THIN_CHARACTERS = 300;
 export function Coverage({ projectId, onError }: Props) {
   const [coverage, setCoverage] = useState<CoverageDto | null>(null);
   const [all, setAll] = useState(false);
+  const [resumed, setResumed] = useState(false);
 
   async function load() {
     try {
       setCoverage(await inspect.coverage({ projectId }));
+    } catch (failure) {
+      onError(describeError(failure));
+    }
+  }
+
+  async function resume() {
+    try {
+      await library.resume({ projectId });
+      setResumed(true);
     } catch (failure) {
       onError(describeError(failure));
     }
@@ -45,6 +55,12 @@ export function Coverage({ projectId, onError }: Props) {
   const thin = rows.filter((r) => r.characters < THIN_CHARACTERS).length;
   const widest = rows.length === 0 ? 1 : Math.max(1, rows[0].characters);
   const visible = all ? rows : rows.slice(0, 25);
+  const outOfGraph = coverage.graph ? Math.max(0, rows.length - coverage.graph.documents) : 0;
+  const withoutOverview = coverage.overviewsOn ? rows.length - withOverview : 0;
+  const unfinished = [
+    outOfGraph > 0 ? `${outOfGraph} ${outOfGraph === 1 ? "document is" : "documents are"} not in the knowledge graph yet` : null,
+    withoutOverview > 0 ? `${withoutOverview} ${withoutOverview === 1 ? "document has" : "documents have"} no overview` : null,
+  ].filter(Boolean).join(", and ");
 
   const mode = coverage.mode === "vector"
     ? `Searched by meaning and keyword, with ${coverage.embedModel ?? "a local embedding model"}.`
@@ -61,6 +77,17 @@ export function Coverage({ projectId, onError }: Props) {
         {coverage.graph ? <div className="stat"><dt>Entities</dt><dd>{coverage.graph.entities.toLocaleString()}</dd></div> : null}
         <div className={thin > 0 ? "stat stat-warn" : "stat"}><dt>Nearly empty</dt><dd>{thin}</dd></div>
       </dl>
+
+      {unfinished ? (
+        <Banner tone="info">
+          {resumed
+            ? "Resumed. The documents still missing are queued; the queue above shows the progress."
+            : `${unfinished[0].toUpperCase()}${unfinished.slice(1)}. Resume picks up where it stopped, including documents that failed, without indexing anything again.`}
+          <div className="row banner-actions">
+            <Button size="sm" onClick={() => void resume()}><Icon name="refresh" /> Resume</Button>
+          </div>
+        </Banner>
+      ) : null}
 
       {rows.length === 0 ? (
         <Empty title="Nothing is indexed yet" icon="file">Add a folder in Library.</Empty>

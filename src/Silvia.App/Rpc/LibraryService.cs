@@ -67,6 +67,15 @@ public sealed class LibraryService(AppHost host)
         return ValueTask.FromResult(new EmptyRequest());
     }
 
+    /// <summary>Continues building overviews and the knowledge graph for the documents still missing them.</summary>
+    [NeoRpcMethod("resume")]
+    public ValueTask<EmptyRequest> ResumeAsync(ProjectIdScoped request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        runtime.Resume();
+        return ValueTask.FromResult(new EmptyRequest());
+    }
+
     [NeoRpcMethod("listDocuments")]
     public ValueTask<DocumentDto[]> ListDocumentsAsync(ProjectIdScoped request, CancellationToken cancellationToken)
     {

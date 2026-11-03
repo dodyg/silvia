@@ -288,6 +288,14 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Picks up the overviews and the knowledge graph where they stopped: queues every document whose
+    /// overview or part of the graph is missing or out of date, including those whose jobs failed, and the
+    /// communities if the graph has none. Documents already waiting are not queued twice, and nothing is
+    /// indexed again.
+    /// </summary>
+    public void Resume() => _queue.Enqueue(JobKind.Resume, string.Empty);
+
     /// <summary>Counts of queued jobs by status: pending, running, done, failed.</summary>
     public IReadOnlyDictionary<string, int> JobCounts() => _queue.CountByStatus();
 

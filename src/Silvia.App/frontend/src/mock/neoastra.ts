@@ -71,6 +71,7 @@ export const library = Object.freeze({
   modelStatus: () => delay({ canEmbed: true, canRerank: true }),
   removeSource: () => delay({}),
   rescan: () => delay({}),
+  resume: () => delay({}),
   listDocuments: () => delay(sample.documents),
   activity: () => delay({ pending: 1, running: 0, done: 8, failed: 1, recentFailures: [{ path: "C:/Documents/Lumen/scan.pdf", error: "The PDF has no text layer.", finishedUtc: now }] }),
   openDocument: () => delay({ opened: true, message: "Opened." }),

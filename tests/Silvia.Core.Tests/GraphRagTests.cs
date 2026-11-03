@@ -41,10 +41,11 @@ public sealed partial class GraphRagTests
     [GeneratedRegex(@"\b[A-Z][a-z]+ [A-Z][a-z]+\b")]
     private static partial Regex Name();
 
-    private static async Task<(CoreHarness Harness, Runtime.ProjectRuntime Runtime, string Folder, long SourceId)> OpenAsync(bool graphRag = true)
+    private static async Task<(CoreHarness Harness, Runtime.ProjectRuntime Runtime, string Folder, long SourceId)> OpenAsync(
+        bool graphRag = true, Func<IReadOnlyList<ChatMessage>, string?>? respond = null)
     {
         var harness = new CoreHarness(withChat: true);
-        harness.Chat.Respond = Respond;
+        harness.Chat.Respond = respond ?? Respond;
         var settings = CoreHarness.FakeSettings() with { DocumentOverviews = false, GraphRag = graphRag };
         var project = harness.Manager.Create("Graph", settings: settings);
         var folder = harness.NewFolder("graph");
@@ -121,6 +122,36 @@ public sealed partial class GraphRagTests
         await runtime.AskAsync(null, "Who signs off the access reviews?", ct);
         var prompt = harness.Chat.Requests[^1][^1].Text;
         Assert.DoesNotContain("Mira Holm", prompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Resume_Picks_Up_The_Documents_Whose_Extraction_Failed()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (harness, runtime, _, _) = await OpenAsync(respond: request =>
+            IsExtraction(request) && request[^1].Text.Contains("Dana Okafor", StringComparison.Ordinal)
+                ? throw new HttpRequestException("The model is unavailable.")
+                : Respond(request));
+        using var _ = harness;
+
+        Assert.Equal(1, (await runtime.GraphSizeAsync(ct))!.Value.Documents);
+        Assert.True(runtime.JobCounts().GetValueOrDefault("failed") > 0);
+
+        harness.Chat.Respond = Respond;
+        harness.Chat.Requests.Clear();
+        runtime.Resume();
+        await runtime.WaitForIdleAsync(ct);
+
+        // Only the missing document is read again, and the communities take it in.
+        var extraction = Assert.Single(harness.Chat.Requests, IsExtraction);
+        Assert.Contains("Dana Okafor", extraction[^1].Text, StringComparison.Ordinal);
+        Assert.Contains(harness.Chat.Requests, IsReport);
+        Assert.Equal(2, (await runtime.GraphSizeAsync(ct))!.Value.Documents);
+
+        harness.Chat.Requests.Clear();
+        runtime.Resume();
+        await runtime.WaitForIdleAsync(ct);
+        Assert.Empty(harness.Chat.Requests);
     }
 
     [Fact]
