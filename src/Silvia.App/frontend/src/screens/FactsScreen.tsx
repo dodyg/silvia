@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { describeError, facts, formatWhen, type FactDto } from "../api";
-import { Button, Card, Empty, Field, Icon, PageHeader, Section } from "../ui";
+import { MarkdownEditor } from "../MarkdownEditor";
+import { renderLines } from "../markdown";
+import { Button, Card, Empty, Icon, PageHeader, Section } from "../ui";
 
 interface Props {
   projectId: string;
@@ -76,15 +78,19 @@ export function FactsScreen({ projectId, onError }: Props) {
       <Section title="Add a fact">
         <Card className="section-gap">
           <form onSubmit={(event) => { event.preventDefault(); void add(); }}>
-            <Field label="Fact" hint="One short statement. Name things the way your questions will.">
-              <textarea
-                rows={3}
+            {/* Not a Field: its <label> would name the first toolbar button instead of the text. */}
+            <div className="field">
+              <span className="field-label">Fact</span>
+              <MarkdownEditor
+                label="Fact"
                 value={draft}
                 maxLength={2000}
-                onChange={(event) => setDraft(event.target.value)}
+                onChange={setDraft}
+                onSubmit={() => void add()}
                 placeholder="For example: every company in the startup profiles was approved for the programme."
               />
-            </Field>
+              <span className="field-hint">One short statement. Name things the way your questions will. Ctrl+Enter adds it.</span>
+            </div>
             <div className="form-actions">
               <Button type="submit" variant="primary" disabled={draft.trim().length === 0}>
                 <Icon name="plus" /> Add fact
@@ -106,12 +112,13 @@ export function FactsScreen({ projectId, onError }: Props) {
                 <span className="list-icon"><Icon name="fact" /></span>
                 {editing?.id === fact.id ? (
                   <form className="grow" onSubmit={(event) => { event.preventDefault(); void saveEdit(); }}>
-                    <textarea
-                      aria-label="Fact"
-                      rows={3}
+                    <MarkdownEditor
+                      label="Fact"
                       maxLength={2000}
                       value={editing.text}
-                      onChange={(event) => setEditing({ id: fact.id, text: event.target.value })}
+                      onChange={(text) => setEditing({ id: fact.id, text })}
+                      onSubmit={() => void saveEdit()}
+                      onCancel={() => setEditing(null)}
                       autoFocus
                     />
                     <div className="row fact-edit-actions">
@@ -122,7 +129,7 @@ export function FactsScreen({ projectId, onError }: Props) {
                 ) : (
                   <>
                     <div className="grow">
-                      <div className="fact-text">{fact.text}</div>
+                      <div className="fact-text" dangerouslySetInnerHTML={{ __html: renderLines(fact.text) }} />
                       <div className="list-meta">Added {formatWhen(fact.createdUtc)}</div>
                     </div>
                     <div className="list-actions">

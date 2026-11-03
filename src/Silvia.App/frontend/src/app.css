@@ -1144,8 +1144,90 @@ textarea {
   white-space: pre-line;
 }
 
-.fact-text {
-  white-space: pre-line;
+/* Facts are Markdown, rendered like an answer but without the paragraph gaps of a long text. */
+.fact-text > :first-child {
+  margin-top: 0;
+}
+
+.fact-text > :last-child {
+  margin-bottom: 0;
+}
+
+.fact-text p,
+.fact-text ul,
+.fact-text ol {
+  margin: 0.25rem 0;
+}
+
+.fact-text ul {
+  list-style: disc;
+  padding-inline-start: 1.25rem;
+}
+
+/* Each line takes its direction from its own text, so an Arabic line reads right to left. */
+.fact-text p,
+.fact-text li {
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+
+.fact-text code {
+  font-family: var(--font-mono);
+  background: var(--code-bg);
+  border-radius: var(--radius-sm);
+  padding: 0.05rem 0.3rem;
+}
+
+/*
+ * The Markdown editor (OverType). OverType sets --text, --border and --selection on its own
+ * container, so the theme in MarkdownEditor.tsx reaches the app's tokens through these aliases.
+ */
+.markdown-editor {
+  --md-text: var(--text);
+  --md-border: var(--border-strong);
+  --md-selection: var(--selection);
+  --md-code-bg: var(--code-bg);
+  width: 100%;
+  min-width: 0;
+}
+
+.markdown-editor .overtype-container {
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.markdown-editor .overtype-container:focus-within {
+  border-color: var(--focus) !important;
+  box-shadow: 0 0 0 3px var(--accent-soft), 0 0 0 1px var(--focus) inset;
+}
+
+/* OverType gives its link tooltip these as style attributes, which the content security policy blocks. */
+.overtype-link-tooltip > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.overtype-link-tooltip svg {
+  flex-shrink: 0;
+}
+
+.markdown-editor .overtype-toolbar {
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/*
+ * OverType lays every line out left to right. Each paragraph takes its direction from its own text
+ * instead, so Arabic reads right to left; both layers get the same rule, so they stay aligned.
+ */
+.markdown-editor .overtype-wrapper .overtype-input,
+.markdown-editor .overtype-wrapper .overtype-preview,
+.markdown-editor .overtype-wrapper .overtype-preview > *,
+.markdown-editor .overtype-wrapper .overtype-preview li {
+  unicode-bidi: plaintext !important;
+  text-align: start !important;
 }
 
 .fact-edit-actions {

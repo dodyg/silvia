@@ -26,6 +26,36 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
   node.setAttribute("target", "_blank");
 });
 
+/**
+ * Renders Markdown with each line of a paragraph as a paragraph of its own. A line break does not
+ * end a paragraph for the browser's text direction, so this is what lets an Arabic line under an
+ * English one read right to left.
+ */
+export function renderLines(source: string): string {
+  const template = document.createElement("template");
+  template.innerHTML = renderMarkdown(source);
+  for (const paragraph of template.content.querySelectorAll("p")) {
+    const lines: Node[][] = [[]];
+    for (const node of [...paragraph.childNodes]) {
+      if (node.nodeName === "BR") {
+        lines.push([]);
+      } else {
+        lines[lines.length - 1].push(node);
+      }
+    }
+
+    if (lines.length > 1) {
+      paragraph.replaceWith(...lines.map((nodes) => {
+        const line = document.createElement("p");
+        line.append(...nodes);
+        return line;
+      }));
+    }
+  }
+
+  return template.innerHTML;
+}
+
 export function renderMarkdown(source: string): string {
   const html = marked.parse(source, { async: false }) as string;
   return DOMPurify.sanitize(html, {
