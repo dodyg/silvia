@@ -99,7 +99,7 @@ public sealed class LibraryService(AppHost host)
         var runtime = Scope.Runtime(host.Manager, request.ProjectId);
         var counts = runtime.JobCounts();
         var failures = runtime.RecentFailures(20)
-            .Select(f => new FailureDto(f.Path, f.Error, f.FinishedUtc))
+            .Select(f => new FailureDto(f.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), f.Path, f.Error, f.FinishedUtc))
             .ToArray();
         return ValueTask.FromResult(new JobSummaryDto(
             Pending: counts.GetValueOrDefault("pending"),
@@ -107,6 +107,27 @@ public sealed class LibraryService(AppHost host)
             Done: counts.GetValueOrDefault("done"),
             Failed: counts.GetValueOrDefault("failed"),
             RecentFailures: failures));
+    }
+
+    /// <summary>Removes one failed file from the activity log. The file itself and its index are untouched.</summary>
+    [NeoRpcMethod("clearFailure")]
+    public ValueTask<EmptyRequest> ClearFailureAsync(FailureIdRequest request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        if (runtime.ClearFailures(Scope.ParseId(request.Id)) == 0)
+        {
+            throw Scope.NotFound("failed file");
+        }
+
+        return ValueTask.FromResult(new EmptyRequest());
+    }
+
+    /// <summary>Removes every failed file from the activity log.</summary>
+    [NeoRpcMethod("clearFailures")]
+    public ValueTask<EmptyRequest> ClearFailuresAsync(ProjectIdScoped request, CancellationToken cancellationToken)
+    {
+        Scope.Runtime(host.Manager, request.ProjectId).ClearFailures();
+        return ValueTask.FromResult(new EmptyRequest());
     }
 
     /// <summary>Opens a document's file, but only a file this project indexed, under a folder it watches.</summary>

@@ -64,6 +64,11 @@ export const projects = Object.freeze({
   open: (request: { id: string }) => delay(projectsState.find((p) => p.id === request.id)!),
 });
 
+let failures = [
+  { id: "2", path: "C:/Documents/Lumen/scan.pdf", error: "The PDF has no text layer.", finishedUtc: now },
+  { id: "1", path: "C:/Documents/Lumen/budget.xlsx", error: "Knowledge graph extraction of 'budget.xlsx' failed: No such host is known. (api.deepseek.com:443)", finishedUtc: now },
+];
+
 export const library = Object.freeze({
   listSources: () => delay(sample.sources),
   addSource: (request: { path: string }) => delay({ ...sample.sources[0], id: "2", path: request.path }),
@@ -73,7 +78,15 @@ export const library = Object.freeze({
   rescan: () => delay({}),
   resume: () => delay({}),
   listDocuments: () => delay(sample.documents),
-  activity: () => delay({ pending: 1, running: 0, done: 8, failed: 1, recentFailures: [{ path: "C:/Documents/Lumen/scan.pdf", error: "The PDF has no text layer.", finishedUtc: now }] }),
+  activity: () => delay({ pending: 1, running: 0, done: 8, failed: failures.length, recentFailures: failures.slice() }),
+  clearFailure: (request: { id: string }) => {
+    failures = failures.filter((f) => f.id !== request.id);
+    return delay({});
+  },
+  clearFailures: () => {
+    failures = [];
+    return delay({});
+  },
   openDocument: () => delay({ opened: true, message: "Opened." }),
   revealDocument: () => delay({ opened: true, message: "Revealed." }),
 });

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { describeError, formatWhen, library, type JobSummaryDto } from "../api";
-import { Empty, Icon, PageHeader, Section, Spinner, Stat } from "../ui";
+import { Button, Empty, Icon, PageHeader, Section, Spinner, Stat } from "../ui";
 import { Coverage } from "./Coverage";
 
 interface Props {
@@ -12,26 +12,42 @@ const REFRESH_MS = 3000;
 
 export function ActivityScreen({ projectId, onError }: Props) {
   const [summary, setSummary] = useState<JobSummaryDto | null>(null);
+  const [clearing, setClearing] = useState(false);
+  const active = useRef(true);
+
+  async function load() {
+    try {
+      const next = await library.activity({ projectId });
+      if (active.current) {
+        setSummary(next);
+      }
+    } catch (failure) {
+      if (active.current) {
+        onError(describeError(failure));
+      }
+    }
+  }
+
+  /** Removes one failed file from the log, or all of them; the files and the index are untouched. */
+  async function clear(id: string | null) {
+    setClearing(true);
+    try {
+      await (id === null ? library.clearFailures({ projectId }) : library.clearFailure({ projectId, id }));
+    } catch (failure) {
+      onError(describeError(failure));
+    } finally {
+      setClearing(false);
+    }
+
+    await load();
+  }
 
   useEffect(() => {
-    let active = true;
-    const load = async () => {
-      try {
-        const next = await library.activity({ projectId });
-        if (active) {
-          setSummary(next);
-        }
-      } catch (failure) {
-        if (active) {
-          onError(describeError(failure));
-        }
-      }
-    };
-
+    active.current = true;
     void load();
     const timer = window.setInterval(() => void load(), REFRESH_MS);
     return () => {
-      active = false;
+      active.current = false;
       window.clearInterval(timer);
     };
     // The screen is keyed by project, so this effect runs once per project.
@@ -57,22 +73,42 @@ export function ActivityScreen({ projectId, onError }: Props) {
         )}
       </Section>
 
-      <Section title="Failed files">
+      <Section
+        title="Failed files"
+        description={summary && summary.recentFailures.length > 0
+          ? "Clearing removes a file from this log only. A file that still failed to index or reach the knowledge graph is tried again when it changes, on a rescan, or on Resume."
+          : undefined}
+        actions={summary && summary.recentFailures.length > 0 ? (
+          <Button onClick={() => void clear(null)} disabled={clearing}>
+            <Icon name="trash" /> Clear all
+          </Button>
+        ) : null}
+      >
         {summary && summary.recentFailures.length > 0 ? (
-          <ul className="list">
+          <ul className="list" aria-label="Failed files">
             {summary.recentFailures.map((failure) => (
-              <li key={`${failure.path}-${failure.finishedUtc ?? ""}`}>
+              <li key={failure.id}>
                 <span className="list-icon"><Icon name="file" /></span>
                 <div className="grow">
                   <div className="path">{failure.path}</div>
                   <div className="failure-text">{failure.error ?? "The file could not be indexed."}</div>
                 </div>
                 {failure.finishedUtc ? <span className="list-meta">{formatWhen(failure.finishedUtc)}</span> : null}
+                <Button
+                  variant="quiet"
+                  size="sm"
+                  aria-label={`Remove ${failure.path} from the log`}
+                  title="Remove from the log"
+                  disabled={clearing}
+                  onClick={() => void clear(failure.id)}
+                >
+                  <Icon name="close" />
+                </Button>
               </li>
             ))}
           </ul>
         ) : (
-          <Empty title="Nothing has failed">Every file in this project was indexed.</Empty>
+          <Empty title="Nothing has failed">No file is in the failure log.</Empty>
         )}
       </Section>
 

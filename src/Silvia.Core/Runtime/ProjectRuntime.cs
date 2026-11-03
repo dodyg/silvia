@@ -826,20 +826,40 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
         DocumentOverviews.Read(_databasePath, [documentId]).GetValueOrDefault(documentId);
 
     /// <summary>Ingest jobs that failed after their retries, newest first.</summary>
-    public IReadOnlyList<(string Path, string? Error, string? FinishedUtc)> RecentFailures(int limit = 20)
+    public IReadOnlyList<(long Id, string Path, string? Error, string? FinishedUtc)> RecentFailures(int limit = 20)
     {
         using var connection = SqliteStorage.Open(_databasePath);
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT path, error, finished_utc FROM ingest_jobs WHERE status = 'failed' ORDER BY id DESC LIMIT $limit";
+        command.CommandText = "SELECT id, path, error, finished_utc FROM ingest_jobs WHERE status = 'failed' ORDER BY id DESC LIMIT $limit";
         command.Parameters.AddWithValue("$limit", limit);
         using var reader = command.ExecuteReader();
-        var rows = new List<(string, string?, string?)>();
+        var rows = new List<(long, string, string?, string?)>();
         while (reader.Read())
         {
-            rows.Add((reader.GetString(0), reader.IsDBNull(1) ? null : reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2)));
+            rows.Add((reader.GetInt64(0), reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2), reader.IsDBNull(3) ? null : reader.GetString(3)));
         }
 
         return rows;
+    }
+
+    /// <summary>
+    /// Removes failed jobs from the log: the one with <paramref name="jobId"/>, or every one when it is
+    /// null. Returns how many were removed. Only the record goes; a file still out of date is picked up
+    /// again by the next change, rescan or resume, which never read the failed jobs.
+    /// </summary>
+    public int ClearFailures(long? jobId = null)
+    {
+        using var connection = SqliteStorage.Open(_databasePath);
+        using var command = connection.CreateCommand();
+        command.CommandText = jobId is null
+            ? "DELETE FROM ingest_jobs WHERE status = 'failed'"
+            : "DELETE FROM ingest_jobs WHERE status = 'failed' AND id = $id";
+        if (jobId is { } id)
+        {
+            command.Parameters.AddWithValue("$id", id);
+        }
+
+        return command.ExecuteNonQuery();
     }
 
     /// <summary>A conversation of this project, or null. Ids from other projects are never found here.</summary>

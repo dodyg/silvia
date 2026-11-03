@@ -155,6 +155,32 @@ public sealed partial class GraphRagTests
     }
 
     [Fact]
+    public async Task Clearing_Failures_Empties_The_Log_And_Resume_Still_Retries()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (harness, runtime, _, _) = await OpenAsync(respond: request =>
+            IsExtraction(request) && request[^1].Text.Contains("Dana Okafor", StringComparison.Ordinal)
+                ? throw new HttpRequestException("The model is unavailable.")
+                : Respond(request));
+        using var _ = harness;
+
+        var failures = runtime.RecentFailures();
+        Assert.NotEmpty(failures);
+        Assert.Equal(0, runtime.ClearFailures(-1));
+        Assert.Equal(1, runtime.ClearFailures(failures[0].Id));
+        Assert.DoesNotContain(runtime.RecentFailures(), f => f.Id == failures[0].Id);
+        Assert.Equal(failures.Count - 1, runtime.ClearFailures());
+        Assert.Empty(runtime.RecentFailures());
+        Assert.Equal(0, runtime.JobCounts().GetValueOrDefault("failed"));
+
+        // The log is gone, but the document is still missing from the graph, so resume reads it again.
+        harness.Chat.Respond = Respond;
+        runtime.Resume();
+        await runtime.WaitForIdleAsync(ct);
+        Assert.Equal(2, (await runtime.GraphSizeAsync(ct))!.Value.Documents);
+    }
+
+    [Fact]
     public async Task The_Graph_View_Draws_Every_Entity_With_Its_Relationships_And_Documents()
     {
         var ct = TestContext.Current.CancellationToken;

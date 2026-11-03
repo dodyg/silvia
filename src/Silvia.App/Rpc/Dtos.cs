@@ -45,7 +45,9 @@ public sealed record DocumentDto(string DocumentId, string FileName, string Fold
 
 public sealed record JobSummaryDto(int Pending, int Running, int Done, int Failed, IReadOnlyList<FailureDto> RecentFailures);
 
-public sealed record FailureDto(string Path, string? Error, string? FinishedUtc);
+public sealed record FailureDto(string Id, string Path, string? Error, string? FinishedUtc);
+
+public sealed record FailureIdRequest(string ProjectId, string Id);
 
 public sealed record ConversationDto(string Id, string Title, string CreatedUtc);
 
@@ -303,6 +305,7 @@ public sealed record RunComparisonDto(EvalRunDto Before, EvalRunDto After, IRead
 [JsonSerializable(typeof(DocumentDto[]))]
 [JsonSerializable(typeof(JobSummaryDto))]
 [JsonSerializable(typeof(FailureDto))]
+[JsonSerializable(typeof(FailureIdRequest))]
 [JsonSerializable(typeof(ConversationDto))]
 [JsonSerializable(typeof(ConversationDto[]))]
 [JsonSerializable(typeof(ConversationIdRequest))]
