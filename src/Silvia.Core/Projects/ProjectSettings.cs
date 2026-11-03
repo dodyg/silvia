@@ -65,6 +65,15 @@ public sealed record ProjectSettings
     public int RerankCandidates { get; init; } = 30;
 
     /// <summary>
+    /// The most an answer is given, in tokens (about four characters each): passages, bridge passages, overviews,
+    /// the knowledge graph, a recalled exchange and the facts. Over it, the parts that matter least are left out
+    /// first (see <see cref="Runtime.ContextBudget"/>). The default leaves the usual context whole: six passages,
+    /// four bridge passages and three overviews come to about 6,000 tokens, and the graph adds up to 3,000. Zero
+    /// means no limit.
+    /// </summary>
+    public int ContextTokens { get; init; } = 12_000;
+
+    /// <summary>
     /// The reranker's relevance (0 to 1) below which the best passage counts as a weak match; the answer is
     /// then told to say the documents do not contain it unless a passage states it. Only with a reranker.
     /// In the retrieval evaluation, 0.01 marks 4 of 7 unanswerable questions and 9 of 83 answerable ones,

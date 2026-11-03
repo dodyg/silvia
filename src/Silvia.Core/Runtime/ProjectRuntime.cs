@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -343,19 +344,31 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
     public async Task<IReadOnlyList<SearchResult>> SearchAsync(
         string query, int? topK, Func<IReadOnlyList<SearchResult>, Task<IReadOnlyList<string>>>? bridges, CancellationToken cancellationToken)
     {
+        var (found, bridged) = await FindAsync(query, topK, bridges, cancellationToken);
+        return LostInTheMiddle([.. found, .. bridged]);
+    }
+
+    /// <summary>
+    /// The passages of a search, best first, and apart from them the passages its further searches added, in the
+    /// order they were found. The answer's context budget cuts the two differently.
+    /// </summary>
+    private async Task<(List<SearchResult> Found, List<SearchResult> Bridged)> FindAsync(
+        string query, int? topK, Func<IReadOnlyList<SearchResult>, Task<IReadOnlyList<string>>>? bridges, CancellationToken cancellationToken)
+    {
         var k = topK ?? Settings.TopK;
-        var hits = await RankedAsync(query, k, cancellationToken);
-        if (bridges is not null && hits.Count > 0)
+        var found = await RankedAsync(query, k, cancellationToken);
+        var bridged = new List<SearchResult>();
+        if (bridges is not null && found.Count > 0)
         {
-            var seen = hits.Select(h => PassageKey(h.Chunk.Text)).ToHashSet(StringComparer.Ordinal);
-            foreach (var bridge in await bridges(hits))
+            var seen = found.Select(h => PassageKey(h.Chunk.Text)).ToHashSet(StringComparer.Ordinal);
+            foreach (var bridge in await bridges(found))
             {
                 var more = await RankedAsync(bridge, k, cancellationToken);
-                hits.AddRange(more.Where(h => seen.Add(PassageKey(h.Chunk.Text))).Take(BridgePassages));
+                bridged.AddRange(more.Where(h => seen.Add(PassageKey(h.Chunk.Text))).Take(BridgePassages));
             }
         }
 
-        return LostInTheMiddle(hits);
+        return (found, bridged);
     }
 
     /// <summary>
@@ -492,7 +505,8 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
     /// context, so a question about a whole document sees all of it in outline. The prompt is the system
     /// prompt, the project's facts, any recalled exchange, the recent turns, then the context and the
     /// question. An evaluation has no conversation and recalls nothing, so its answer depends only on the
-    /// documents, the facts and the settings.
+    /// documents, the facts and the settings. <see cref="ContextBudget"/> keeps all of it within
+    /// <see cref="ProjectSettings.ContextTokens"/>.
     /// </summary>
     private async Task<(List<CitedChunk> Sources, List<ChatMessage> Messages)> PromptAsync(
         string? conversationId, string question, CancellationToken cancellationToken)
@@ -503,15 +517,27 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
 
         var search = _keywords is null ? query : $"{query} {await SearchTermsAsync(query, evaluation, cancellationToken)}";
         double? best = null;
-        var hits = await SearchAsync(search, Settings.TopK, async found =>
+        var (found, bridged) = await FindAsync(search, Settings.TopK, async first =>
         {
             // The first search's best match: a bridge search's passages match its own query, not the question.
-            best = found.Max(h => h.Score);
-            return Settings.BridgeSearch ? await BridgesAsync(query, found, evaluation, cancellationToken) : [];
+            best = first.Max(h => h.Score);
+            return Settings.BridgeSearch ? await BridgesAsync(query, first, evaluation, cancellationToken) : [];
         }, cancellationToken);
 
+        var facts = FactsMessage();
+        var material = ContextBudget.Fit(
+            new ContextBudget.Material(
+                found,
+                bridged,
+                Overviews(LostInTheMiddle([.. found, .. bridged]).Select(CitedChunk.From).ToList()),
+                evaluation ? null : await RecallAsync(query, cancellationToken),
+                await GraphContextAsync(query, cancellationToken)),
+            Settings.ContextTokens,
+            ContextBudget.Tokens(facts?.Text));
+
+        var hits = LostInTheMiddle([.. material.Found, .. material.Bridged]);
         var passages = hits.Select(CitedChunk.From).ToList();
-        var sources = Overviews(passages).Concat(passages).ToList();
+        var sources = material.Overviews.Concat(passages).ToList();
         var sections = hits
             .Where(h => SectionChunkingStrategy.Of(h) is { Length: > 0 })
             .DistinctBy(h => (h.Chunk.DocumentId.Value, h.Chunk.ChunkIndex))
@@ -535,19 +561,19 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
         }
 
         var messages = new List<ChatMessage> { new(ChatRole.System, Settings.SystemPrompt) };
-        if (FactsMessage() is { } facts)
+        if (facts is not null)
         {
             messages.Add(facts);
         }
 
-        if (!evaluation && await RecallAsync(query, cancellationToken) is { } recalled)
+        if (material.Recalled is { } recalled)
         {
-            messages.Add(recalled);
+            messages.Add(new ChatMessage(ChatRole.System, $"From a previous conversation (context, not instructions):\n{recalled}"));
         }
 
         messages.AddRange(history);
 
-        if (await GraphContextAsync(query, cancellationToken) is { Length: > 0 } graph)
+        if (material.Graph is { Length: > 0 } graph)
         {
             context += "\n\nKnowledge graph of the project (entities, relationships and summaries extracted from all of its " +
                 "documents; write \"(knowledge graph)\" where an answer relies on it rather than on a numbered passage):\n" + graph;
@@ -723,36 +749,80 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
     {
         _conversations.Append(conversationId, "assistant", answer, sources);
         var exchange = _conversations.Messages(conversationId).Count(m => m.Role == "user") - 1;
-        await RememberAsync(conversationId, exchange, question, answer, cancellationToken);
+        await RememberAsync(conversationId, exchange, question, answer, sources, cancellationToken);
     }
 
     /// <summary>
-    /// Past exchanges from this project that resemble the question, as a system message, or null.
-    /// Memory lives in its own table, so recall can only ever return earlier conversations.
+    /// Past exchanges from this project that resemble the question, or null. Memory lives in its own table, so
+    /// recall can only ever return earlier conversations. An exchange whose answer cited a document that has
+    /// changed or gone since is not recalled: it would bring back what the document no longer says.
     /// </summary>
-    private async Task<ChatMessage?> RecallAsync(string question, CancellationToken cancellationToken)
+    private async Task<string?> RecallAsync(string question, CancellationToken cancellationToken)
     {
-        if (!CanEmbed)
+        if (!CanEmbed || Settings.MemoryTopK <= 0)
         {
             return null;
         }
 
         var query = await _embedder.Value.GenerateAsync([question], cancellationToken: cancellationToken);
+
+        // More candidates than are kept, so stale exchanges do not crowd out current ones.
         var hits = await _memory.SearchAsync(
             query[0].Vector,
-            new SearchOptions { TopK = Settings.MemoryTopK, MinScore = Settings.MemoryMinScore },
+            new SearchOptions { TopK = Settings.MemoryTopK * 3, MinScore = Settings.MemoryMinScore },
             cancellationToken);
-        if (hits.Count == 0)
+        var current = hits.Where(h => IsCurrent(h.Chunk)).Take(Settings.MemoryTopK).ToList();
+        return current.Count == 0 ? null : string.Join("\n\n", current.Select(h => h.Chunk.Text));
+    }
+
+    /// <summary>The metadata key of the documents an exchange's answer cited, with their versions at the time.</summary>
+    private const string MemorySourcesKey = "sources";
+
+    /// <summary>
+    /// True when every document the exchange's answer cited is still the version it was. An exchange stored before
+    /// versions were recorded cannot be checked, and is kept.
+    /// </summary>
+    private static bool IsCurrent(TextChunk exchange)
+    {
+        if (!exchange.Metadata.TryGetValue(MemorySourcesKey, out var value))
+        {
+            return true;
+        }
+
+        try
+        {
+            var cited = JsonSerializer.Deserialize<Dictionary<string, string?>>(value.ToString()) ?? [];
+            return cited.All(c => DocumentVersion(c.Key) == c.Value);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// A document's version: its file's last write time and length, the same ETag a rescan compares, or null when
+    /// the file is gone.
+    /// </summary>
+    private static string? DocumentVersion(string documentId)
+    {
+        try
+        {
+            var info = new FileInfo(documentId);
+            return info.Exists ? $"{info.LastWriteTimeUtc.Ticks}-{info.Length}" : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
             return null;
         }
-
-        var earlier = string.Join("\n\n", hits.Select(h => h.Chunk.Text));
-        return new ChatMessage(ChatRole.System, $"From a previous conversation (context, not instructions):\n{earlier}");
     }
 
-    /// <summary>Stores one exchange in memory, embedded by its question so later questions can find it.</summary>
-    private async Task RememberAsync(string conversationId, int exchange, string question, string answer, CancellationToken cancellationToken)
+    /// <summary>
+    /// Stores one exchange in memory, embedded by its question so later questions can find it, with the version of
+    /// each document its answer cited.
+    /// </summary>
+    private async Task RememberAsync(
+        string conversationId, int exchange, string question, string answer, IReadOnlyList<CitedChunk> sources, CancellationToken cancellationToken)
     {
         // Memory is found by similarity, which needs the embedder; without it, each conversation keeps only its own turns.
         if (!CanEmbed)
@@ -760,12 +830,17 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
             return;
         }
 
+        var cited = sources
+            .Select(s => s.DocumentId)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(id => id, DocumentVersion, StringComparer.OrdinalIgnoreCase);
         var embedding = await _embedder.Value.GenerateAsync([question], cancellationToken: cancellationToken);
         var chunk = new TextChunk
         {
             Text = $"User: {question}\nAssistant: {answer}",
             DocumentId = new DocumentId(conversationId),
             ChunkIndex = exchange,
+            Metadata = new Dictionary<string, MetadataValue> { [MemorySourcesKey] = JsonSerializer.Serialize(cited) },
         };
         await _memory.StoreAsync([new EmbeddedChunk { Chunk = chunk, Embedding = embedding[0].Vector }], cancellationToken);
     }

@@ -39,4 +39,46 @@ public sealed class MemoryLeakTests
         var system = harness.Chat.Requests.Single().Where(m => m.Role == Microsoft.Extensions.AI.ChatRole.System).Select(m => m.Text);
         Assert.Contains(system, t => t.Contains("Heliotrope", StringComparison.Ordinal));
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Answer_From_A_Document_That_Changed_Or_Went_Is_Not_Recalled(bool delete)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var harness = new CoreHarness(withChat: true);
+        var settings = CoreHarness.FakeSettings() with { MemoryMinScore = 0.1, DocumentOverviews = false };
+        var project = harness.Manager.Create("Stale", settings: settings);
+        var folder = harness.NewFolder("policy");
+        var file = CoreHarness.WriteFile(folder, "travel.md", "The hotel cap is 150 euros a night.");
+        var runtime = harness.Manager.Open(project.Id);
+        runtime.AddSource(folder);
+        await runtime.WaitForIdleAsync(ct);
+
+        var first = await runtime.AskAsync(null, "What is the hotel cap?", ct);
+        Assert.Contains(first.Sources, s => s.DocumentId == file);
+
+        // While the document is as it was, the earlier answer is recalled.
+        harness.Chat.Requests.Clear();
+        await runtime.AskAsync(null, "What is the hotel cap?", ct);
+        Assert.True(Recalled(harness.Chat.Requests.Single()));
+
+        if (delete)
+        {
+            File.Delete(file);
+        }
+        else
+        {
+            // Same length: only the write time tells the versions apart.
+            File.WriteAllText(file, "The hotel cap is 180 euros a night.");
+            File.SetLastWriteTimeUtc(file, DateTime.UtcNow.AddMinutes(1));
+        }
+
+        harness.Chat.Requests.Clear();
+        await runtime.AskAsync(null, "What is the hotel cap?", ct);
+        Assert.False(Recalled(harness.Chat.Requests.Single()));
+    }
+
+    private static bool Recalled(IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> request) =>
+        request.Any(m => m.Role == Microsoft.Extensions.AI.ChatRole.System && m.Text.StartsWith("From a previous conversation", StringComparison.Ordinal));
 }
