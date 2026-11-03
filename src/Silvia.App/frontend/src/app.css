@@ -1989,8 +1989,30 @@ textarea {
 
 /* The knowledge graph reuses the map's card, legend, frame and dots. */
 
+.graph-stage {
+  position: relative;
+}
+
 .graph-plot {
-  cursor: pointer;
+  cursor: grab;
+}
+
+.graph-plot.is-panning {
+  cursor: grabbing;
+}
+
+.graph-zoom {
+  position: absolute;
+  top: 0.5rem;
+  inset-inline-end: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.graph-zoom .btn {
+  min-width: 2rem;
+  justify-content: center;
 }
 
 .graph-edge {

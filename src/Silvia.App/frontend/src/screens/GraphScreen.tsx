@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent } from "react";
 import { describeError, inspect, library, type GraphDto, type GraphNodeDto } from "../api";
 import { Button, Empty, Icon, PageHeader, Section, Spinner } from "../ui";
 
@@ -25,6 +25,22 @@ const HOVER_RADIUS = 20;
 /** Relationships listed for the entity in focus before "and N more". */
 const SHOWN_RELATIONSHIPS = 12;
 
+/** How far in the drawing zooms, and how much one zoom button step moves. */
+const MAX_ZOOM = 12;
+const ZOOM_STEP = 1.6;
+
+/** A pointer that moves more than this many screen pixels while pressed pans instead of clicking. */
+const DRAG_PIXELS = 4;
+
+/** The part of the drawing in view, in plot units; its height follows the plot's shape. */
+interface View {
+  x: number;
+  y: number;
+  w: number;
+}
+
+const FULL: View = { x: 0, y: 0, w: WIDTH };
+
 /**
  * The knowledge graph: the entities the chat model extracted from the documents, joined by the
  * relationships between them, and grouped into communities. Unlike the map, position here comes from
@@ -37,12 +53,16 @@ export function GraphScreen({ projectId, onError }: Props) {
   const [pinned, setPinned] = useState<number | null>(null);
   const [query, setQuery] = useState("");
   const [missed, setMissed] = useState<string | null>(null);
+  const [view, setView] = useState<View>(FULL);
+  const [panning, setPanning] = useState(false);
+  const drag = useRef<{ clientX: number; clientY: number; view: View; moved: boolean } | null>(null);
   const svg = useRef<SVGSVGElement>(null);
 
   async function load() {
     setGraph(null);
     setHover(null);
     setPinned(null);
+    setView(FULL);
     try {
       const next = await inspect.graph({ projectId });
       setGraph(next);
@@ -57,6 +77,26 @@ export function GraphScreen({ projectId, onError }: Props) {
     // The screen is keyed by project, so this effect runs once per project.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // The wheel zooms around the pointer. React's wheel handler is passive and cannot keep the page from
+  // scrolling, so the listener is added by hand.
+  useEffect(() => {
+    const element = svg.current;
+    if (!element) {
+      return;
+    }
+
+    function onWheel(event: WheelEvent) {
+      event.preventDefault();
+      const at = toPlot(element, event.clientX, event.clientY);
+      if (at) {
+        setView((current) => zoomAt(current, Math.exp(-event.deltaY * 0.0015), at.x, at.y));
+      }
+    }
+
+    element.addEventListener("wheel", onWheel, { passive: false });
+    return () => element.removeEventListener("wheel", onWheel);
+  }, [graph]);
 
   // Each community with entities on the drawing, by how many of them it holds, named after its top entity.
   const communities = useMemo(() => {
@@ -125,7 +165,13 @@ export function GraphScreen({ projectId, onError }: Props) {
   const slotOf = (node: GraphNodeDto) => (node.communities[0] === undefined ? -1 : colored.indexOf(node.communities[0]));
   const x = (node: GraphNodeDto) => PAD + (node.x / GRID) * (WIDTH - 2 * PAD);
   const y = (node: GraphNodeDto) => HEIGHT - PAD - (node.y / GRID) * (HEIGHT - 2 * PAD);
-  const radius = (node: GraphNodeDto) => 3.5 + 7 * Math.sqrt(node.rank / 1000);
+  // Plot units per unit at full size: dots, labels and the hover reach keep their size on screen as the
+  // drawing zooms, so zooming in pulls a crowd apart instead of making it bigger.
+  const scale = view.w / WIDTH;
+  const zoom = 1 / scale;
+  const radius = (node: GraphNodeDto) => (3.5 + 7 * Math.sqrt(node.rank / 1000)) * scale;
+  const inView = (node: GraphNodeDto) =>
+    x(node) >= view.x && x(node) <= view.x + view.w && y(node) >= view.y && y(node) <= view.y + view.w * HEIGHT / WIDTH;
 
   const focus = hover ?? pinned;
   const near = focus === null ? null : neighbors[focus];
@@ -137,22 +183,29 @@ export function GraphScreen({ projectId, onError }: Props) {
     return (lit(index) && focus !== null ? 2 : 0) + (slotOf(nodes[index]) >= 0 ? 1 : 0);
   }
 
-  const labeled = new Set<number>(nodes.slice(0, LABELS).map((_, i) => i));
+  // The highest ranked entities in view are named, more of them the further in the drawing is zoomed.
+  const labeled = new Set<number>();
+  const labels = Math.min(60, Math.round(LABELS * Math.sqrt(zoom)));
+  for (let i = 0; i < nodes.length && labeled.size < labels; i++) {
+    if (inView(nodes[i])) {
+      labeled.add(i);
+    }
+  }
+
   if (focus !== null) {
     labeled.clear();
     labeled.add(focus);
     near?.forEach((i) => labeled.add(i));
   }
 
-  function nearest(event: MouseEvent<SVGSVGElement>): number | null {
-    const matrix = svg.current?.getScreenCTM()?.inverse();
-    if (!matrix) {
+  function nearest(event: PointerEvent<SVGSVGElement>): number | null {
+    const at = toPlot(svg.current, event.clientX, event.clientY);
+    if (!at) {
       return null;
     }
 
-    const at = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix);
     let best: number | null = null;
-    let bestDistance = HOVER_RADIUS * HOVER_RADIUS;
+    let bestDistance = (HOVER_RADIUS * scale) ** 2;
     nodes.forEach((node, i) => {
       const dx = x(node) - at.x;
       const dy = y(node) - at.y;
@@ -164,6 +217,63 @@ export function GraphScreen({ projectId, onError }: Props) {
     });
 
     return best;
+  }
+
+  function down(event: PointerEvent<SVGSVGElement>) {
+    if (event.button !== 0) {
+      return;
+    }
+
+    drag.current = { clientX: event.clientX, clientY: event.clientY, view, moved: false };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function move(event: PointerEvent<SVGSVGElement>) {
+    const start = drag.current;
+    const width = svg.current?.getBoundingClientRect().width;
+    if (!start || !width) {
+      setHover(nearest(event));
+      return;
+    }
+
+    const dx = event.clientX - start.clientX;
+    const dy = event.clientY - start.clientY;
+    if (!start.moved && Math.hypot(dx, dy) < DRAG_PIXELS) {
+      return;
+    }
+
+    start.moved = true;
+    setPanning(true);
+    setHover(null);
+    const units = start.view.w / width;
+    setView(clampView({ x: start.view.x - dx * units, y: start.view.y - dy * units, w: start.view.w }));
+  }
+
+  function up(event: PointerEvent<SVGSVGElement>) {
+    const start = drag.current;
+    drag.current = null;
+    setPanning(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    // A press that did not move is a click: it keeps the entity under it, or lets go of the one kept.
+    if (start && !start.moved) {
+      setPinned(nearest(event));
+    }
+  }
+
+  /** Zooms by a step around the middle of what is in view. */
+  function step(factor: number) {
+    setView((current) => zoomAt(current, factor, current.x + current.w / 2, current.y + (current.w * HEIGHT / WIDTH) / 2));
+  }
+
+  /** Moves the view so an entity out of it sits in the middle, at the same zoom. */
+  function reveal(index: number) {
+    const node = nodes[index];
+    if (!inView(node)) {
+      setView((current) => clampView({ x: x(node) - current.w / 2, y: y(node) - (current.w * HEIGHT / WIDTH) / 2, w: current.w }));
+    }
   }
 
   function find(event: FormEvent) {
@@ -179,6 +289,7 @@ export function GraphScreen({ projectId, onError }: Props) {
     if (index >= 0) {
       setHover(null);
       setPinned(index);
+      reveal(index);
     }
   }
 
@@ -253,17 +364,20 @@ export function GraphScreen({ projectId, onError }: Props) {
             </span>
           ) : null}
         </div>
-        <svg
-          ref={svg}
-          className={focus === null ? "map-plot graph-plot" : "map-plot graph-plot has-focus"}
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          role="img"
-          aria-label={`Knowledge graph of ${shown}. The communities list below has the same groups as text, and Find picks an entity by name.`}
-          onPointerMove={(event) => setHover(nearest(event))}
-          onPointerLeave={() => setHover(null)}
-          onClick={(event) => setPinned(nearest(event))}
-        >
-          <rect className="map-frame" x={0.5} y={0.5} width={WIDTH - 1} height={HEIGHT - 1} rx={8} />
+        <div className="graph-stage">
+          <svg
+            ref={svg}
+            className={["map-plot graph-plot", focus === null ? null : "has-focus", panning ? "is-panning" : null].filter(Boolean).join(" ")}
+            viewBox={`${view.x} ${view.y} ${view.w} ${view.w * HEIGHT / WIDTH}`}
+            role="img"
+            aria-label={`Knowledge graph of ${shown}. The communities list below has the same groups as text, and Find picks an entity by name.`}
+            onPointerDown={down}
+            onPointerMove={move}
+            onPointerUp={up}
+            onPointerCancel={() => { drag.current = null; setPanning(false); }}
+            onPointerLeave={() => { if (!drag.current) setHover(null); }}
+          >
+          <rect className="map-frame" x={0.5} y={0.5} width={WIDTH - 1} height={HEIGHT - 1} rx={8} vectorEffect="non-scaling-stroke" />
           <g>
             {graph.edges.map((edge, i) => {
               const from = nodes[edge.source];
@@ -277,6 +391,7 @@ export function GraphScreen({ projectId, onError }: Props) {
                   y1={y(from)}
                   x2={x(to)}
                   y2={y(to)}
+                  vectorEffect="non-scaling-stroke"
                 />
               );
             })}
@@ -291,29 +406,35 @@ export function GraphScreen({ projectId, onError }: Props) {
                 cx={x(node)}
                 cy={y(node)}
                 r={radius(node)}
+                vectorEffect="non-scaling-stroke"
               />
             );
           })}
           {[...labeled].map((i) => {
             const node = nodes[i];
             // Labels on the right half sit to the left of their dot, so none runs off the edge.
-            const left = x(node) > WIDTH * 0.6;
+            const left = x(node) > view.x + view.w * 0.6;
             return (
               <text
                 key={node.name}
                 className={i === focus ? "graph-label is-focus" : "graph-label"}
-                x={x(node) + (left ? -1 : 1) * (radius(node) + 4)}
-                y={y(node) + 4}
+                transform={`translate(${x(node) + (left ? -1 : 1) * (radius(node) + 4 * scale)} ${y(node) + 4 * scale}) scale(${scale})`}
                 textAnchor={left ? "end" : "start"}
               >
                 {node.name.length > 32 ? `${node.name.slice(0, 31)}…` : node.name}
               </text>
             );
           })}
-          {focus !== null ? <circle className="map-focus" cx={x(nodes[focus])} cy={y(nodes[focus])} r={radius(nodes[focus]) + 5} /> : null}
-        </svg>
+          {focus !== null ? <circle className="map-focus" cx={x(nodes[focus])} cy={y(nodes[focus])} r={radius(nodes[focus]) + 5 * scale} vectorEffect="non-scaling-stroke" /> : null}
+          </svg>
+          <div className="graph-zoom" role="group" aria-label="Zoom">
+            <Button size="sm" aria-label="Zoom in" title="Zoom in" disabled={zoom >= MAX_ZOOM - 0.01} onClick={() => step(ZOOM_STEP)}><Icon name="plus" /></Button>
+            <Button size="sm" aria-label="Zoom out" title="Zoom out" disabled={zoom <= 1.01} onClick={() => step(1 / ZOOM_STEP)}><Icon name="minus" /></Button>
+            <Button size="sm" aria-label="Show the whole graph" title="Show the whole graph" disabled={zoom <= 1.01} onClick={() => setView(FULL)}><Icon name="fit" /></Button>
+          </div>
+        </div>
         <p className="map-note">
-          {shown}. Bigger dots rank higher: more of the graph leads to them. Position comes from the relationships alone, so distance means “linked”, not “worded alike”.
+          {shown}. Scroll or use the buttons to zoom, and drag to move around. Bigger dots rank higher: more of the graph leads to them. Position comes from the relationships alone, so distance means “linked”, not “worded alike”.
         </p>
         {focus !== null ? (
           <Detail
@@ -321,7 +442,7 @@ export function GraphScreen({ projectId, onError }: Props) {
             graph={graph}
             index={focus}
             canOpen={pinned === focus && hover === null}
-            onFocus={(i) => { setHover(null); setPinned(i); }}
+            onFocus={(i) => { setHover(null); setPinned(i); reveal(i); }}
             onOpen={open}
           />
         ) : (
@@ -440,4 +561,24 @@ function largest(nodes: readonly GraphNodeDto[]): number[] {
   }
 
   return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0]).slice(0, SLOTS).map(([id]) => id);
+}
+
+/** A screen point in the drawing's plot units, under the view the SVG is showing now. */
+function toPlot(element: SVGSVGElement | null, clientX: number, clientY: number): DOMPoint | null {
+  const matrix = element?.getScreenCTM()?.inverse();
+  return matrix ? new DOMPoint(clientX, clientY).matrixTransform(matrix) : null;
+}
+
+/** Keeps the view inside the drawing, and its zoom between the whole graph and the closest allowed. */
+function clampView(view: View): View {
+  const w = Math.min(WIDTH, Math.max(WIDTH / MAX_ZOOM, view.w));
+  const h = w * HEIGHT / WIDTH;
+  return { w, x: Math.min(WIDTH - w, Math.max(0, view.x)), y: Math.min(HEIGHT - h, Math.max(0, view.y)) };
+}
+
+/** Zooms by a factor (above one is in), keeping the plot point (cx, cy) where it is on screen. */
+function zoomAt(view: View, factor: number, cx: number, cy: number): View {
+  const w = Math.min(WIDTH, Math.max(WIDTH / MAX_ZOOM, view.w / factor));
+  const ratio = w / view.w;
+  return clampView({ w, x: cx - (cx - view.x) * ratio, y: cy - (cy - view.y) * ratio });
 }
