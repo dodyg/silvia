@@ -382,27 +382,32 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
             .ToList();
 
     /// <summary>
-    /// The passages and the prompt for an answer. Retrieval is by vectors, or by keyword when the project
-    /// has no embedder; then the chat model first turns the question into search terms, so keyword
-    /// retrieval still finds passages that use other words. The overviews of the cited documents come
-    /// first in the numbered context, so a question about a whole document sees all of it in outline.
-    /// The prompt is the system prompt, the project's facts, any recalled exchange, the recent turns,
-    /// then the context and the question. An evaluation has no conversation and recalls nothing, so its
-    /// answer depends only on the documents, the facts and the settings.
+    /// The passages and the prompt for an answer. A follow-up is first rewritten to stand on its own, and
+    /// every lookup (passages, recalled exchanges, the knowledge graph) uses that rewrite; the answer still
+    /// sees the question as asked. Retrieval is by vectors, or by keyword when the project has no embedder;
+    /// then the chat model first turns the question into search terms, so keyword retrieval still finds
+    /// passages that use other words. The overviews of the cited documents come first in the numbered
+    /// context, so a question about a whole document sees all of it in outline. The prompt is the system
+    /// prompt, the project's facts, any recalled exchange, the recent turns, then the context and the
+    /// question. An evaluation has no conversation and recalls nothing, so its answer depends only on the
+    /// documents, the facts and the settings.
     /// </summary>
     private async Task<(List<CitedChunk> Sources, List<ChatMessage> Messages)> PromptAsync(
         string? conversationId, string question, CancellationToken cancellationToken)
     {
         var evaluation = conversationId is null;
+        List<ChatMessage> history = evaluation ? [] : History(conversationId!);
+        var query = await StandaloneAsync(history, question, cancellationToken);
+
         IReadOnlyList<SearchResult> hits;
         if (_keywords is not null)
         {
-            var terms = await SearchTermsAsync(question, evaluation, cancellationToken);
-            hits = await _keywords.SearchAsync($"{question} {terms}", Settings.TopK, cancellationToken);
+            var terms = await SearchTermsAsync(query, evaluation, cancellationToken);
+            hits = await _keywords.SearchAsync($"{query} {terms}", Settings.TopK, cancellationToken);
         }
         else
         {
-            hits = await SearchAsync(question, cancellationToken: cancellationToken);
+            hits = await SearchAsync(query, cancellationToken: cancellationToken);
         }
 
         var passages = hits.Select(CitedChunk.From).ToList();
@@ -418,17 +423,14 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
             messages.Add(facts);
         }
 
-        if (!evaluation && await RecallAsync(question, cancellationToken) is { } recalled)
+        if (!evaluation && await RecallAsync(query, cancellationToken) is { } recalled)
         {
             messages.Add(recalled);
         }
 
-        if (!evaluation)
-        {
-            messages.AddRange(History(conversationId!));
-        }
+        messages.AddRange(history);
 
-        if (await GraphContextAsync(question, cancellationToken) is { Length: > 0 } graph)
+        if (await GraphContextAsync(query, cancellationToken) is { Length: > 0 } graph)
         {
             context += "\n\nKnowledge graph of the project (entities, relationships and summaries extracted from all of its " +
                 "documents; write \"(knowledge graph)\" where an answer relies on it rather than on a numbered passage):\n" + graph;
@@ -496,6 +498,28 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
         return new ChatMessage(ChatRole.System,
             "Facts the user has confirmed for this project. Treat them as true, prefer them over the numbered context " +
             $"when the two disagree, and write \"(project fact)\" where an answer relies on one:\n{lines}");
+    }
+
+    /// <summary>
+    /// The question rewritten to stand on its own, from the turns before it. The first question of a
+    /// conversation is searched as asked, and so is any question the model cannot rewrite.
+    /// </summary>
+    private async Task<string> StandaloneAsync(IReadOnlyList<ChatMessage> history, string question, CancellationToken cancellationToken)
+    {
+        if (history.Count == 0)
+        {
+            return question;
+        }
+
+        try
+        {
+            var reply = await _chat!.GetResponseAsync(StandaloneQuestion.Prompt(history, question), cancellationToken: cancellationToken);
+            return StandaloneQuestion.Parse(reply.Text, question);
+        }
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            return question;
+        }
     }
 
     /// <summary>
