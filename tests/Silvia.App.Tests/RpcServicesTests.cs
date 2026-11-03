@@ -119,6 +119,45 @@ public sealed class RpcServicesTests
         }
     }
 
+    [Fact]
+    public async Task Open_Url_Refuses_An_Address_That_Is_Not_One_Of_The_Projects_Pages()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var data = Path.Combine(Path.GetTempPath(), "silvia-app-tests", Guid.NewGuid().ToString("N"));
+        Environment.SetEnvironmentVariable("SILVIA_DATA", data);
+        // No models are needed: the project opens in keyword mode.
+        Environment.SetEnvironmentVariable("SILVIA_MODELS", Path.Combine(data, "no-models"));
+        using var host = AppHost.Create();
+        try
+        {
+            var projects = new ProjectsService(host);
+            var library = new LibraryService(host);
+            var alpha = await projects.CreateAsync(new CreateProjectRequest("Alpha", null, null), ct);
+
+            // Nothing here is a web address, so nothing is added and nothing is fetched.
+            var result = await library.AddWebPagesAsync(new AddWebPagesRequest(alpha.Id, "notes.txt ftp://example.com/a"), ct);
+            Assert.Empty(result.Added);
+            Assert.Equal(["notes.txt", "ftp://example.com/a"], result.Rejected);
+            Assert.Empty(await library.ListWebPagesAsync(new ProjectIdScoped(alpha.Id), ct));
+
+            foreach (var url in new[] { "https://example.com/", "file:///C:/Windows/notepad.exe", "calc.exe", "" })
+            {
+                var refused = await Assert.ThrowsAsync<NeoRpcException>(() => library.OpenUrlAsync(new OpenUrlRequest(alpha.Id, url), ct).AsTask());
+                Assert.Equal("not_found", refused.Code);
+            }
+
+            var missing = await Assert.ThrowsAsync<NeoRpcException>(() => library.RemoveWebPageAsync(new WebPageIdRequest(alpha.Id, "42"), ct).AsTask());
+            Assert.Equal("not_found", missing.Code);
+            var empty = await Assert.ThrowsAsync<NeoRpcException>(() => library.AddWebPagesAsync(new AddWebPagesRequest(alpha.Id, "  "), ct).AsTask());
+            Assert.Equal("invalid_request", empty.Code);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("SILVIA_DATA", null);
+            Environment.SetEnvironmentVariable("SILVIA_MODELS", null);
+        }
+    }
+
     private static AppearanceDto Appearance(string interfaceFont) => new(
         Theme: "dark",
         InterfaceSize: 14,

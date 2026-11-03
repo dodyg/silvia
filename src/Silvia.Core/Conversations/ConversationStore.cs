@@ -13,7 +13,11 @@ public sealed record Conversation(string Id, string Title, DateTimeOffset Create
 public sealed record StoredMessage(string Role, string Content, IReadOnlyList<CitedChunk> Sources, DateTimeOffset CreatedUtc);
 
 /// <summary>A chunk cited by an answer, kept so the citation still resolves after the chat is reopened.</summary>
-public sealed record CitedChunk(string DocumentId, int ChunkIndex, string FileName, string Text)
+/// <remarks>
+/// For a web page, <see cref="FileName"/> is the page's title and <see cref="Url"/> its address; for a file,
+/// <see cref="Url"/> is null.
+/// </remarks>
+public sealed record CitedChunk(string DocumentId, int ChunkIndex, string FileName, string Text, string? Url = null)
 {
     /// <summary>The citation for a retrieved chunk, named by its file when the parser recorded one.</summary>
     public static CitedChunk From(SearchResult result) => new(

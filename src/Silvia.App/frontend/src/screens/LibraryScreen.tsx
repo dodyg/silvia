@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { describeError, library, type DocumentDto, type SourceDto } from "../api";
+import { describeError, formatWhen, library, type DocumentDto, type SourceDto, type WebPageDto } from "../api";
 import { Banner, Button, Card, Empty, Field, Icon, PageHeader, Section } from "../ui";
 import { DocumentView } from "./DocumentView";
 
@@ -13,6 +13,8 @@ const REFRESH_MS = 3000;
 export function LibraryScreen({ projectId, onError }: Props) {
   const [sources, setSources] = useState<SourceDto[]>([]);
   const [documents, setDocuments] = useState<DocumentDto[]>([]);
+  const [pages, setPages] = useState<WebPageDto[]>([]);
+  const [addresses, setAddresses] = useState("");
   const [folder, setFolder] = useState("");
   const [manualEntry, setManualEntry] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -51,12 +53,14 @@ export function LibraryScreen({ projectId, onError }: Props) {
 
   async function load() {
     try {
-      const [sourceRows, documentRows] = await Promise.all([
+      const [sourceRows, documentRows, pageRows] = await Promise.all([
         library.listSources({ projectId }),
         library.listDocuments({ projectId }),
+        library.listWebPages({ projectId }),
       ]);
       setSources([...sourceRows]);
       setDocuments([...documentRows]);
+      setPages([...pageRows]);
     } catch (failure) {
       onError(describeError(failure));
     }
@@ -119,6 +123,63 @@ export function LibraryScreen({ projectId, onError }: Props) {
     }
   }
 
+  async function addPages() {
+    if (!addresses.trim()) {
+      return;
+    }
+
+    onError(null);
+    try {
+      const result = await library.addWebPages({ projectId, urls: addresses });
+      changed.current = true;
+      setAddresses(result.rejected.join("\n"));
+      const added = result.added.length === 1 ? "1 page" : `${result.added.length} pages`;
+      setMessage(result.rejected.length === 0
+        ? `Added ${added}. Silvia downloads and indexes them in the background.`
+        : `Added ${added}. ${result.rejected.length === 1 ? "One line is" : `${result.rejected.length} lines are`} not a web address (http or https) and stayed in the box.`);
+      await load();
+    } catch (failure) {
+      onError(describeError(failure));
+    }
+  }
+
+  async function refreshPages(page?: WebPageDto) {
+    try {
+      if (page) {
+        await library.refreshWebPage({ projectId, id: page.id });
+      } else {
+        await library.refreshWebPages({ projectId });
+      }
+
+      changed.current = true;
+      setMessage(page ? `Downloading ${page.title ?? page.url} again.` : "Downloading every page again. A page that has not changed is left as it is.");
+      await load();
+    } catch (failure) {
+      onError(describeError(failure));
+    }
+  }
+
+  async function removePage(page: WebPageDto) {
+    try {
+      await library.removeWebPage({ projectId, id: page.id });
+      changed.current = true;
+      setMessage(`Removed ${page.title ?? page.url} from this project.`);
+      await load();
+    } catch (failure) {
+      onError(describeError(failure));
+    }
+  }
+
+  async function openPage(page: WebPageDto) {
+    try {
+      await library.openUrl({ projectId, url: page.finalUrl ?? page.url });
+    } catch (failure) {
+      onError(describeError(failure));
+    }
+  }
+
+  const pageByDocument = new Map(pages.filter((p) => p.documentId).map((p) => [p.documentId!, p]));
+
   if (selected) {
     return <DocumentView projectId={projectId} documentId={selected} onBack={() => setSelected(null)} onError={onError} />;
   }
@@ -127,7 +188,7 @@ export function LibraryScreen({ projectId, onError }: Props) {
     <div>
       <PageHeader
         title="Library"
-        description="The folders this project indexes. Silvia keeps them in step as files change."
+        description="The folders and web pages this project indexes. Silvia keeps folders in step as files change; refresh a page to fetch it again."
         actions={
           <>
             <Button onClick={() => void rescan()} disabled={sources.length === 0}>
@@ -188,27 +249,98 @@ export function LibraryScreen({ projectId, onError }: Props) {
         )}
       </Section>
 
+      <Section
+        title="Web pages"
+        actions={<Button variant="quiet" size="sm" onClick={() => void refreshPages()} disabled={pages.length === 0}><Icon name="refresh" /> Refresh all</Button>}
+      >
+        <Card className="section-gap">
+          <form className="inline-form" onSubmit={(event) => { event.preventDefault(); void addPages(); }}>
+            <Field label="Web addresses" hint="One address, or paste a list with one per line. Silvia keeps each page's main text as a document of this project.">
+              <textarea rows={2} value={addresses} onChange={(event) => setAddresses(event.target.value)} placeholder="https://example.com/handbook" />
+            </Field>
+            <Button type="submit" variant="primary" disabled={addresses.trim().length === 0}><Icon name="plus" /> Add pages</Button>
+          </form>
+        </Card>
+        {pages.length === 0 ? (
+          <Empty title="No web pages yet" icon="globe">
+            Add a page and Silvia downloads it, keeps its main text, and cites it by its address. Refresh it when the page changes.
+          </Empty>
+        ) : (
+          <ul className="list" aria-label="Web pages">
+            {pages.map((page) => (
+              <li key={page.id}>
+                <span className="list-icon"><Icon name="globe" /></span>
+                <div className="grow">
+                  <div className="list-title">
+                    {page.documentId ? (
+                      <button type="button" className="link-button" onClick={() => setSelected(page.documentId)}>{page.title ?? page.url}</button>
+                    ) : (
+                      <span>{page.title ?? page.url}</span>
+                    )}
+                    <span className={pageBadge(page.status)}>{pageStatus(page.status)}</span>
+                  </div>
+                  {page.title ? <div className="path">{page.finalUrl ?? page.url}</div> : null}
+                  <div className="list-meta">
+                    {page.fetchedUtc ? `Fetched ${formatWhen(page.fetchedUtc)}` : "Not downloaded yet"}
+                    {page.error ? <> · <span className="error-text">{page.error}</span></> : null}
+                  </div>
+                </div>
+                <div className="list-actions">
+                  <Button variant="quiet" size="sm" onClick={() => void openPage(page)}>
+                    <Icon name="external" /> Open
+                  </Button>
+                  <Button variant="quiet" size="sm" onClick={() => void refreshPages(page)}>
+                    <Icon name="refresh" /> Refresh
+                  </Button>
+                  <Button variant="quiet" size="sm" className="btn-danger" onClick={() => void removePage(page)}>
+                    <Icon name="trash" /> Remove
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+
       <Section title="Documents" actions={<span className="count">{documents.length} indexed</span>}>
         {documents.length === 0 ? (
           <Empty title="Nothing is indexed yet" icon="file">Documents appear here once a folder has been scanned.</Empty>
         ) : (
           <ul className="list" aria-label="Indexed documents">
-            {documents.slice(0, 300).map((document) => (
+            {documents.slice(0, 300).map((document) => {
+              const page = pageByDocument.get(document.documentId);
+              return (
               <li key={document.documentId}>
-                <span className="list-icon"><Icon name="file" /></span>
+                <span className="list-icon"><Icon name={page ? "globe" : "file"} /></span>
                 <div className="grow">
                   <div className="list-title">
-                    <button type="button" className="link-button" onClick={() => setSelected(document.documentId)}>{document.fileName}</button>
+                    <button type="button" className="link-button" onClick={() => setSelected(document.documentId)}>{page?.title ?? document.fileName}</button>
                   </div>
-                  <div className="path">{document.folder}</div>
+                  <div className="path">{page ? (page.finalUrl ?? page.url) : document.folder}</div>
                 </div>
                 <span className="badge">{document.chunks} {document.chunks === 1 ? "passage" : "passages"}</span>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
         {documents.length > 300 ? <p className="muted small">Showing the first 300 documents.</p> : null}
       </Section>
     </div>
   );
+}
+
+const STATUS: Record<string, string> = {
+  pending: "Downloading",
+  ok: "Indexed",
+  failed: "Failed",
+  "needs-browser": "Needs a browser",
+};
+
+function pageStatus(status: string): string {
+  return STATUS[status] ?? status;
+}
+
+function pageBadge(status: string): string {
+  return status === "ok" ? "badge badge-ready" : status === "pending" ? "badge" : status === "failed" ? "badge badge-danger" : "badge badge-warn";
 }

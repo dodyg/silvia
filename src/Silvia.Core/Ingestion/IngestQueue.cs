@@ -31,6 +31,7 @@ internal sealed class IngestQueue : IAsyncDisposable
     private readonly KeywordIndex? _keywords;
     private readonly DocumentOverviews? _overviews;
     private readonly DocumentGraph? _graph;
+    private readonly Func<string, CancellationToken, Task>? _fetch;
 
     /// <param name="keywords">
     /// When given, jobs index files for keyword search instead of embedding them: the project has no
@@ -43,6 +44,9 @@ internal sealed class IngestQueue : IAsyncDisposable
     /// When given, every change to the index is followed by one graph job per new or changed document,
     /// and once none is left, by one job that rebuilds the graph's communities.
     /// </param>
+    /// <param name="fetch">
+    /// Runs a <see cref="JobKind.Fetch"/> job: downloads the web page at the job's address and queues what it changed.
+    /// </param>
     public IngestQueue(
         string databasePath,
         IRagPipeline pipeline,
@@ -50,8 +54,10 @@ internal sealed class IngestQueue : IAsyncDisposable
         IngestThrottle throttle,
         KeywordIndex? keywords = null,
         DocumentOverviews? overviews = null,
-        DocumentGraph? graph = null)
+        DocumentGraph? graph = null,
+        Func<string, CancellationToken, Task>? fetch = null)
     {
+        _fetch = fetch;
         _databasePath = databasePath;
         _pipeline = pipeline;
         _services = services;
@@ -213,7 +219,7 @@ internal sealed class IngestQueue : IAsyncDisposable
         {
             await ExecuteAsync(job, cancellationToken);
             Finish(job.Id, "done", null);
-            if (job.Kind is not (JobKind.Overview or JobKind.Graph or JobKind.Communities))
+            if (job.Kind is not (JobKind.Overview or JobKind.Graph or JobKind.Communities or JobKind.Fetch))
             {
                 QueueOverviews();
                 await QueueGraphAsync(cancellationToken);
@@ -235,7 +241,7 @@ internal sealed class IngestQueue : IAsyncDisposable
         catch (Exception ex)
         {
             var attempts = job.Attempts + 1;
-            if (attempts < MaxAttempts)
+            if (attempts < MaxAttempts && ex is not PermanentJobFailure)
             {
                 Finish(job.Id, "pending", ex.Message, attempts);
                 await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempts)), cancellationToken).ContinueWith(_ => { }, TaskScheduler.Default);
@@ -261,6 +267,17 @@ internal sealed class IngestQueue : IAsyncDisposable
         // Resuming indexes nothing: what it queues afterwards, like every other job, is the work.
         if (job.Kind == JobKind.Resume)
         {
+            return;
+        }
+
+        // Fetching writes the page's file and queues its upsert; the upsert indexes it like any other file.
+        if (job.Kind == JobKind.Fetch)
+        {
+            if (_fetch is not null)
+            {
+                await _fetch(job.Path, cancellationToken);
+            }
+
             return;
         }
 
@@ -469,7 +486,7 @@ internal sealed class IngestQueue : IAsyncDisposable
     }
 
     /// <summary>The paths of the jobs of one kind that are pending or running.</summary>
-    private HashSet<string> Waiting(JobKind kind)
+    public HashSet<string> Waiting(JobKind kind)
     {
         var waiting = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         using var connection = SqliteStorage.Open(_databasePath);
@@ -610,7 +627,13 @@ internal enum JobKind
 
     /// <summary>Queues the overviews and graph documents still missing, without indexing anything.</summary>
     Resume,
+
+    /// <summary>Downloads a web page; the job's path is its address.</summary>
+    Fetch,
 }
+
+/// <summary>A job failure that asking again would not change, such as a page that answers 404. It is not retried.</summary>
+internal sealed class PermanentJobFailure(string message) : Exception(message);
 
 /// <summary>A watched folder as stored in <c>sources</c>.</summary>
 public sealed record SourceRow(long Id, string Path, string IncludeGlobs, string ExcludeGlobs, bool Enabled);

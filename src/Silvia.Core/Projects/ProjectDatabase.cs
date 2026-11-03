@@ -10,7 +10,8 @@ namespace Silvia.Core.Projects;
 /// </summary>
 public static class ProjectDatabase
 {
-    public const int CurrentVersion = 1;
+    /// <summary>2 added <c>web_pages</c>.</summary>
+    public const int CurrentVersion = 2;
 
     /// <summary>Creates a new project file with the current schema and its settings.</summary>
     public static void Create(string path, string id, string name, ProjectSettings settings)
@@ -78,6 +79,21 @@ public static class ProjectDatabase
                 content TEXT NOT NULL,
                 sources_json TEXT,
                 created_utc TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS web_pages (
+                id INTEGER PRIMARY KEY,
+                url TEXT NOT NULL UNIQUE,
+                final_url TEXT,
+                title TEXT,
+                file_name TEXT NOT NULL,
+                content BLOB,
+                content_type TEXT,
+                content_hash TEXT,
+                etag TEXT,
+                last_modified TEXT,
+                fetched_utc TEXT,
+                status TEXT NOT NULL,
+                error TEXT,
+                added_utc TEXT NOT NULL);
             """);
         Execute(connection, transaction, "DELETE FROM schema_version");
         using (var version = connection.CreateCommand())

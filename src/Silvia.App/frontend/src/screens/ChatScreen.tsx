@@ -496,15 +496,21 @@ export function ChatScreen({ projectId, onError }: Props) {
               <Icon name="close" />
             </Button>
           </div>
-          <p className="path">{evidence.source.documentId}</p>
+          <p className="path">{evidence.source.url ?? evidence.source.documentId}</p>
           {evidence.source.chunkIndex === OVERVIEW_CHUNK ? (
             <p className="muted small">Written by the chat model from the whole document when it was indexed.</p>
           ) : null}
           <blockquote className={evidence.source.chunkIndex === OVERVIEW_CHUNK ? "overview" : undefined}>{evidence.source.text}</blockquote>
           <div className="row">
-            <Button size="sm" onClick={() => void openFile(projectId, evidence.source.documentId, onError)}>
-              <Icon name="external" /> Open file
-            </Button>
+            {evidence.source.url ? (
+              <Button size="sm" onClick={() => void openPage(projectId, evidence.source.url!, onError)}>
+                <Icon name="globe" /> Open page
+              </Button>
+            ) : (
+              <Button size="sm" onClick={() => void openFile(projectId, evidence.source.documentId, onError)}>
+                <Icon name="external" /> Open file
+              </Button>
+            )}
             <Button size="sm" onClick={() => void revealFile(projectId, evidence.source.documentId, onError)}>
               <Icon name="folder" /> Show in folder
             </Button>
@@ -547,6 +553,15 @@ function withCitations(text: string): string {
 async function openFile(projectId: string, documentId: string, onError: (message: string | null) => void) {
   try {
     await library.openDocument({ projectId, documentId, page: null });
+  } catch (failure) {
+    onError(describeError(failure));
+  }
+}
+
+/** Opens a cited web page in the browser. The host opens only addresses that are pages of this project. */
+async function openPage(projectId: string, url: string, onError: (message: string | null) => void) {
+  try {
+    await library.openUrl({ projectId, url });
   } catch (failure) {
     onError(describeError(failure));
   }

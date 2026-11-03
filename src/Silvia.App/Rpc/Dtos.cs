@@ -55,7 +55,8 @@ public sealed record ConversationIdRequest(string ProjectId, string Conversation
 
 public sealed record MessageDto(string Role, string Content, string CreatedUtc, IReadOnlyList<CitationDto> Sources);
 
-public sealed record CitationDto(string DocumentId, int ChunkIndex, string FileName, string Text);
+/// <summary>A cited passage. For a web page, FileName is the page's title and Url its address; Url is null for a file.</summary>
+public sealed record CitationDto(string DocumentId, int ChunkIndex, string FileName, string Text, string? Url);
 
 public sealed record AskRequest(string ProjectId, string? ConversationId, string Question);
 
@@ -112,6 +113,30 @@ public sealed record FontListDto(IReadOnlyList<string> Bundled, IReadOnlyList<st
 public sealed record OpenDocumentRequest(string ProjectId, string DocumentId, int? Page);
 
 public sealed record ShellResult(bool Opened, string Message);
+
+/// <summary>
+/// A web page of the project. Status is <c>pending</c>, <c>ok</c>, <c>failed</c> or <c>needs-browser</c>; Error says
+/// why the last fetch failed. DocumentId is the saved copy, null until the first fetch succeeded.
+/// </summary>
+public sealed record WebPageDto(
+    string Id,
+    string Url,
+    string? FinalUrl,
+    string? Title,
+    string? DocumentId,
+    string? FetchedUtc,
+    string Status,
+    string? Error);
+
+/// <summary>One address, or a pasted list separated by new lines or spaces.</summary>
+public sealed record AddWebPagesRequest(string ProjectId, string Urls);
+
+/// <summary>The pages added (or already there, fetched again) and the texts that are not web addresses.</summary>
+public sealed record AddWebPagesDto(IReadOnlyList<WebPageDto> Added, IReadOnlyList<string> Rejected);
+
+public sealed record WebPageIdRequest(string ProjectId, string Id);
+
+public sealed record OpenUrlRequest(string ProjectId, string Url);
 
 public sealed record SetDeepSeekKeyRequest(string Key);
 
@@ -332,6 +357,12 @@ public sealed record RunComparisonDto(EvalRunDto Before, EvalRunDto After, IRead
 [JsonSerializable(typeof(FontListDto))]
 [JsonSerializable(typeof(OpenDocumentRequest))]
 [JsonSerializable(typeof(ShellResult))]
+[JsonSerializable(typeof(WebPageDto))]
+[JsonSerializable(typeof(WebPageDto[]))]
+[JsonSerializable(typeof(AddWebPagesRequest))]
+[JsonSerializable(typeof(AddWebPagesDto))]
+[JsonSerializable(typeof(WebPageIdRequest))]
+[JsonSerializable(typeof(OpenUrlRequest))]
 [JsonSerializable(typeof(SetDeepSeekKeyRequest))]
 [JsonSerializable(typeof(ChatProviderDto))]
 [JsonSerializable(typeof(ModelDownloadStatusDto))]

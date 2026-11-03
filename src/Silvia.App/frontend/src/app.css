@@ -472,6 +472,10 @@ textarea {
   flex: 1 1 16rem;
 }
 
+.error-text {
+  color: var(--danger);
+}
+
 .row {
   display: flex;
   gap: 0.5rem;

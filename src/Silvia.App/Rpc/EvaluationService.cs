@@ -106,7 +106,7 @@ public sealed class EvaluationService(AppHost host)
             throw Scope.Invalid("This answer is too long to check.");
         }
 
-        var sources = (request.Sources ?? []).Select(s => new CitedChunk(s.DocumentId, s.ChunkIndex, s.FileName, s.Text)).ToList();
+        var sources = (request.Sources ?? []).Select(s => new CitedChunk(s.DocumentId, s.ChunkIndex, s.FileName, s.Text, s.Url)).ToList();
         return ToDto(await Available(() => runtime.CheckAnswerAsync(request.Question, request.Answer, sources, cancellationToken)));
     }
 
@@ -254,7 +254,7 @@ public sealed class EvaluationService(AppHost host)
         r.Facts,
         r.ExpectNoAnswer,
         r.Answer,
-        r.Sources.Select(s => new CitationDto(s.DocumentId, s.ChunkIndex, s.FileName, s.Text)).ToArray(),
+        r.Sources.Select(s => new CitationDto(s.DocumentId, s.ChunkIndex, s.FileName, s.Text, s.Url)).ToArray(),
         r.Verdict is null ? null : ToDto(r.Verdict),
         r.FoundDocument,
         r.Passed,

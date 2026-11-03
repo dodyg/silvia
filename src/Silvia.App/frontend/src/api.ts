@@ -41,6 +41,7 @@ export type {
   TraceDto,
   TracedHitDto,
   VerdictDto,
+  WebPageDto,
 } from "#neoastra";
 
 /** Native dialogs (folder and file pickers). Calls are denied when the host has not granted them. */

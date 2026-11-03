@@ -21,12 +21,21 @@ const sample = {
     chunkIndex: 0,
     fileName: "handbook.md",
     text: "The Lumen pilot launches on 14 March 2027 in two cities: Lisbon and Nairobi.",
+    url: null,
+  },
+  webCitation: {
+    documentId: "C:/Users/me/AppData/Local/Silvia/projects/01MOCKLUMEN0000000000000A/web/lumen-example-com-pilot-9f2c41ab.md",
+    chunkIndex: 2,
+    fileName: "Lumen pilot — public announcement",
+    text: "Lumen's pilot opens to the public in Lisbon on 14 March 2027, with Nairobi following in April.",
+    url: "https://lumen.example.com/pilot",
   },
   overview: {
     documentId: "C:/Documents/Lumen/handbook.md",
     chunkIndex: -1,
     fileName: "handbook.md",
     text: "The Lumen field handbook for the 2027 pilot.\nLisbon: first launch city.\nNairobi: second launch city.\nSections: launch plan, kit, support.",
+    url: null,
   },
 };
 
@@ -69,6 +78,13 @@ let failures = [
   { id: "1", path: "C:/Documents/Lumen/budget.xlsx", error: "Knowledge graph extraction of 'budget.xlsx' failed: No such host is known. (api.deepseek.com:443)", finishedUtc: now },
 ];
 
+type MockWebPage = { id: string; url: string; finalUrl: string | null; title: string | null; documentId: string | null; fetchedUtc: string | null; status: string; error: string | null };
+let webPages: MockWebPage[] = [
+  { id: "1", url: "https://lumen.example.com/pilot", finalUrl: "https://lumen.example.com/pilot", title: "Lumen pilot — public announcement", documentId: sample.webCitation.documentId, fetchedUtc: now, status: "ok", error: null },
+  { id: "2", url: "https://lumen.example.com/app", finalUrl: null, title: "Lumen dashboard", documentId: null, fetchedUtc: now, status: "needs-browser", error: "The page shows almost no text without a browser: it is probably built by script or behind a sign-in. It was not indexed." },
+  { id: "3", url: "https://lumen.example.com/old-faq", finalUrl: null, title: null, documentId: null, fetchedUtc: now, status: "failed", error: "The site answered 404 Not Found." },
+];
+
 export const library = Object.freeze({
   listSources: () => delay(sample.sources),
   addSource: (request: { path: string }) => delay({ ...sample.sources[0], id: "2", path: request.path }),
@@ -77,7 +93,7 @@ export const library = Object.freeze({
   removeSource: () => delay({}),
   rescan: () => delay({}),
   resume: () => delay({}),
-  listDocuments: () => delay(sample.documents),
+  listDocuments: () => delay([...sample.documents, { documentId: sample.webCitation.documentId, fileName: "lumen-example-com-pilot-9f2c41ab.md", folder: "C:/Users/me/AppData/Local/Silvia/projects/01MOCKLUMEN0000000000000A/web", chunks: 3 }]),
   activity: () => delay({ pending: 1, running: 0, done: 8, failed: failures.length, recentFailures: failures.slice() }),
   clearFailure: (request: { id: string }) => {
     failures = failures.filter((f) => f.id !== request.id);
@@ -89,6 +105,21 @@ export const library = Object.freeze({
   },
   openDocument: () => delay({ opened: true, message: "Opened." }),
   revealDocument: () => delay({ opened: true, message: "Revealed." }),
+  listWebPages: () => delay(webPages.slice()),
+  addWebPages: (request: { urls: string }) => {
+    const texts = request.urls.split(/\s+/).filter((t) => t.length > 0);
+    const valid = texts.filter((t) => /^https?:\/\/\S+$/.test(t));
+    const added = valid.map((url, i) => ({ id: String(webPages.length + i + 10), url, finalUrl: null, title: null, documentId: null, fetchedUtc: null, status: "pending", error: null }));
+    webPages = [...webPages, ...added];
+    return delay({ added, rejected: texts.filter((t) => !valid.includes(t)) });
+  },
+  refreshWebPage: () => delay({}),
+  refreshWebPages: () => delay({}),
+  removeWebPage: (request: { id: string }) => {
+    webPages = webPages.filter((p) => p.id !== request.id);
+    return delay({});
+  },
+  openUrl: () => delay({ opened: true, message: "Opened." }),
 });
 
 export const chat = Object.freeze({
@@ -108,7 +139,7 @@ export const chat = Object.freeze({
       { kind: "conversation", conversationId: "01MOCKCONVERSATION", text: null, sources: null },
       { kind: "delta", conversationId: null, text: "The pilot launches on 14 March 2027 ", sources: null },
       { kind: "delta", conversationId: null, text: "in Lisbon and Nairobi [2].", sources: null },
-      { kind: "sources", conversationId: null, text: null, sources: [sample.overview, sample.citation] },
+      { kind: "sources", conversationId: null, text: null, sources: [sample.overview, sample.citation, sample.webCitation] },
       { kind: "done", conversationId: "01MOCKCONVERSATION", text: null, sources: null },
     ];
     return (async function* () {

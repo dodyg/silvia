@@ -57,7 +57,15 @@ Supported files: Markdown (\`.md\`), text (\`.txt\`), PDF, Word (\`.docx\`), Exc
 
 **Activity** shows indexing progress and any file that failed.
 
-### 5. Ask
+### 5. Add web pages (optional)
+
+In **Library → Web pages**, paste a web address, or a list with one per line, and choose **Add pages**. Silvia downloads each page, keeps its main text (without menus, footers or cookie banners) as a document of the project, and from then on searches and cites it like a file. Answers name a page by its title and site, and **Open page** opens it in your browser.
+
+- Web pages, Markdown and plain text, PDF and Office files can be added. Silvia follows links only to reach the page itself (up to five redirects); it does not crawl a site.
+- A page is downloaded once. Choose **Refresh** on a page, or **Refresh all**, when it may have changed: a page that has not changed is left as it is and costs nothing.
+- Pages on your company's intranet work too, as long as they open without a sign-in.
+
+### 6. Ask
 
 Open **Chat** and ask a question. Numbers like **[1]** in the answer are citations: select one to see the passage and open its file.
 `,
@@ -84,7 +92,7 @@ Knowing the steps helps you understand an answer, and fix it when it is wrong.
 4. **Spreading.** No document takes more than half the places while other documents also match, so one long file cannot crowd out the rest.
 5. **Bridge searches.** If the passages point to something they do not contain (*"the person who signs off access reviews"*), the chat model writes up to two more searches, each adding up to two passages.
 6. **Context.** The answer is given:
-   - the passages, each with its file, section and modification date
+   - the passages, each with its file, section and modification date (for a web page: its title, site and the date it was fetched)
    - the **overviews** of up to three cited documents
    - the matching part of the **knowledge graph**
    - a similar exchange from an earlier conversation
@@ -128,7 +136,7 @@ Under an answer, **Correct this** saves a correction as a project **fact**. Fact
 |---|---|
 | **Chat** | Ask questions and get cited answers. Conversations are kept per project. Under each answer you can **Check this answer**, **Correct this** (save a fact) and **Save as test question**. |
 | **Search** | Find passages without calling any cloud model, so it works offline. It also shows the *close calls*: passages that were near the question but did not make the list. |
-| **Library** | The folders this project indexes, and its documents. Open a document to see its overview and the exact passages Silvia extracted from it. |
+| **Library** | The folders and web pages this project indexes, and its documents. Add a web address or a pasted list under **Web pages**; each page shows when it was fetched and whether it is indexed, with **Open**, **Refresh** and **Remove**. Open a document to see its overview and the exact passages Silvia extracted from it. |
 | **Map** | Every passage placed by meaning. Passages on one topic cluster together. A dot far from its document's cluster is a passage unlike the rest of that document. |
 | **Graph** | The people, organisations, products and systems in the project, and how they relate. Only with the knowledge graph turned on. |
 | **Facts** | Things you know to be true that the documents leave out or only imply. Every answer in the project is given them. |
@@ -221,6 +229,10 @@ Indexing, search, embedding and reranking always run on this computer. Only the 
 
 Choose **search-only** for a project whose documents must not leave this computer. You still get the matching passages for every question, with links to the files.
 
+### Web pages
+
+Adding or refreshing a web page is a request from this computer to that page's site, the same as opening it in a browser. It sends nothing from your project: no documents, questions or keys, and no cookies. The site sees your computer's address and that Silvia asked for the page. Once downloaded, a page is a document like any other, and the table above applies to it.
+
 Your API key is stored encrypted for your Windows account. Projects are kept apart: no answer in one project sees the documents, facts or conversations of another.
 `,
   },
@@ -272,6 +284,15 @@ Make sure the old file is really gone or renamed, or say in the question which e
 ### A file is not found at all
 
 Open **Activity**: failed files are listed with the reason. Check that the type is supported (see *Getting started*) and that the file is not open with exclusive access in another program. **Rescan** in Library indexes the folder again.
+
+### A web page shows "Needs a browser" or "Failed"
+
+- **Needs a browser**: the page showed almost no text when downloaded. It is probably built by script in the browser, or shows its content only after a sign-in. Silvia cannot read such pages. Save the page from your browser (**Save as**, or **Print → Save as PDF**) into a folder of the project instead.
+- **Failed** with *"Silvia cannot read this type of page"*: the address leads to something other than a web page, text, PDF or Office file, such as an image or a video.
+- **Failed** with an answer from the site (*404 Not Found*, *403 Forbidden*): the address is wrong, the page has moved, or the site refuses automated downloads. Check it in your browser.
+- **Failed** with *"did not answer"* or *"could not be reached"*: the site is down, or this computer is offline. Silvia tries twice more by itself; choose **Refresh** later.
+
+A page that fails on a refresh keeps its last good copy in the index. **Activity** lists failed pages by their address.
 
 ### Answers are slow or costly
 

@@ -130,7 +130,10 @@ public sealed class LibraryService(AppHost host)
         return ValueTask.FromResult(new EmptyRequest());
     }
 
-    /// <summary>Opens a document's file, but only a file this project indexed, under a folder it watches.</summary>
+    /// <summary>
+    /// Opens a document's file, but only a file this project indexed, under a folder it watches or as the saved
+    /// copy of one of its web pages.
+    /// </summary>
     [NeoRpcMethod("openDocument")]
     public ValueTask<ShellResult> OpenDocumentAsync(OpenDocumentRequest request, CancellationToken cancellationToken)
     {
@@ -149,14 +152,125 @@ public sealed class LibraryService(AppHost host)
         return ValueTask.FromResult(new ShellResult(true, "Revealed."));
     }
 
+    [NeoRpcMethod("listWebPages")]
+    public ValueTask<WebPageDto[]> ListWebPagesAsync(ProjectIdScoped request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        return ValueTask.FromResult(runtime.WebPages().Select(p => ToDto(runtime, p)).ToArray());
+    }
+
+    /// <summary>Adds one address or a pasted list and queues their download. Texts that are not web addresses come back as rejected.</summary>
+    [NeoRpcMethod("addWebPages")]
+    public ValueTask<AddWebPagesDto> AddWebPagesAsync(AddWebPagesRequest request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        var texts = (request.Urls ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        if (texts.Length == 0)
+        {
+            throw Scope.Invalid("Enter a web address first.");
+        }
+
+        if (texts.Length > MaxPagesPerAdd)
+        {
+            throw Scope.Invalid($"Add at most {MaxPagesPerAdd} addresses at a time.");
+        }
+
+        var (added, rejected) = runtime.AddWebPages(texts);
+        return ValueTask.FromResult(new AddWebPagesDto(added.Select(p => ToDto(runtime, p)).ToArray(), rejected));
+    }
+
+    /// <summary>
+    /// A cap on one paste. Each page can cost an overview and graph calls; a few hundred at a time keeps a stray
+    /// paste from queuing thousands.
+    /// </summary>
+    private const int MaxPagesPerAdd = 200;
+
+    [NeoRpcMethod("refreshWebPage")]
+    public ValueTask<EmptyRequest> RefreshWebPageAsync(WebPageIdRequest request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        try
+        {
+            runtime.RefreshWebPage(Scope.ParseId(request.Id));
+        }
+        catch (KeyNotFoundException)
+        {
+            throw Scope.NotFound("web page");
+        }
+
+        return ValueTask.FromResult(new EmptyRequest());
+    }
+
+    [NeoRpcMethod("refreshWebPages")]
+    public ValueTask<EmptyRequest> RefreshWebPagesAsync(ProjectIdScoped request, CancellationToken cancellationToken)
+    {
+        Scope.Runtime(host.Manager, request.ProjectId).RefreshAllWebPages();
+        return ValueTask.FromResult(new EmptyRequest());
+    }
+
+    [NeoRpcMethod("removeWebPage")]
+    public ValueTask<EmptyRequest> RemoveWebPageAsync(WebPageIdRequest request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        try
+        {
+            runtime.RemoveWebPage(Scope.ParseId(request.Id));
+        }
+        catch (KeyNotFoundException)
+        {
+            throw Scope.NotFound("web page");
+        }
+
+        return ValueTask.FromResult(new EmptyRequest());
+    }
+
+    /// <summary>Opens a web page in the browser, but only an address that is one of this project's pages.</summary>
+    [NeoRpcMethod("openUrl")]
+    public ValueTask<ShellResult> OpenUrlAsync(OpenUrlRequest request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        var url = AllowedUrl(runtime, request.Url);
+        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        return ValueTask.FromResult(new ShellResult(true, "Opened."));
+    }
+
+    /// <summary>
+    /// The address if it is one of the project's pages and a web address; anything else is not found, so a call
+    /// cannot make the app open an arbitrary address or program.
+    /// </summary>
+    internal static string AllowedUrl(Silvia.Core.Runtime.ProjectRuntime runtime, string url)
+    {
+        if (string.IsNullOrWhiteSpace(url) ||
+            !Uri.TryCreate(url, UriKind.Absolute, out var parsed) ||
+            !WebFetcher.IsWebAddress(parsed) ||
+            !runtime.IsWebPageAddress(url))
+        {
+            throw Scope.NotFound("web page");
+        }
+
+        return parsed.AbsoluteUri;
+    }
+
+    private static WebPageDto ToDto(Silvia.Core.Runtime.ProjectRuntime runtime, WebPage page) => new(
+        page.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        page.Url,
+        page.FinalUrl,
+        page.Title,
+        page.HasContent ? Path.Combine(runtime.WebFolder, page.FileName) : null,
+        page.FetchedUtc?.ToString("O"),
+        page.Status,
+        page.Error);
+
     private static SourceDto ToDto(SourceRow s) =>
         new(s.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), s.Path, s.IncludeGlobs, s.ExcludeGlobs, s.Enabled);
 
     private static string AllowedPath(Silvia.Core.Runtime.ProjectRuntime runtime, string documentId)
     {
         var indexed = runtime.Documents().Any(d => string.Equals(d.DocumentId, documentId, StringComparison.OrdinalIgnoreCase));
+        // A web page's saved copy lives in the project's own web folder, which is not a watched folder.
         var underSource = runtime.Sources().Any(s =>
-            documentId.StartsWith(s.Path.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
+            documentId.StartsWith(s.Path.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            || runtime.WebPageOf(documentId) is not null;
         if (!indexed || !underSource || !File.Exists(documentId) || !ContentTypes.IsSupported(documentId))
         {
             throw Scope.NotFound("document");

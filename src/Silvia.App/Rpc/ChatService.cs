@@ -93,5 +93,5 @@ public sealed class ChatService(AppHost host)
         update.Text,
         update.Sources?.Select(ToDto).ToArray());
 
-    private static CitationDto ToDto(CitedChunk chunk) => new(chunk.DocumentId, chunk.ChunkIndex, chunk.FileName, chunk.Text);
+    private static CitationDto ToDto(CitedChunk chunk) => new(chunk.DocumentId, chunk.ChunkIndex, chunk.FileName, chunk.Text, chunk.Url);
 }

@@ -23,6 +23,9 @@
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
     <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.14" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.14" />
+    <!-- Web pages: SmartReader (Apache-2.0) finds a page's main content, ReverseMarkdown (MIT) turns it into Markdown. -->
+    <PackageReference Include="SmartReader" Version="0.11.1" />
+    <PackageReference Include="ReverseMarkdown" Version="6.3.0" />
   </ItemGroup>
 
   <ItemGroup>
