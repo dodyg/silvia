@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/eval/">
+    <Project Path="eval/Silvia.Eval/Silvia.Eval.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Silvia.App/Silvia.App.csproj" />
+    <Project Path="src/Silvia.Core/Silvia.Core.csproj" />
+    <Project Path="src/Silvia.Storage.Sqlite/Silvia.Storage.Sqlite.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Silvia.App.Tests/Silvia.App.Tests.csproj" />
+    <Project Path="tests/Silvia.Core.Tests/Silvia.Core.Tests.csproj" />
+    <Project Path="tests/Silvia.Storage.Sqlite.Tests/Silvia.Storage.Sqlite.Tests.csproj" />
+  </Folder>
+</Solution>
