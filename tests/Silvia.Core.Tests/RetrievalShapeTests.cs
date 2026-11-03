@@ -77,13 +77,32 @@ public sealed class RetrievalShapeTests
         Assert.Equal(0.0, hits.Single(h => h.Chunk.Text.Contains("Reyes", StringComparison.Ordinal)).Score);
     }
 
+    [Fact]
+    public async Task By_Keyword_With_A_Reranker_The_Score_Is_Its_Relevance()
+    {
+        using var harness = new CoreHarness(localModels: false);
+        var runtime = await OpenAsync(harness, CoreHarness.FakeSettings() with { RerankModel = CoreHarness.RerankerId, TopK = 2 },
+            ("leave.md", "# Leave\n\nMira Okafor is on leave from 3 to 14 August."),
+            ("vendors.md", "# Vendors\n\nTom Reyes approves new vendors and is on leave rarely."));
+        Assert.False(runtime.CanEmbed);
+        Assert.True(runtime.CanRerank);
+
+        var hits = await runtime.SearchAsync("When is Mira Okafor on leave?", cancellationToken: TestContext.Current.CancellationToken);
+
+        // The reranker's share of the question's words, not BM25: three of four, then one of four.
+        Assert.Equal(0.75, hits.Single(h => h.Chunk.Text.Contains("Mira", StringComparison.Ordinal)).Score);
+        Assert.Equal(0.25, hits.Single(h => h.Chunk.Text.Contains("Reyes", StringComparison.Ordinal)).Score);
+    }
+
     [Theory]
-    [InlineData("When is Mira Okafor on leave?", false)]
-    [InlineData("What colour is the lobby carpet?", true)]
-    public async Task A_Weak_Best_Match_Tells_The_Answer_To_Say_So(string question, bool weak)
+    [InlineData("When is Mira Okafor on leave?", false, true)]
+    [InlineData("What colour is the lobby carpet?", true, true)]
+    [InlineData("When is Mira Okafor on leave?", false, false)]
+    [InlineData("What colour is the lobby carpet?", true, false)]
+    public async Task A_Weak_Best_Match_Tells_The_Answer_To_Say_So(string question, bool weak, bool localEmbedder)
     {
         var ct = TestContext.Current.CancellationToken;
-        using var harness = new CoreHarness(withChat: true);
+        using var harness = new CoreHarness(withChat: true, localModels: localEmbedder);
         var runtime = await OpenAsync(harness, CoreHarness.FakeSettings() with { RerankModel = CoreHarness.RerankerId, DocumentOverviews = false },
             ("leave.md", "# Leave\n\nMira Okafor is on leave from 3 to 14 August."));
 

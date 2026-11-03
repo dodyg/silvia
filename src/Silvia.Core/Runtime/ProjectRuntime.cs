@@ -341,16 +341,25 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
     /// The result is in lost-in-the-middle order: the strongest passages first and last.
     /// </summary>
     public async Task<IReadOnlyList<SearchResult>> SearchAsync(
-        string query, int? topK, Func<IReadOnlyList<SearchResult>, Task<IReadOnlyList<string>>>? bridges, CancellationToken cancellationToken)
+        string query, int? topK, Func<IReadOnlyList<SearchResult>, Task<IReadOnlyList<string>>>? bridges, CancellationToken cancellationToken) =>
+        await SearchAsync(query, rerankAs: query, topK, bridges, cancellationToken);
+
+    /// <summary>
+    /// As the public search, but the first search's passages are reranked against <paramref name="rerankAs"/>:
+    /// keyword retrieval searches with the question and the chat model's search terms, while the reranker
+    /// judges how well a passage answers the question itself.
+    /// </summary>
+    private async Task<IReadOnlyList<SearchResult>> SearchAsync(
+        string query, string rerankAs, int? topK, Func<IReadOnlyList<SearchResult>, Task<IReadOnlyList<string>>>? bridges, CancellationToken cancellationToken)
     {
         var k = topK ?? Settings.TopK;
-        var hits = await RankedAsync(query, k, cancellationToken);
+        var hits = await RankedAsync(query, rerankAs, k, cancellationToken);
         if (bridges is not null && hits.Count > 0)
         {
             var seen = hits.Select(h => PassageKey(h.Chunk.Text)).ToHashSet(StringComparer.Ordinal);
             foreach (var bridge in await bridges(hits))
             {
-                var more = await RankedAsync(bridge, k, cancellationToken);
+                var more = await RankedAsync(bridge, bridge, k, cancellationToken);
                 hits.AddRange(more.Where(h => seen.Add(PassageKey(h.Chunk.Text))).Take(BridgePassages));
             }
         }
@@ -363,9 +372,10 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
     /// repeat: two versions of a policy that differ in one number are near duplicates to an embedder, but the
     /// number is the answer, so both stay. No document takes more than half the places while other documents
     /// match: a spreadsheet with a row per city would otherwise fill them all, and the policy the question
-    /// is about would not be seen.
+    /// is about would not be seen. With a reranker, the candidates of either retrieval are reranked against
+    /// <paramref name="rerankAs"/>.
     /// </summary>
-    private async Task<List<SearchResult>> RankedAsync(string query, int topK, CancellationToken cancellationToken)
+    private async Task<List<SearchResult>> RankedAsync(string query, string rerankAs, int topK, CancellationToken cancellationToken)
     {
         var pool = Math.Max(topK * 3, Settings.RerankCandidates);
         IReadOnlyList<SearchResult> hits;
@@ -379,13 +389,14 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
             hits = result.IsSuccess
                 ? result.Value
                 : throw new InvalidOperationException($"Search failed: {result.Error}");
-            if (_reranker is not null && hits.Count > 0)
-            {
-                // Reranked here rather than in the pipeline, so each hit keeps the cross-encoder's relevance
-                // (0 to 1) as its score: unlike the fused rank score, it says how well the best passage matches.
-                var reranked = await _reranker.Value.RerankAsync(query, hits, cancellationToken);
-                hits = reranked.OrderByDescending(r => r.RelevanceScore).Select(r => r.SearchResult with { Score = r.RelevanceScore }).ToList();
-            }
+        }
+
+        if (_reranker is not null && hits.Count > 0)
+        {
+            // Reranked here rather than in the pipeline, so each hit keeps the cross-encoder's relevance
+            // (0 to 1) as its score: unlike the fused rank or BM25 score, it says how well the best passage matches.
+            var reranked = await _reranker.Value.RerankAsync(rerankAs, hits, cancellationToken);
+            hits = reranked.OrderByDescending(r => r.RelevanceScore).Select(r => r.SearchResult with { Score = r.RelevanceScore }).ToList();
         }
 
         return Spread(hits.DistinctBy(h => PassageKey(h.Chunk.Text), StringComparer.Ordinal).ToList(), topK);
@@ -503,7 +514,7 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
 
         var search = _keywords is null ? query : $"{query} {await SearchTermsAsync(query, evaluation, cancellationToken)}";
         double? best = null;
-        var hits = await SearchAsync(search, Settings.TopK, async found =>
+        var hits = await SearchAsync(search, rerankAs: query, Settings.TopK, async found =>
         {
             // The first search's best match: a bridge search's passages match its own query, not the question.
             best = found.Max(h => h.Score);
@@ -527,7 +538,8 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
                 "\n\nWhere passages disagree, an older edition or a superseded document gives way to the current one: follow the " +
                 "passage that is current (by what the documents say about themselves, then by the newer date) and say which one the answer follows.";
 
-        // Only the reranker's score says how well a passage matches; fused and keyword scores only rank.
+        // Only the reranker's score says how well a passage matches; fused and keyword scores only rank. With a
+        // reranker, every hit of either retrieval carries its relevance, so the check holds in keyword mode too.
         if (CanRerank && best < Settings.WeakMatchBelow)
         {
             context += "\n\nNo passage matches the question closely. Unless a passage states the answer, say that the documents " +
