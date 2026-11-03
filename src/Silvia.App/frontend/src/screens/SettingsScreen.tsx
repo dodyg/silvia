@@ -41,7 +41,7 @@ export function SettingsScreen({ projectId, appearance, onAppearance, onError, o
 
 /** Settings that change what an answer says, so a test set run before and after them can differ. */
 const ANSWER_SETTINGS: ReadonlyArray<keyof ProjectSettingsDto> = [
-  "embedModel", "rerankModel", "chatModel", "judgeModel", "cloudPolicy", "chunkTokens", "chunkOverlap", "topK", "systemPrompt", "documentOverviews", "graphRag", "bridgeSearch",
+  "embedModel", "rerankModel", "chatModel", "judgeModel", "cloudPolicy", "chunkTokens", "chunkOverlap", "topK", "systemPrompt", "documentOverviews", "graphRag", "bridgeSearch", "contextTokens",
 ];
 
 /** After a save that changes answers: how many test questions there are, and when the set last ran. */
@@ -219,6 +219,12 @@ function ProjectSettings({ projectId, onError, onEvaluate }: { projectId: string
             <NumberField label="Earlier exchanges to recall" value={draft.memoryTopK} min={0} max={10} onChange={(v) => set("memoryTopK", v)} />
             <Field label="Recall threshold (% similarity)">
               <input type="number" step="5" min={0} max={100} value={draft.memoryMinPercent} onChange={(event) => set("memoryMinPercent", Number(event.target.value))} />
+            </Field>
+            <Field
+              label="Context budget (tokens)"
+              hint="The most an answer is given: passages, overviews, the knowledge graph, a recalled exchange and the facts. Over it, the recalled exchange goes first, then the graph, the overviews, the bridge passages and the weakest passages; the best passage and the facts always stay. 0 means no limit."
+            >
+              <input type="number" step="1000" min={0} max={200000} value={draft.contextTokens} onChange={(event) => set("contextTokens", Number(event.target.value))} />
             </Field>
           </div>
         </Card>

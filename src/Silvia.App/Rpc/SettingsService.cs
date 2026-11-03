@@ -204,6 +204,11 @@ public sealed class SettingsService(AppHost host)
         return names.ToList();
     }
 
+    // Below about a thousand tokens an answer keeps little more than its best passage; above the largest
+    // context a chat model takes, the budget would never cut anything.
+    private const int MinContextTokens = 1_000;
+    private const int MaxContextTokens = 200_000;
+
     private static ProjectSettingsDto ToDto(ProjectSettings s) => new(
         s.EmbedModel,
         s.EmbedDims,
@@ -219,7 +224,8 @@ public sealed class SettingsService(AppHost host)
         s.DocumentOverviews,
         s.GraphRag,
         s.JudgeModel,
-        s.BridgeSearch);
+        s.BridgeSearch,
+        s.ContextTokens);
 
     /// <summary>Applies the editable fields to the stored settings. The embedder keeps its dimension.</summary>
     private static ProjectSettings FromDto(ProjectSettingsDto dto, ProjectSettings current)
@@ -237,6 +243,11 @@ public sealed class SettingsService(AppHost host)
         if (dto.TopK is < 1 or > 30 || dto.MemoryTopK is < 0 or > 10 || dto.MemoryMinPercent is < 0 or > 100)
         {
             throw Scope.Invalid("Retrieval numbers are out of range.");
+        }
+
+        if (dto.ContextTokens is not 0 and (< MinContextTokens or > MaxContextTokens))
+        {
+            throw Scope.Invalid("The context budget is 0 for no limit, or between 1,000 and 200,000 tokens.");
         }
 
         var embedderChanged = dto.EmbedModel != current.EmbedModel;
@@ -265,6 +276,7 @@ public sealed class SettingsService(AppHost host)
             DocumentOverviews = dto.DocumentOverviews,
             GraphRag = dto.GraphRag,
             BridgeSearch = dto.BridgeSearch,
+            ContextTokens = dto.ContextTokens,
             JudgeModel = dto.JudgeModel?.Trim() ?? string.Empty,
         };
     }

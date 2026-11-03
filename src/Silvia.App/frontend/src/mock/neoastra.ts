@@ -245,7 +245,7 @@ export const settings = Object.freeze({
     return delay({ ...appearance });
   },
   listFonts: () => delay(fonts),
-  getProject: () => delay({ embedModel: "bge-small-en-v1.5", embedDims: 384, rerankModel: "ms-marco-MiniLM-L-6-v2", chatModel: "deepseek-chat", cloudPolicy: "deepseek", chunkTokens: 400, chunkOverlap: 60, topK: 6, memoryTopK: 3, memoryMinPercent: 70, systemPrompt: "Answer from the numbered context.", documentOverviews: true, graphRag: false, judgeModel: "", bridgeSearch: true }),
+  getProject: () => delay({ embedModel: "bge-small-en-v1.5", embedDims: 384, rerankModel: "ms-marco-MiniLM-L-6-v2", chatModel: "deepseek-chat", cloudPolicy: "deepseek", chunkTokens: 400, chunkOverlap: 60, topK: 6, memoryTopK: 3, memoryMinPercent: 70, systemPrompt: "Answer from the numbered context.", documentOverviews: true, graphRag: false, judgeModel: "", bridgeSearch: true, contextTokens: 12000 }),
   updateProject: (request: { settings: unknown }) => delay(request.settings),
   listModels: () => delay([
     { id: "bge-small-en-v1.5", kind: "embedder", dimensions: 384, installed: true, default: true },

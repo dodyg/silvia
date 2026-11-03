@@ -80,7 +80,8 @@ public sealed record ProjectSettingsDto(
     bool DocumentOverviews,
     bool GraphRag,
     string? JudgeModel,
-    bool BridgeSearch);
+    bool BridgeSearch,
+    int ContextTokens);
 
 public sealed record FactDto(string Id, string Text, string CreatedUtc);
 

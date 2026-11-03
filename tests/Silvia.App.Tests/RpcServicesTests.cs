@@ -98,6 +98,16 @@ public sealed class RpcServicesTests
             Assert.Equal("Inter", saved.InterfaceFont);
             Assert.Equal("Inter", (await settings.GetAppearanceAsync(new EmptyRequest(), ct)).InterfaceFont);
 
+            var projectSettings = await settings.GetProjectAsync(new ProjectIdScoped(alpha.Id), ct);
+            Assert.Equal(12_000, projectSettings.ContextTokens);
+            await settings.UpdateProjectAsync(new UpdateProjectSettingsRequest(alpha.Id, projectSettings with { ContextTokens = 4_000 }), ct);
+            Assert.Equal(4_000, (await settings.GetProjectAsync(new ProjectIdScoped(alpha.Id), ct)).ContextTokens);
+            await settings.UpdateProjectAsync(new UpdateProjectSettingsRequest(alpha.Id, projectSettings with { ContextTokens = 0 }), ct);
+            Assert.Equal(0, host.Manager.ReadSettings(alpha.Id).ContextTokens);
+            var tooSmall = await Assert.ThrowsAsync<NeoRpcException>(() =>
+                settings.UpdateProjectAsync(new UpdateProjectSettingsRequest(alpha.Id, projectSettings with { ContextTokens = 500 }), ct).AsTask());
+            Assert.Equal("invalid_request", tooSmall.Code);
+
             await projects.DeleteAsync(new ProjectIdRequest(beta.Id), ct);
             Assert.Single(await projects.ListAsync(new EmptyRequest(), ct));
             Assert.False(Directory.Exists(Path.Combine(data, "projects", beta.Id)));
