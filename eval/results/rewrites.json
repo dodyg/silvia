@@ -1,0 +1,66 @@
+[
+  {
+    "History": [
+      "Which flights are booked in economy class?",
+      "Flights shorter than six hours are booked in economy class."
+    ],
+    "Question": "What about longer ones?",
+    "Query": "What about flights longer than six hours?"
+  },
+  {
+    "History": [
+      "What is the nightly hotel cap?",
+      "The nightly hotel cap is 180 euros."
+    ],
+    "Question": "And the meal allowance when I\u0027m abroad?",
+    "Query": "What is the meal allowance when I am abroad?"
+  },
+  {
+    "History": [
+      "How long are backups kept?",
+      "Backups are kept for 35 days and then destroyed."
+    ],
+    "Question": "How often are they tested?",
+    "Query": "How often are backups tested?"
+  },
+  {
+    "History": [
+      "How often is the status page updated during an incident?",
+      "At least every 30 minutes during an incident."
+    ],
+    "Question": "And once it\u0027s closed, when is the write-up due?",
+    "Query": "And once the incident is closed, when is the write-up due?"
+  },
+  {
+    "History": [
+      "What rating are the spare fuses in the Lumen kit?",
+      "The spare fuses in the pouch are rated at 7.5 amps."
+    ],
+    "Question": "What usually makes one blow?",
+    "Query": "What usually makes a fuse blow?"
+  },
+  {
+    "History": [
+      "How much is the Basic plan?",
+      "The Basic plan costs 9 euros per user per month."
+    ],
+    "Question": "And the next one up?",
+    "Query": "How much is the next plan up from the Basic plan?"
+  },
+  {
+    "History": [
+      "Who approves new vendors?",
+      "New vendors are approved by the procurement lead, Dana Okafor."
+    ],
+    "Question": "When is she away?",
+    "Query": "When is Dana Okafor away?"
+  },
+  {
+    "History": [
+      "How long is paid parental leave for primary caregivers?",
+      "Primary caregivers receive 16 weeks of paid parental leave."
+    ],
+    "Question": "How far ahead do I have to ask?",
+    "Query": "How far ahead do I have to ask for paid parental leave as a primary caregiver?"
+  }
+]
