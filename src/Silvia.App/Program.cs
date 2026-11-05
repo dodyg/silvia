@@ -10,6 +10,12 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        // Checks an installed build without a window; see scripts/smoke-test.ps1.
+        if (args.Contains(SmokeTest.Argument))
+        {
+            return SmokeTest.Run(Console.Out);
+        }
+
         // The data folder and the project manager exist before the window, so a failed recovery
         // stops the app before it shows anything.
         using var host = AppHost.Create();
@@ -29,6 +35,7 @@ internal static class Program
             {
                 window.BackgroundColor = background;
                 host.FolderPicker.Attach(application, window);
+                host.Tray.Attach(application, window, host.DataRoot);
             });
             app.UseRpc(rpc => rpc
                 .AddProjectsService(new ProjectsService(host))

@@ -57,6 +57,30 @@ public sealed partial class ProjectRuntime
     }
 
     /// <summary>
+    /// Queues a new download of every page last fetched more than <see cref="ProjectSettings.WebRefreshHours"/> ago, and
+    /// returns how many. Runs when the project opens and with each hourly rescan; nothing when the setting is zero. A
+    /// page waiting for its first fetch is already queued. Unchanged pages cost a conditional request and nothing else.
+    /// </summary>
+    public int RefreshStaleWebPages(DateTimeOffset? now = null)
+    {
+        if (Settings.WebRefreshHours <= 0)
+        {
+            return 0;
+        }
+
+        var cutoff = (now ?? DateTimeOffset.UtcNow) - TimeSpan.FromHours(Settings.WebRefreshHours);
+        var stale = _webPages.List()
+            .Where(p => p.Status != WebPageStatus.Pending && (p.FetchedUtc is null || p.FetchedUtc <= cutoff))
+            .ToList();
+        foreach (var page in stale)
+        {
+            QueueFetch(page);
+        }
+
+        return stale.Count;
+    }
+
+    /// <summary>
     /// Removes a page: its row, its saved copy and its document. Throws <see cref="KeyNotFoundException"/> when
     /// the project has no such page.
     /// </summary>

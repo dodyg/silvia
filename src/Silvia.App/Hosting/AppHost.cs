@@ -22,6 +22,22 @@ public sealed class AppHost : IDisposable
         // Open projects that started without the models reopen with them on their next use.
         Downloads = new ModelDownloadService(modelsRoot, _http, completed: manager.CloseAll);
         ChatProvider = new ChatProvider(_http, manager.Options.DeepSeekEndpoint, () => ChatKey(secrets));
+        Tray = new TrayIcon(() => CloseToTray);
+    }
+
+    /// <summary>The icon in the notification area. It is shown once the main window attaches it.</summary>
+    public TrayIcon Tray { get; }
+
+    private const string CloseToTrayKey = "app.closeToTray";
+
+    /// <summary>
+    /// Whether closing the window hides it in the notification area, so indexing, web-page refresh and folder watching
+    /// go on until <b>Quit Silvia</b>. Off by default: closing the window quits.
+    /// </summary>
+    public bool CloseToTray
+    {
+        get => Manager.GetGlobal(CloseToTrayKey) == "true";
+        set => Manager.SetGlobal(CloseToTrayKey, value ? "true" : "false");
     }
 
     /// <summary>Checks the DeepSeek key and lists the chat models it can use.</summary>

@@ -241,6 +241,19 @@ function ProjectSettings({ projectId, onError, onEvaluate }: { projectId: string
         </Card>
       </Section>
 
+      <Section title="Web pages" description="How often the project's web pages are downloaded again by themselves.">
+        <Card>
+          <div className="form-grid">
+            <Field
+              label="Refresh web pages after (hours)"
+              hint="A page last downloaded longer ago is downloaded again when the project opens, and checked every hour while it is open. A page that has not changed costs one short request and is not indexed again. 0 means only when you choose Refresh."
+            >
+              <input type="number" step="1" min={0} max={8760} value={draft.webRefreshHours} onChange={(event) => set("webRefreshHours", Number(event.target.value))} />
+            </Field>
+          </div>
+        </Card>
+      </Section>
+
       <Section title="System prompt" description="The standing instructions sent with every question.">
         <Card>
           <Field label="System prompt">
@@ -441,6 +454,14 @@ function GlobalSettings({ onError }: { onError: (message: string | null) => void
     }
   }
 
+  async function setCloseToTray(enabled: boolean) {
+    try {
+      setGlobal(await settings.setCloseToTray({ enabled }));
+    } catch (failure) {
+      onError(describeError(failure));
+    }
+  }
+
   async function removeKey() {
     setNotice(null);
     setCheck(null);
@@ -471,6 +492,27 @@ function GlobalSettings({ onError }: { onError: (message: string | null) => void
             <span className="field-label">Models folder</span>
             <span className="path">{global.modelsRoot}</span>
           </div>
+        </Card>
+      </Section>
+
+      <Section title="Window" description="What closing the window does.">
+        <Card>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={global.closeToTray}
+              disabled={!global.trayAvailable}
+              onChange={(event) => void setCloseToTray(event.target.checked)}
+            />
+            <span>
+              Keep running in the notification area when the window is closed
+              <span className="field-hint">
+                {global.trayAvailable
+                  ? "Folders stay watched and web pages refreshed while the window is closed. Click Silvia's icon to open it again; choose Quit Silvia in its menu to stop."
+                  : "The notification area is not available, so closing the window quits Silvia."}
+              </span>
+            </span>
+          </label>
         </Card>
       </Section>
 

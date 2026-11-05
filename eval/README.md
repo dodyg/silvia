@@ -31,11 +31,13 @@ Run from the repository root, after `scripts/fetch-models.ps1`. A full run takes
 dotnet run --project eval/Silvia.Eval                 # print the grid of settings
 dotnet run --project eval/Silvia.Eval -- --record     # write results/baseline.json and baseline.md
 dotnet run --project eval/Silvia.Eval -- --check      # exit 1 when the default setting drops more than 2 points
+dotnet run --project eval/Silvia.Eval -- --default    # only the default setting, in about a minute
 ```
 
 The grid varies chunk size (200, 400, 800 tokens), passages per answer (3, 6) and the reranker (off, on). The
 report gives the hit rate per kind, evidence recall, and how well a threshold on the top score separates
-unanswerable questions. The run stops if any corpus file was not indexed, so a parser that silently skips a format
+unanswerable questions, alone and together with the check chat makes for names, numbers and acronyms of the
+question that no passage mentions. `--default` runs only the default setting, for a quick look; it cannot record. The run stops if any corpus file was not indexed, so a parser that silently skips a format
 shows up as an error, not as missed questions. The regression check compares the overall hit rate of the default
 setting only (400 tokens, 6 passages, reranker on), and lists any kind that dropped.
 

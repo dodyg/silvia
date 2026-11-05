@@ -476,6 +476,10 @@ correctly with any font choice.
   shell methods with permissions.
 - Indexed files are untrusted input to the LLM. Use `Rag.NET.Security` sanitization and prompt
   hardening, and have the system prompt tell the model to treat context as data.
+  *As built:* `Silvia.Core/Runtime/PromptGuard.cs`, without a new package. Passages lose invisible characters
+  (format and tag characters), imitations of the prompt's structure are defused, a passage addressed to an AI is
+  labelled, and a fixed system message after the editable system prompt says the context is data. Citations keep
+  the document's own text.
 - `shell.openFile` takes a document id and resolves it through that project's `rag_documents`, so
   the UI can't pass arbitrary paths.
 
@@ -488,7 +492,7 @@ correctly with any font choice.
 | **M2** Headless core with projects (1.5 wk) | `Silvia.Core`: `ProjectManager` (catalog, create/delete/duplicate/export/import, crash recovery), `ProjectRuntime` + LRU, `ModelPool`, sources, queue, watcher, job persistence, embedding-versioning re-index | Folder edits reflected in search within 5 s; kill-and-restart loses no jobs; **isolation test suite green** (below) |
 | **M3** Desktop shell (2 wk) | NeoAstra app: design tokens + light/dark/system theme and font variables **from the first component**; project switcher + Projects page, Library, Chat (streaming + citations), Search, Activity; Appearance settings (theme, two font sizes, three font slots, bundled fonts, system font enumeration) | Daily-usable end to end on Windows with ≥ 2 projects; screenshot check of every screen in light and dark at min/default/max font size; no flash on start in dark mode; contrast test green |
 | **M4** Quality pass (1 wk) | `eval/` golden set (~30 Q&A over your own docs), `Rag.NET.Evaluation`; tune chunk size, TopK, reranker | Recorded baseline; regressions visible |
-| **M5** Polish and ship | Settings + model download, credential storage, tray icon, `dotnet neoastra` publish/installer | Installable build; fresh-machine smoke test |
+| **M5** Polish and ship | Settings + model download, credential storage, tray icon, `dotnet neoastra` publish/installer | Installable build; fresh-machine smoke test (`scripts/smoke-test.ps1`, which runs `Silvia.exe --smoke-test` on an empty data folder) |
 | Later | Opt-in read-only cross-project search (`FederatedVectorStore`), int8 quantization / sqlite-vec, GraphRAG/RAPTOR, OCR for scanned PDFs, MCP server (`Rag.NET.Mcp`, one tool per project), macOS/Linux | |
 
 ### Isolation test suite (M2 exit gate)

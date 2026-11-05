@@ -265,6 +265,43 @@ public sealed class WebPageTests
     }
 
     [Fact]
+    public async Task Pages_Older_Than_The_Refresh_Interval_Are_Downloaded_Again()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var web = new FakeWeb();
+        web.Html(Pricing, "Pricing", $"<p>The Heliotrope plan costs 12 euros. {Filler}</p>");
+        using var harness = Harness(web);
+        var project = harness.Manager.Create("Web", settings: CoreHarness.FakeSettings() with { WebRefreshHours = 24 });
+        var runtime = harness.Manager.Open(project.Id);
+        runtime.AddWebPages([Pricing.AbsoluteUri]);
+        await runtime.WaitForIdleAsync(ct);
+        Assert.Equal(1, web.Requests(Pricing));
+
+        // Fetched just now: not due.
+        Assert.Equal(0, runtime.RefreshStaleWebPages());
+        Assert.Equal(0, runtime.RefreshStaleWebPages(DateTimeOffset.UtcNow.AddHours(23)));
+
+        Assert.Equal(1, runtime.RefreshStaleWebPages(DateTimeOffset.UtcNow.AddHours(25)));
+        await runtime.WaitForIdleAsync(ct);
+        Assert.Equal(2, web.Requests(Pricing));
+    }
+
+    [Fact]
+    public async Task Zero_Hours_Refreshes_Only_On_Demand()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var web = new FakeWeb();
+        web.Html(Pricing, "Pricing", $"<p>The Heliotrope plan costs 12 euros. {Filler}</p>");
+        using var harness = Harness(web);
+        var project = harness.Manager.Create("Web", settings: CoreHarness.FakeSettings() with { WebRefreshHours = 0 });
+        var runtime = harness.Manager.Open(project.Id);
+        runtime.AddWebPages([Pricing.AbsoluteUri]);
+        await runtime.WaitForIdleAsync(ct);
+
+        Assert.Equal(0, runtime.RefreshStaleWebPages(DateTimeOffset.UtcNow.AddYears(1)));
+    }
+
+    [Fact]
     public async Task Remove_Clears_The_Document_And_The_File()
     {
         var ct = TestContext.Current.CancellationToken;

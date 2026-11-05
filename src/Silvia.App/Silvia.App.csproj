@@ -8,11 +8,17 @@
     <RootNamespace>Silvia.App</RootNamespace>
     <AssemblyName>Silvia</AssemblyName>
     <UseWindowsForms>false</UseWindowsForms>
+    <!-- The executable's icon; the same file is the tray icon (Hosting/TrayIcon.cs). Drawn by scripts/make-icon.ps1. -->
+    <ApplicationIcon>Resources\silvia.ico</ApplicationIcon>
     <DefaultItemExcludes>$(DefaultItemExcludes);frontend/node_modules/**;frontend/dist/**;frontend/dist-mock/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="NeoAstra" Version="1.9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Resources\silvia.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

@@ -269,6 +269,8 @@ export const facts = Object.freeze({
   },
 });
 
+let mockCloseToTray = false;
+
 export const settings = Object.freeze({
   getAppearance: () => delay({ ...appearance }),
   updateAppearance: (request: typeof appearance) => {
@@ -276,13 +278,17 @@ export const settings = Object.freeze({
     return delay({ ...appearance });
   },
   listFonts: () => delay(fonts),
-  getProject: () => delay({ embedModel: "bge-small-en-v1.5", embedDims: 384, rerankModel: "ms-marco-MiniLM-L-6-v2", chatModel: "deepseek-chat", cloudPolicy: "deepseek", chunkTokens: 400, chunkOverlap: 60, topK: 6, memoryTopK: 3, memoryMinPercent: 70, systemPrompt: "Answer from the numbered context.", documentOverviews: true, graphRag: false, judgeModel: "", bridgeSearch: true, contextTokens: 12000 }),
+  getProject: () => delay({ embedModel: "bge-small-en-v1.5", embedDims: 384, rerankModel: "ms-marco-MiniLM-L-6-v2", chatModel: "deepseek-chat", cloudPolicy: "deepseek", chunkTokens: 400, chunkOverlap: 60, topK: 6, memoryTopK: 3, memoryMinPercent: 70, systemPrompt: "Answer from the numbered context.", documentOverviews: true, graphRag: false, judgeModel: "", bridgeSearch: true, contextTokens: 12000, webRefreshHours: 24 }),
   updateProject: (request: { settings: unknown }) => delay(request.settings),
   listModels: () => delay([
     { id: "bge-small-en-v1.5", kind: "embedder", dimensions: 384, installed: true, default: true },
     { id: "ms-marco-MiniLM-L-6-v2", kind: "reranker", dimensions: 0, installed: false, default: true },
   ]),
-  getGlobal: () => delay({ dataRoot: "C:/Users/me/AppData/Local/Silvia", modelsRoot: "C:/Users/me/AppData/Local/Silvia/models", deepSeekKeyConfigured: true, maxOpenProjects: 3 }),
+  getGlobal: () => delay({ dataRoot: "C:/Users/me/AppData/Local/Silvia", modelsRoot: "C:/Users/me/AppData/Local/Silvia/models", deepSeekKeyConfigured: true, maxOpenProjects: 3, closeToTray: mockCloseToTray, trayAvailable: true }),
+  setCloseToTray: ({ enabled }: { enabled: boolean }) => {
+    mockCloseToTray = enabled;
+    return delay({ dataRoot: "C:/Users/me/AppData/Local/Silvia", modelsRoot: "C:/Users/me/AppData/Local/Silvia/models", deepSeekKeyConfigured: true, maxOpenProjects: 3, closeToTray: mockCloseToTray, trayAvailable: true });
+  },
   setDeepSeekKey: () => delay(providerOk("Saved. DeepSeek accepted the key and offers 2 chat models.")),
   verifyDeepSeekKey: () => delay(providerOk("The key works. DeepSeek offers 2 chat models.")),
   listChatModels: () => delay(providerOk("The key works. DeepSeek offers 2 chat models.")),

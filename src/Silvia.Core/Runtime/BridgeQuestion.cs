@@ -23,7 +23,7 @@ public static class BridgeQuestion
     {
         var passages = string.Join("\n\n", hits.Select(CitedChunk.From).Select((c, i) =>
         {
-            var text = c.Text.Trim();
+            var text = PromptGuard.Clean(c.Text).Trim();
             return $"[{i + 1}] {c.FileName}\n{(text.Length <= MaxPassageChars ? text : text[..MaxPassageChars] + "…")}";
         }));
 

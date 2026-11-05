@@ -63,7 +63,17 @@ public sealed class SettingsService(AppHost host)
             host.DataRoot,
             host.ModelsRoot,
             !string.IsNullOrWhiteSpace(AppHost.ChatKey(host.Secrets)),
-            host.Manager.Options.MaxOpenRuntimes));
+            host.Manager.Options.MaxOpenRuntimes,
+            host.CloseToTray,
+            host.Tray.IsShown));
+
+    /// <summary>Turns closing the window into hiding it in the notification area, or back into quitting.</summary>
+    [NeoRpcMethod("setCloseToTray")]
+    public ValueTask<GlobalSettingsDto> SetCloseToTrayAsync(SetCloseToTrayRequest request, CancellationToken cancellationToken)
+    {
+        host.CloseToTray = request.Enabled;
+        return GetGlobalAsync(new EmptyRequest(), cancellationToken);
+    }
 
     /// <summary>
     /// Checks the key with DeepSeek, then saves it, protected for this Windows user. A key DeepSeek rejects
@@ -209,6 +219,8 @@ public sealed class SettingsService(AppHost host)
     private const int MinContextTokens = 1_000;
     private const int MaxContextTokens = 200_000;
 
+    private const int MaxWebRefreshHours = 24 * 365;
+
     private static ProjectSettingsDto ToDto(ProjectSettings s) => new(
         s.EmbedModel,
         s.EmbedDims,
@@ -225,7 +237,8 @@ public sealed class SettingsService(AppHost host)
         s.GraphRag,
         s.JudgeModel,
         s.BridgeSearch,
-        s.ContextTokens);
+        s.ContextTokens,
+        s.WebRefreshHours);
 
     /// <summary>Applies the editable fields to the stored settings. The embedder keeps its dimension.</summary>
     private static ProjectSettings FromDto(ProjectSettingsDto dto, ProjectSettings current)
@@ -248,6 +261,11 @@ public sealed class SettingsService(AppHost host)
         if (dto.ContextTokens is not 0 and (< MinContextTokens or > MaxContextTokens))
         {
             throw Scope.Invalid("The context budget is 0 for no limit, or between 1,000 and 200,000 tokens.");
+        }
+
+        if (dto.WebRefreshHours is < 0 or > MaxWebRefreshHours)
+        {
+            throw Scope.Invalid("Web pages are refreshed after 0 (only on demand) to 8,760 hours (a year).");
         }
 
         var embedderChanged = dto.EmbedModel != current.EmbedModel;
@@ -277,6 +295,7 @@ public sealed class SettingsService(AppHost host)
             GraphRag = dto.GraphRag,
             BridgeSearch = dto.BridgeSearch,
             ContextTokens = dto.ContextTokens,
+            WebRefreshHours = dto.WebRefreshHours,
             JudgeModel = dto.JudgeModel?.Trim() ?? string.Empty,
         };
     }

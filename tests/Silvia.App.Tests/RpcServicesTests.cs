@@ -108,6 +108,20 @@ public sealed class RpcServicesTests
                 settings.UpdateProjectAsync(new UpdateProjectSettingsRequest(alpha.Id, projectSettings with { ContextTokens = 500 }), ct).AsTask());
             Assert.Equal("invalid_request", tooSmall.Code);
 
+            Assert.Equal(24, projectSettings.WebRefreshHours);
+            await settings.UpdateProjectAsync(new UpdateProjectSettingsRequest(alpha.Id, projectSettings with { WebRefreshHours = 0 }), ct);
+            Assert.Equal(0, host.Manager.ReadSettings(alpha.Id).WebRefreshHours);
+            var negative = await Assert.ThrowsAsync<NeoRpcException>(() =>
+                settings.UpdateProjectAsync(new UpdateProjectSettingsRequest(alpha.Id, projectSettings with { WebRefreshHours = -1 }), ct).AsTask());
+            Assert.Equal("invalid_request", negative.Code);
+
+            // No window attached the tray here, so closing to it is off and reported unavailable, but the choice is kept.
+            var global = await settings.GetGlobalAsync(new EmptyRequest(), ct);
+            Assert.False(global.CloseToTray);
+            Assert.False(global.TrayAvailable);
+            Assert.True((await settings.SetCloseToTrayAsync(new SetCloseToTrayRequest(true), ct)).CloseToTray);
+            Assert.True(host.CloseToTray);
+
             await projects.DeleteAsync(new ProjectIdRequest(beta.Id), ct);
             Assert.Single(await projects.ListAsync(new EmptyRequest(), ct));
             Assert.False(Directory.Exists(Path.Combine(data, "projects", beta.Id)));

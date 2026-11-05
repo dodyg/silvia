@@ -82,7 +82,8 @@ public sealed record ProjectSettingsDto(
     bool GraphRag,
     string? JudgeModel,
     bool BridgeSearch,
-    int ContextTokens);
+    int ContextTokens,
+    int WebRefreshHours);
 
 public sealed record FactDto(string Id, string Text, string CreatedUtc);
 
@@ -96,7 +97,10 @@ public sealed record UpdateProjectSettingsRequest(string ProjectId, ProjectSetti
 
 public sealed record ModelDto(string Id, string Kind, int Dimensions, bool Installed, bool Default);
 
-public sealed record GlobalSettingsDto(string DataRoot, string ModelsRoot, bool DeepSeekKeyConfigured, int MaxOpenProjects);
+/// <summary>App-wide settings. TrayAvailable is false where the icon could not be shown; closing then always quits.</summary>
+public sealed record GlobalSettingsDto(string DataRoot, string ModelsRoot, bool DeepSeekKeyConfigured, int MaxOpenProjects, bool CloseToTray, bool TrayAvailable);
+
+public sealed record SetCloseToTrayRequest(bool Enabled);
 
 public sealed record AppearanceDto(
     string Theme,
@@ -353,6 +357,7 @@ public sealed record RunComparisonDto(EvalRunDto Before, EvalRunDto After, IRead
 [JsonSerializable(typeof(ModelDto))]
 [JsonSerializable(typeof(ModelDto[]))]
 [JsonSerializable(typeof(GlobalSettingsDto))]
+[JsonSerializable(typeof(SetCloseToTrayRequest))]
 [JsonSerializable(typeof(AppearanceDto))]
 [JsonSerializable(typeof(FontListDto))]
 [JsonSerializable(typeof(OpenDocumentRequest))]

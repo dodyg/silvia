@@ -81,6 +81,13 @@ public sealed record ProjectSettings
     /// </summary>
     public double WeakMatchBelow { get; init; } = 0.01;
 
+    /// <summary>
+    /// How old, in hours, a web page's last download may be before Silvia downloads it again by itself, when the project
+    /// opens or at its hourly rescan. Zero means only on demand. A page that has not changed costs one conditional
+    /// request, and is not indexed again.
+    /// </summary>
+    public int WebRefreshHours { get; init; } = 24;
+
     /// <summary>How many earlier exchanges to recall for a new question.</summary>
     public int MemoryTopK { get; init; } = 3;
 

@@ -5,6 +5,7 @@
 //   dotnet run --project eval/Silvia.Eval                 # print the grid
 //   dotnet run --project eval/Silvia.Eval -- --record     # also write eval/results/baseline.*
 //   dotnet run --project eval/Silvia.Eval -- --check      # exit 1 if the default setting regressed
+//   dotnet run --project eval/Silvia.Eval -- --default    # only the default setting, for a quick look
 //
 // Run from the repository root. Needs the local models (scripts/fetch-models.ps1).
 
@@ -50,6 +51,16 @@ var configs = (from chunk in new[] { 200, 400, 800 }
                from topK in new[] { 3, 6 }
                from rerank in new[] { false, true }
                select new Config(chunk, topK, rerank)).OrderByDescending(IsDefaultConfig).ToList();
+if (args.Contains("--default"))
+{
+    if (args.Contains("--record"))
+    {
+        Console.Error.WriteLine("--record needs the whole grid; run it without --default.");
+        return 2;
+    }
+
+    configs = configs.Where(IsDefaultConfig).ToList();
+}
 
 var results = new List<ConfigResult>();
 var rewritesPath = Path.Combine(resultsRoot, "rewrites.json");
@@ -190,7 +201,9 @@ static async Task<ConfigResult> RunAsync(Config config, List<EvalCase> cases, st
             var ranks = item.Evidence.Select(e => Rank(hits, e)).ToList();
             var found = ranks.Count(r => r > 0);
             var rank = item.Evidence.Count > 0 && found == item.Evidence.Count ? ranks.Max() : 0;
-            outcomes.Add(new Outcome(item.Id, item.Kind, rank, found, item.Evidence.Count, best));
+            // The names, numbers and acronyms of the question that no passage mentions, as chat checks them.
+            var unmentioned = QuestionShape.Unmentioned(query, hits.SelectMany(h => new[] { h.Chunk.Text, FileName(h.Chunk) }));
+            outcomes.Add(new Outcome(item.Id, item.Kind, rank, found, item.Evidence.Count, best, unmentioned.ToList()));
         }
 
         var answerable = outcomes.Where(o => o.Kind != Kinds.Unanswerable).ToList();
@@ -201,6 +214,7 @@ static async Task<ConfigResult> RunAsync(Config config, List<EvalCase> cases, st
             Mrr: answerable.Average(o => o.Rank > 0 ? 1.0 / o.Rank : 0.0),
             Recall: answerable.Sum(o => o.Found) / (double)answerable.Sum(o => o.Of),
             Abstain: AbstainAccuracy(outcomes),
+            AbstainWithTerms: AbstainThreshold(outcomes, withTerms: true).Accuracy,
             byKind,
             outcomes);
     }
@@ -267,13 +281,16 @@ static async Task<(List<EvalCase> Cases, string Note)> RewriteFollowUpsAsync(
     return (rewritten, note);
 }
 
+static string FileName(Rag.NET.Models.TextChunk chunk) =>
+    chunk.Metadata.TryGetValue("file_name", out var name) ? name.ToString() ?? string.Empty : string.Empty;
+
 // The 1-based position of the first hit from the evidence's file that holds every term, or 0.
 static int Rank(IReadOnlyList<Rag.NET.Models.SearchResult> hits, Evidence evidence)
 {
     for (var i = 0; i < hits.Count; i++)
     {
         var chunk = hits[i].Chunk;
-        var fileName = chunk.Metadata.TryGetValue("file_name", out var name) ? name.ToString() : string.Empty;
+        var fileName = FileName(chunk);
         var text = Normalize(chunk.Text);
         if (string.Equals(fileName, evidence.File, StringComparison.Ordinal) && evidence.Terms.All(t => text.Contains(Normalize(t), StringComparison.Ordinal)))
         {
@@ -288,18 +305,20 @@ static int Rank(IReadOnlyList<Rag.NET.Models.SearchResult> hits, Evidence eviden
 // accuracy (mean of both classes' recall) at the best threshold. 0.5 means the score says nothing.
 static double AbstainAccuracy(List<Outcome> outcomes) => AbstainThreshold(outcomes).Accuracy;
 
-// The threshold behind AbstainAccuracy: a best hit scoring below it counts as "the documents don't say".
-static (double Threshold, double Accuracy) AbstainThreshold(List<Outcome> outcomes)
+// The threshold behind AbstainAccuracy: a best hit scoring below it counts as "the documents don't say". With
+// terms, so does a question whose names, numbers or acronyms no passage mentions, as chat tells the model.
+static (double Threshold, double Accuracy) AbstainThreshold(List<Outcome> outcomes, bool withTerms = false)
 {
-    var none = outcomes.Where(o => o.Kind == Kinds.Unanswerable).Select(o => o.TopScore).ToList();
-    var some = outcomes.Where(o => o.Kind != Kinds.Unanswerable).Select(o => o.TopScore).ToList();
+    var none = outcomes.Where(o => o.Kind == Kinds.Unanswerable).ToList();
+    var some = outcomes.Where(o => o.Kind != Kinds.Unanswerable).ToList();
     if (none.Count == 0 || some.Count == 0)
     {
         return (0, 0);
     }
 
-    return outcomes.Select(o => o.TopScore).Append(double.MaxValue)
-        .Select(t => (Threshold: t, Accuracy: (none.Count(s => s < t) / (double)none.Count + some.Count(s => s >= t) / (double)some.Count) / 2))
+    bool Abstains(Outcome o, double t) => o.TopScore < t || (withTerms && o.Unmentioned.Count > 0);
+    return outcomes.Select(o => o.TopScore).Append(double.MaxValue).Prepend(0)
+        .Select(t => (Threshold: t, Accuracy: (none.Count(o => Abstains(o, t)) / (double)none.Count + some.Count(o => !Abstains(o, t)) / (double)some.Count) / 2))
         .MaxBy(x => x.Accuracy);
 }
 
@@ -320,13 +339,13 @@ static void TryDelete(string folder)
 static string Table(List<ConfigResult> results)
 {
     var builder = new StringBuilder();
-    builder.AppendLine($"| Chunk | K | Rerank | All | {string.Join(" | ", Kinds.Answerable)} | Evidence recall | MRR | Abstain |");
-    builder.AppendLine($"|---:|---:|:---:|---:|{string.Concat(Kinds.Answerable.Select(_ => "---:|"))}---:|---:|---:|");
+    builder.AppendLine($"| Chunk | K | Rerank | All | {string.Join(" | ", Kinds.Answerable)} | Evidence recall | MRR | Abstain | Abstain + terms |");
+    builder.AppendLine($"|---:|---:|:---:|---:|{string.Concat(Kinds.Answerable.Select(_ => "---:|"))}---:|---:|---:|---:|");
     foreach (var result in results.OrderBy(r => r.Config.Chunk).ThenBy(r => r.Config.TopK).ThenBy(r => r.Config.Rerank))
     {
         var kinds = string.Join(" | ", Kinds.Answerable.Select(k => Percent(result.ByKind.GetValueOrDefault(k))));
         builder.AppendLine(string.Create(CultureInfo.InvariantCulture,
-            $"| {result.Config.Chunk} | {result.Config.TopK} | {(result.Config.Rerank ? "on" : "off")} | **{Percent(result.HitRate)}** | {kinds} | {Percent(result.Recall)} | {result.Mrr:F3} | {result.Abstain:F2} |"));
+            $"| {result.Config.Chunk} | {result.Config.TopK} | {(result.Config.Rerank ? "on" : "off")} | **{Percent(result.HitRate)}** | {kinds} | {Percent(result.Recall)} | {result.Mrr:F3} | {result.Abstain:F2} | {result.AbstainWithTerms:F2} |"));
     }
 
     return builder.ToString();
@@ -357,6 +376,14 @@ static string Missed(ConfigResult result, List<EvalCase> cases)
         var unanswerable = result.Outcomes.Where(o => o.Kind == Kinds.Unanswerable).OrderBy(o => o.TopScore);
         builder.AppendLine(string.Create(CultureInfo.InvariantCulture,
             $"- **unanswerable, best-hit score each**: {string.Join(", ", unanswerable.Select(o => $"{o.Id} ({o.TopScore:F3})"))}"));
+        builder.AppendLine(
+            $"- **unmentioned terms**: {Flagged(Kinds.Unanswerable, true)} of {scores.Count} unanswerable, {Flagged(Kinds.Unanswerable, false)} of {answered.Count} answerable " +
+            $"({string.Join(", ", result.Outcomes.Where(o => o.Kind != Kinds.Unanswerable && o.Unmentioned.Count > 0).Select(o => $"{o.Id}: {string.Join(", ", o.Unmentioned)}"))})");
+        var combined = AbstainThreshold(result.Outcomes, withTerms: true);
+        builder.AppendLine(string.Create(CultureInfo.InvariantCulture,
+            $"- **with unmentioned terms**: balanced accuracy {combined.Accuracy:F2} at threshold {combined.Threshold:F3}; at the app's weak-match cut of {new ProjectSettings().WeakMatchBelow:F2}, " +
+            $"{result.Outcomes.Count(o => o.Kind == Kinds.Unanswerable && (o.TopScore < new ProjectSettings().WeakMatchBelow || o.Unmentioned.Count > 0))} of {scores.Count} unanswerable and " +
+            $"{result.Outcomes.Count(o => o.Kind != Kinds.Unanswerable && (o.TopScore < new ProjectSettings().WeakMatchBelow || o.Unmentioned.Count > 0))} of {answered.Count} answerable are flagged"));
         foreach (var cut in new[] { 0.01, 0.05, 0.1, 0.2 })
         {
             var weak = result.Outcomes.Where(o => o.TopScore < cut).ToList();
@@ -366,6 +393,9 @@ static string Missed(ConfigResult result, List<EvalCase> cases)
     }
 
     return builder.ToString();
+
+    int Flagged(string kind, bool same) =>
+        result.Outcomes.Count(o => (o.Kind == kind) == same && o.Unmentioned.Count > 0);
 }
 
 static string Report(string table, string missed, List<EvalCase> cases)
@@ -400,8 +430,12 @@ static string Report(string table, string missed, List<EvalCase> cases)
         of the best single threshold on the top hit's score at telling unanswerable questions from the rest
         (0.5 means the score says nothing). With the reranker on, that score is its relevance from 0 to 1, which
         the app's `WeakMatchBelow` setting is chosen from; with it off, it is a fused rank score that says little
-        about relevance. MRR uses the final order of the hits, which the lost-in-the-middle
-        reordering changes, so read it as a rough signal only.
+        about relevance. *Abstain + terms* is the same, except that a question also counts as unanswerable when a name,
+        number or acronym in it appears in none of its passages, which chat tells the model too. MRR uses the final order
+        of the hits, which the lost-in-the-middle reordering changes, so read it as a rough signal only.
+
+        Searches run as chat runs them: a question that asks for every item of a kind ("List everything…", "Which
+        rules…") gets twice the passages.
 
         Recorded on the default settings of the app: 400-token chunks, 6 passages, reranker on. The regression
         check compares the *All* column of that row.
@@ -496,7 +530,8 @@ internal sealed record Config(int Chunk, int TopK, bool Rerank)
     public string Label => $"c{Chunk}-k{TopK}-{(Rerank ? "rr" : "norr")}";
 }
 
-internal sealed record Outcome(string Id, string Kind, int Rank, int Found, int Of, double TopScore);
+/// <summary>One question's result. Unmentioned lists the question's names, numbers and acronyms that no passage mentions.</summary>
+internal sealed record Outcome(string Id, string Kind, int Rank, int Found, int Of, double TopScore, List<string> Unmentioned);
 
 internal sealed record ConfigResult(
     Config Config,
@@ -504,6 +539,7 @@ internal sealed record ConfigResult(
     double Mrr,
     double Recall,
     double Abstain,
+    double AbstainWithTerms,
     Dictionary<string, double> ByKind,
     List<Outcome> Outcomes);
 

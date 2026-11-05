@@ -93,6 +93,68 @@ public sealed class RetrievalShapeTests
         Assert.Equal(weak, context.Contains("No passage matches the question closely", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("List everything Dana Okafor is responsible for.", true)]
+    [InlineData("Which rules set a deadline counted in working days?", true)]
+    [InlineData("What are all the deadlines?", true)]
+    [InlineData("What is the hotel cap?", false)]
+    [InlineData("What does the travel policy say about trains?", false)]
+    [InlineData("Which process applies to refunds?", false)]
+    public void A_Question_For_Every_Item_Of_A_Kind_Is_Recognised(string question, bool all) =>
+        Assert.Equal(all, QuestionShape.AsksForAll(question));
+
+    [Fact]
+    public void Salient_Terms_Are_Names_Numbers_Acronyms_And_Quotes()
+    {
+        Assert.Equal(["Lumen", "Accra"], QuestionShape.SalientTerms("When does the Lumen pilot launch in Accra?"));
+        Assert.Equal(["night shift", "Dana", "2027", "VPN"],QuestionShape.SalientTerms("Did Dana's 2027 VPN request cover the \"night shift\"?"));
+        Assert.Empty(QuestionShape.SalientTerms("How many days of leave do I get?"));
+    }
+
+    [Fact]
+    public void Terms_Match_Whole_Words_Ignoring_Case_Hyphens_And_Possessives()
+    {
+        string[] passages = ["The wifi password at the lisbon office is on the fridge.", "Dana's team owns the vendor list."];
+
+        Assert.Empty(QuestionShape.Unmentioned("What is the Wi-Fi password at the Lisbon office?", passages));
+        Assert.Empty(QuestionShape.Unmentioned("What does Dana own?", passages));
+        // "Ann" is not mentioned by "annual".
+        Assert.Equal(["Ann"], QuestionShape.Unmentioned("Is Ann on annual leave?", ["The annual leave policy."]));
+    }
+
+    [Fact]
+    public async Task A_Name_No_Passage_Mentions_Tells_The_Answer_To_Say_So()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var harness = new CoreHarness(withChat: true);
+        var runtime = await OpenAsync(harness, CoreHarness.FakeSettings() with { DocumentOverviews = false, BridgeSearch = false },
+            ("pilot.md", "# Pilot\n\nThe Lumen pilot launches in Lisbon in March."));
+
+        await runtime.AskAsync(null, "When does the Lumen pilot launch in Accra?", ct);
+        var context = harness.Chat.Requests[^1][^1].Text;
+        Assert.Contains("No passage mentions \"Accra\"", context, StringComparison.Ordinal);
+
+        await runtime.AskAsync(null, "When does the Lumen pilot launch in Lisbon?", ct);
+        Assert.DoesNotContain("No passage mentions", harness.Chat.Requests[^1][^1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_Question_For_Every_Item_Gets_Twice_The_Passages_When_Searched_As_Chat_Does()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var harness = new CoreHarness();
+        var files = Enumerable.Range(1, 6)
+            .Select(i => ($"rule-{i}.md", $"# Rule {i}\n\nForm {i} is due within {i + 2} working days."))
+            .ToArray();
+        var runtime = await OpenAsync(harness, CoreHarness.FakeSettings() with { TopK = 2 }, files);
+        Task<IReadOnlyList<string>> NoBridges(IReadOnlyList<Rag.NET.Models.SearchResult> _) => Task.FromResult<IReadOnlyList<string>>([]);
+
+        Assert.Equal(4, (await runtime.SearchAsync("List every form due within working days", null, NoBridges, ct)).Count);
+        Assert.Equal(2, (await runtime.SearchAsync("When is form 3 due?", null, NoBridges, ct)).Count);
+        // The Search screen asks for an exact number of passages, and gets it.
+        Assert.Equal(2, (await runtime.SearchAsync("List every form due within working days", cancellationToken: ct)).Count);
+    }
+
     [Fact]
     public async Task The_Context_Dates_Each_Passage_And_Says_The_Current_Version_Wins()
     {

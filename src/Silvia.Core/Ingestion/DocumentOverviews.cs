@@ -83,7 +83,7 @@ internal sealed class DocumentOverviews
         var reply = await _chat.GetResponseAsync(
             [
                 new ChatMessage(ChatRole.System, Instructions),
-                new ChatMessage(ChatRole.User, $"File name: {fileName}{(truncated ? " (only the first part is shown)" : "")}\n\n{text}"),
+                new ChatMessage(ChatRole.User, $"File name: {fileName}{(truncated ? " (only the first part is shown)" : "")}\n\n{Runtime.PromptGuard.Clean(text)}"),
             ],
             cancellationToken: cancellationToken);
 
