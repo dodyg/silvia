@@ -448,30 +448,25 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
     private static List<SearchResult> Spread(List<SearchResult> ranked, int topK, int perDocument)
     {
         var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        var chosen = new List<SearchResult>();
-        var passedOver = new List<SearchResult>();
-        foreach (var hit in ranked)
+        var chosen = new List<int>();
+        var passedOver = new List<int>();
+        for (var i = 0; i < ranked.Count && chosen.Count < topK; i++)
         {
-            if (chosen.Count == topK)
+            var document = ranked[i].Chunk.DocumentId.Value;
+            var taken = counts.GetValueOrDefault(document);
+            if (taken < perDocument)
             {
-                break;
-            }
-
-            var document = hit.Chunk.DocumentId.Value;
-            if (counts.GetValueOrDefault(document) < perDocument)
-            {
-                counts[document] = counts.GetValueOrDefault(document) + 1;
-                chosen.Add(hit);
+                counts[document] = taken + 1;
+                chosen.Add(i);
             }
             else
             {
-                passedOver.Add(hit);
+                passedOver.Add(i);
             }
         }
 
         // Back in rank order, so the reordering for the context still puts the strongest at its edges.
-        var order = ranked.Select((h, i) => (h, i)).ToDictionary(x => x.h, x => x.i, ReferenceEqualityComparer.Instance);
-        return chosen.Concat(passedOver.Take(topK - chosen.Count)).OrderBy(h => order[h]).ToList();
+        return chosen.Concat(passedOver.Take(topK - chosen.Count)).Order().Select(i => ranked[i]).ToList();
     }
 
     private static string PassageKey(string text) =>
@@ -572,8 +567,8 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
 
         var hits = LostInTheMiddle([.. material.Found, .. material.Bridged]);
         var passages = hits.Select(CitedChunk.From).ToList();
-        var sources = WithWebPages(material.Overviews.Concat(passages));
         var web = WebPagesByPath();
+        var sources = WithWebPages(material.Overviews.Concat(passages), web);
         var sections = hits
             .Where(h => SectionChunkingStrategy.Of(h) is { Length: > 0 })
             .DistinctBy(h => (h.Chunk.DocumentId.Value, h.Chunk.ChunkIndex))
@@ -747,18 +742,7 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
     {
         try
         {
-            var messages = BridgeQuestion.Prompt(question, hits);
-            string text;
-            if (cached)
-            {
-                text = await _replies.GetAsync(_chat!, Settings.ChatModel, messages, null, cancellationToken);
-                _replies.Keep(Settings.ChatModel, messages, null, text);
-            }
-            else
-            {
-                text = (await _chat!.GetResponseAsync(messages, cancellationToken: cancellationToken)).Text;
-            }
-
+            var text = await ReplyAsync(BridgeQuestion.Prompt(question, hits), cached, cancellationToken);
             return BridgeQuestion.Parse(text, question);
         }
         catch (Exception) when (!cancellationToken.IsCancellationRequested)
@@ -782,17 +766,7 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
                     "You turn a question into search terms for a keyword index. Reply with 5 to 12 words: the key terms of the question and close synonyms, separated by spaces. No other text."),
                 new ChatMessage(ChatRole.User, question),
             ];
-            string text;
-            if (cached)
-            {
-                text = await _replies.GetAsync(_chat!, Settings.ChatModel, messages, null, cancellationToken);
-                _replies.Keep(Settings.ChatModel, messages, null, text);
-            }
-            else
-            {
-                text = (await _chat!.GetResponseAsync(messages, cancellationToken: cancellationToken)).Text;
-            }
-
+            var text = await ReplyAsync(messages, cached, cancellationToken);
             var terms = text.ReplaceLineEndings(" ").Trim();
             return terms.Length <= 300 ? terms : terms[..300];
         }
@@ -803,11 +777,27 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// The chat model's reply to a step that prepares an answer. With <paramref name="cached"/>, as an evaluation
+    /// asks, the reply of an earlier run is reused and this one is kept, so a rerun retrieves the same passages.
+    /// </summary>
+    private async Task<string> ReplyAsync(List<ChatMessage> messages, bool cached, CancellationToken cancellationToken)
+    {
+        if (!cached)
+        {
+            return (await _chat!.GetResponseAsync(messages, cancellationToken: cancellationToken)).Text;
+        }
+
+        var text = await _replies.GetAsync(_chat!, Settings.ChatModel, messages, null, cancellationToken);
+        _replies.Keep(Settings.ChatModel, messages, null, text);
+        return text;
+    }
+
     /// <summary>Saves the answer, then stores the exchange in conversation memory.</summary>
     private async Task SaveAnswerAsync(string conversationId, string question, string answer, IReadOnlyList<CitedChunk> sources, CancellationToken cancellationToken)
     {
         _conversations.Append(conversationId, "assistant", answer, sources);
-        var exchange = _conversations.Messages(conversationId).Count(m => m.Role == "user") - 1;
+        var exchange = _conversations.Count(conversationId, "user") - 1;
         await RememberAsync(conversationId, exchange, question, answer, sources, cancellationToken);
     }
 

@@ -244,9 +244,9 @@ public sealed partial class ProjectRuntime
     }
 
     /// <summary>The citations with each web page's title as its name and its address to open.</summary>
-    private List<CitedChunk> WithWebPages(IEnumerable<CitedChunk> cited)
+    private List<CitedChunk> WithWebPages(IEnumerable<CitedChunk> cited, IReadOnlyDictionary<string, WebPage>? pages = null)
     {
-        var pages = WebPagesByPath();
+        pages ??= WebPagesByPath();
         return cited.Select(c => pages.TryGetValue(c.DocumentId, out var page)
                 ? c with { FileName = page.Title ?? c.FileName, Url = page.Address }
                 : c)

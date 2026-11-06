@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Data.Sqlite;
 
 namespace Silvia.Storage.Sqlite;
@@ -11,15 +12,7 @@ public static class SqliteStorage
     /// </summary>
     public static SqliteConnection Open(string databasePath)
     {
-        var builder = new SqliteConnectionStringBuilder
-        {
-            DataSource = databasePath,
-            Mode = SqliteOpenMode.ReadWriteCreate,
-            Pooling = true,
-            ForeignKeys = true,
-        };
-
-        var connection = new SqliteConnection(builder.ConnectionString);
+        var connection = new SqliteConnection(ConnectionStrings.GetOrAdd(databasePath, Build));
         connection.Open();
 
         using var pragma = connection.CreateCommand();
@@ -27,4 +20,15 @@ public static class SqliteStorage
         pragma.ExecuteNonQuery();
         return connection;
     }
+
+    // Every store opens a connection per call, so the string is built once per file rather than each time.
+    private static readonly ConcurrentDictionary<string, string> ConnectionStrings = new(StringComparer.Ordinal);
+
+    private static string Build(string databasePath) => new SqliteConnectionStringBuilder
+    {
+        DataSource = databasePath,
+        Mode = SqliteOpenMode.ReadWriteCreate,
+        Pooling = true,
+        ForeignKeys = true,
+    }.ConnectionString;
 }

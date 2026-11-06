@@ -186,10 +186,10 @@ public sealed class SqliteVectorStore : IVectorStore, ICollectionManageable, ICh
 
             var top = _matrix.TopK(query, options.TopK, options.MinScore, candidates);
             var results = new List<SearchResult>(top.Count);
+            using var lookup = new ChunkLookup(this, connection);
             foreach (var (row, score) in top)
             {
-                var key = _matrix.KeyOf(row);
-                if (ReadChunk(connection, key, includeEmbedding: true) is { } chunk)
+                if (lookup.Read(_matrix.KeyOf(row), includeEmbedding: true) is { } chunk)
                 {
                     results.Add(new SearchResult { Chunk = chunk, Score = score });
                 }
@@ -214,24 +214,37 @@ public sealed class SqliteVectorStore : IVectorStore, ICollectionManageable, ICh
         {
             using var connection = OpenDatabase();
             using var transaction = connection.BeginTransaction();
-            using var delete = connection.CreateCommand();
-            delete.Transaction = transaction;
-            delete.CommandText = $"DELETE FROM {_chunks} WHERE document_id = $document_id";
-            delete.Parameters.AddWithValue("$document_id", documentId);
-            delete.ExecuteNonQuery();
-            transaction.Commit();
 
-            // Rows of this document in the matrix, found by key, removed highest index first.
+            // The document's rows in the matrix, found by the keys the primary key index gives, so a delete
+            // costs the size of the document rather than of the whole store.
             var rows = new List<int>();
-            for (var row = 0; row < _matrix.Count; row++)
+            using (var keys = connection.CreateCommand())
             {
-                if (string.Equals(_matrix.KeyOf(row).DocumentId, documentId, StringComparison.Ordinal))
+                keys.Transaction = transaction;
+                keys.CommandText = $"SELECT chunk_index FROM {_chunks} WHERE document_id = $document_id";
+                keys.Parameters.AddWithValue("$document_id", documentId);
+                using var reader = keys.ExecuteReader();
+                while (reader.Read())
                 {
-                    rows.Add(row);
+                    if (_matrix.TryGetRow(new ChunkKey(documentId, reader.GetInt32(0)), out var row))
+                    {
+                        rows.Add(row);
+                    }
                 }
             }
 
-            rows.Reverse();
+            using (var delete = connection.CreateCommand())
+            {
+                delete.Transaction = transaction;
+                delete.CommandText = $"DELETE FROM {_chunks} WHERE document_id = $document_id";
+                delete.Parameters.AddWithValue("$document_id", documentId);
+                delete.ExecuteNonQuery();
+            }
+
+            transaction.Commit();
+
+            // Highest index first, as the matrix swaps the last row into each removed one.
+            rows.Sort((a, b) => b.CompareTo(a));
             _matrix.RemoveRowsDescending(rows);
         }
         finally
@@ -262,9 +275,10 @@ public sealed class SqliteVectorStore : IVectorStore, ICollectionManageable, ICh
         {
             using var connection = OpenDatabase();
             var chunks = new List<TextChunk>(keys.Count);
+            using var lookup = new ChunkLookup(this, connection);
             foreach (var key in keys)
             {
-                if (ReadChunk(connection, key, includeEmbedding: false) is { } chunk)
+                if (lookup.Read(key, includeEmbedding: false) is { } chunk)
                 {
                     chunks.Add(chunk);
                 }
@@ -475,40 +489,61 @@ public sealed class SqliteVectorStore : IVectorStore, ICollectionManageable, ICh
         return rows.ToArray();
     }
 
-    private TextChunk? ReadChunk(SqliteConnection connection, ChunkKey key, bool includeEmbedding)
+    /// <summary>
+    /// Reads chunks by key with one prepared statement, so a search of k hits compiles its query once, not k times.
+    /// Used under the store's lock, over the caller's connection.
+    /// </summary>
+    private sealed class ChunkLookup : IDisposable
     {
-        using var command = connection.CreateCommand();
-        command.CommandText = $"""
-            SELECT text, metadata FROM {_chunks}
-            WHERE document_id = $document_id AND chunk_index = $chunk_index AND model_id = $model_id
-            """;
-        command.Parameters.AddWithValue("$document_id", key.DocumentId);
-        command.Parameters.AddWithValue("$chunk_index", key.ChunkIndex);
-        command.Parameters.AddWithValue("$model_id", _modelId);
+        private readonly SqliteVectorStore _store;
+        private readonly SqliteCommand _command;
+        private readonly SqliteParameter _documentId;
+        private readonly SqliteParameter _chunkIndex;
 
-        using var reader = command.ExecuteReader();
-        if (!reader.Read())
+        public ChunkLookup(SqliteVectorStore store, SqliteConnection connection)
         {
-            return null;
+            _store = store;
+            _command = connection.CreateCommand();
+            _command.CommandText = $"""
+                SELECT text, metadata FROM {store._chunks}
+                WHERE document_id = $document_id AND chunk_index = $chunk_index AND model_id = $model_id
+                """;
+            _documentId = _command.Parameters.Add("$document_id", SqliteType.Text);
+            _chunkIndex = _command.Parameters.Add("$chunk_index", SqliteType.Integer);
+            _command.Parameters.AddWithValue("$model_id", store._modelId);
+            _command.Prepare();
         }
 
-        ReadOnlyMemory<float>? embedding = null;
-        if (includeEmbedding && _matrix.TryGetRow(key, out var row))
+        public TextChunk? Read(ChunkKey key, bool includeEmbedding)
         {
-            embedding = _matrix.Vector(row).ToArray();
+            _documentId.Value = key.DocumentId;
+            _chunkIndex.Value = key.ChunkIndex;
+            using var reader = _command.ExecuteReader();
+            if (!reader.Read())
+            {
+                return null;
+            }
+
+            ReadOnlyMemory<float>? embedding = null;
+            if (includeEmbedding && _store._matrix.TryGetRow(key, out var row))
+            {
+                embedding = _store._matrix.Vector(row).ToArray();
+            }
+
+            return new TextChunk
+            {
+                Text = reader.GetString(0),
+                DocumentId = new DocumentId(key.DocumentId),
+                ChunkIndex = key.ChunkIndex,
+                Embedding = embedding,
+                Metadata = MetadataCodec.Decode(reader.GetString(1)),
+            };
         }
 
-        return new TextChunk
-        {
-            Text = reader.GetString(0),
-            DocumentId = new DocumentId(key.DocumentId),
-            ChunkIndex = key.ChunkIndex,
-            Embedding = embedding,
-            Metadata = MetadataCodec.Decode(reader.GetString(1)),
-        };
+        public void Dispose() => _command.Dispose();
     }
 
-    private float[] Normalize(ReadOnlySpan<float> vector)
+    private static float[] Normalize(ReadOnlySpan<float> vector)
     {
         var result = vector.ToArray();
         var norm = TensorPrimitives.Norm(result);

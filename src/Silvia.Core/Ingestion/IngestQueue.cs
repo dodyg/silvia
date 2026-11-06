@@ -92,7 +92,7 @@ internal sealed class IngestQueue : IAsyncDisposable
                 VALUES ($path, $kind, $source, 'pending', 0, $now)
                 """;
             insert.Parameters.AddWithValue("$path", path);
-            insert.Parameters.AddWithValue("$kind", kind.ToString().ToLowerInvariant());
+            insert.Parameters.AddWithValue("$kind", NameOf(kind));
             insert.Parameters.AddWithValue("$source", (object?)sourceId ?? DBNull.Value);
             insert.Parameters.AddWithValue("$now", DateTimeOffset.UtcNow.ToString("O"));
             insert.ExecuteNonQuery();
@@ -420,18 +420,7 @@ internal sealed class IngestQueue : IAsyncDisposable
             return;
         }
 
-        var waiting = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        using (var connection = SqliteStorage.Open(_databasePath))
-        using (var command = connection.CreateCommand())
-        {
-            command.CommandText = "SELECT path FROM ingest_jobs WHERE kind = 'overview' AND status IN ('pending', 'running')";
-            using var reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                waiting.Add(reader.GetString(0));
-            }
-        }
-
+        var waiting = Waiting(JobKind.Overview);
         foreach (var documentId in _overviews.Stale().Where(id => !waiting.Contains(id)))
         {
             Enqueue(JobKind.Overview, documentId);
@@ -492,7 +481,7 @@ internal sealed class IngestQueue : IAsyncDisposable
         using var connection = SqliteStorage.Open(_databasePath);
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT path FROM ingest_jobs WHERE kind = $kind AND status IN ('pending', 'running')";
-        command.Parameters.AddWithValue("$kind", kind.ToString().ToLowerInvariant());
+        command.Parameters.AddWithValue("$kind", NameOf(kind));
         using var reader = command.ExecuteReader();
         while (reader.Read())
         {
@@ -501,6 +490,9 @@ internal sealed class IngestQueue : IAsyncDisposable
 
         return waiting;
     }
+
+    /// <summary>A kind as the <c>kind</c> column stores it.</summary>
+    private static string NameOf(JobKind kind) => kind.ToString().ToLowerInvariant();
 
     private static ProviderId SourceProvider(long sourceId) => new($"source-{sourceId}");
 

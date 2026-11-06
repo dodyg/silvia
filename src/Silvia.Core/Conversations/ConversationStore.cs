@@ -97,6 +97,17 @@ public sealed class ConversationStore(string databasePath)
         return messages;
     }
 
+    /// <summary>How many messages of <paramref name="role"/> the conversation holds, without reading them.</summary>
+    public int Count(string conversationId, string role)
+    {
+        using var connection = SqliteStorage.Open(databasePath);
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM messages WHERE conversation_id = $id AND role = $role";
+        command.Parameters.AddWithValue("$id", conversationId);
+        command.Parameters.AddWithValue("$role", role);
+        return (int)(long)command.ExecuteScalar()!;
+    }
+
     public void Append(string conversationId, string role, string content, IReadOnlyList<CitedChunk>? sources = null)
     {
         using var connection = SqliteStorage.Open(databasePath);
