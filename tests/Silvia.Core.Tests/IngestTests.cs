@@ -140,6 +140,67 @@ public sealed class IngestTests
         Assert.Equal("guide.md", hits[0].Chunk.Metadata["file_name"].StringValue);
     }
 
+    [Fact]
+    public void Pruning_Removes_Old_Done_Jobs_But_Keeps_The_Latest_Upsert_Of_Each_File()
+    {
+        using var harness = new CoreHarness(runtimeOptions: new ProjectRuntime.RuntimeOptions { StartWorkers = false });
+        var project = harness.Manager.Create("Pruned", settings: CoreHarness.FakeSettings());
+        var runtime = harness.Manager.Open(project.Id);
+        var databasePath = Path.Combine(harness.Root, "projects", project.Id, "project.db");
+
+        var now = DateTimeOffset.UtcNow;
+        var old = now - TimeSpan.FromDays(30);
+        var recent = now - TimeSpan.FromDays(1);
+        using (var connection = SqliteStorage.Open(databasePath))
+        {
+            void Insert(string path, string kind, string status, DateTimeOffset? finished)
+            {
+                using var insert = connection.CreateCommand();
+                insert.CommandText = """
+                    INSERT INTO ingest_jobs (path, kind, status, attempts, enqueued_utc, finished_utc)
+                    VALUES ($path, $kind, $status, 0, $enqueued, $finished)
+                    """;
+                insert.Parameters.AddWithValue("$path", path);
+                insert.Parameters.AddWithValue("$kind", kind);
+                insert.Parameters.AddWithValue("$status", status);
+                insert.Parameters.AddWithValue("$enqueued", old.ToString("O"));
+                insert.Parameters.AddWithValue("$finished", (object?)finished?.ToString("O") ?? DBNull.Value);
+                insert.ExecuteNonQuery();
+            }
+
+            Insert("a.md", "upsert", "done", old - TimeSpan.FromDays(1)); // superseded: removed
+            Insert("a.md", "upsert", "done", old);                        // latest of a.md, old: kept
+            Insert("b.md", "upsert", "done", old);                        // latest of b.md: kept
+            Insert("c.md", "upsert", "done", old);                        // superseded by a recent one: removed
+            Insert("c.md", "upsert", "done", recent);                     // kept
+            Insert("", "scan", "done", old);                              // removed
+            Insert("a.md", "overview", "done", old);                      // removed
+            Insert("", "scan", "done", recent);                           // kept
+            Insert("d.md", "upsert", "failed", old);                      // failures stay
+            Insert("e.md", "upsert", "pending", null);                    // the queue stays
+        }
+
+        Assert.Equal(4, runtime.PruneFinishedJobs(now));
+
+        using var check = SqliteStorage.Open(databasePath);
+        using var read = check.CreateCommand();
+        read.CommandText = "SELECT path, kind, status, finished_utc FROM ingest_jobs ORDER BY id";
+        using var reader = read.ExecuteReader();
+        var left = new List<string>();
+        while (reader.Read())
+        {
+            var finished = reader.IsDBNull(3) ? "-" : reader.GetString(3) == old.ToString("O") ? "old" : "recent";
+            left.Add($"{reader.GetString(0)} {reader.GetString(1)} {reader.GetString(2)} {finished}");
+        }
+
+        Assert.Equal(
+            ["a.md upsert done old", "b.md upsert done old", "c.md upsert done recent", " scan done recent", "d.md upsert failed old", "e.md upsert pending -"],
+            left);
+
+        // A second run finds nothing more to remove.
+        Assert.Equal(0, runtime.PruneFinishedJobs(now));
+    }
+
     private static async Task WaitForHitAsync(ProjectRuntime runtime, string query, string fileName, TimeSpan timeout, CancellationToken ct)
     {
         var deadline = DateTime.UtcNow + timeout;

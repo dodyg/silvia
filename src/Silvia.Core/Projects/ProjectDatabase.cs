@@ -65,9 +65,11 @@ public static class ProjectDatabase
                 error TEXT,
                 enqueued_utc TEXT NOT NULL,
                 finished_utc TEXT);
-            -- Finished jobs stay in the table, so the worker's claim, the idle check and the waiting-job lookups
-            -- would otherwise read every job the project ever ran.
+            -- Finished jobs stay in the table for a week (the latest upsert of each file for good), so the worker's
+            -- claim, the idle check and the waiting-job lookups would otherwise read all of them.
             CREATE INDEX IF NOT EXISTS ix_ingest_jobs_status ON ingest_jobs (status, kind);
+            -- The pruning's "is there a later upsert of this file" check.
+            CREATE INDEX IF NOT EXISTS ix_ingest_jobs_kind_path ON ingest_jobs (kind, path);
             CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL);

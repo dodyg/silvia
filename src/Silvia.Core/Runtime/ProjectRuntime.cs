@@ -1026,12 +1026,33 @@ public sealed partial class ProjectRuntime : IAsyncDisposable
         _embedder.Dispose();
     }
 
-    /// <summary>The hourly work: a rescan of every folder, and a new download of the web pages that are due one.</summary>
+    /// <summary>
+    /// The hourly work: a rescan of every folder, a new download of the web pages that are due one, and the removal
+    /// of old finished jobs.
+    /// </summary>
     private void ScanAll()
     {
         Rescan();
         RefreshStaleWebPages();
+        try
+        {
+            PruneFinishedJobs();
+        }
+        catch (SqliteException)
+        {
+            // The database was busy. The next hourly run tries again; nothing depends on it.
+        }
     }
+
+    /// <summary>How long a finished job stays in <c>ingest_jobs</c> before <see cref="PruneFinishedJobs"/> removes it.</summary>
+    public static readonly TimeSpan FinishedJobRetention = TimeSpan.FromDays(7);
+
+    /// <summary>
+    /// Deletes the done jobs older than <see cref="FinishedJobRetention"/>, keeping the latest done upsert of each
+    /// file, and returns how many. Runs when the project opens and with each hourly rescan.
+    /// </summary>
+    public int PruneFinishedJobs(DateTimeOffset? now = null) =>
+        _queue.PruneFinished((now ?? DateTimeOffset.UtcNow) - FinishedJobRetention);
 
     private IReadOnlyList<SourceRow> ReadSources()
     {

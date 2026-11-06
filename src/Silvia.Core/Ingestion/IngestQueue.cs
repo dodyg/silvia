@@ -117,6 +117,29 @@ internal sealed class IngestQueue : IAsyncDisposable
         return counts;
     }
 
+    /// <summary>
+    /// Deletes the <c>done</c> jobs that finished before <paramref name="cutoff"/>, and returns how many. The latest
+    /// done upsert of each path is kept whatever its age: the Documents screen reads when a file was last indexed
+    /// from it. Pending, running and failed jobs are never touched; failures are cleared by the user.
+    /// </summary>
+    public int PruneFinished(DateTimeOffset cutoff)
+    {
+        using var connection = SqliteStorage.Open(_databasePath);
+        using var command = connection.CreateCommand();
+        // finished_utc is written with the round-trip format in UTC, so the strings sort as the times do.
+        command.CommandText = """
+            DELETE FROM ingest_jobs
+            WHERE status = 'done' AND finished_utc < $cutoff
+              AND (kind <> 'upsert' OR EXISTS (
+                SELECT 1 FROM ingest_jobs later
+                WHERE later.kind = 'upsert' AND later.status = 'done' AND later.path = ingest_jobs.path
+                  AND (later.finished_utc > ingest_jobs.finished_utc
+                       OR (later.finished_utc = ingest_jobs.finished_utc AND later.id > ingest_jobs.id))))
+            """;
+        command.Parameters.AddWithValue("$cutoff", cutoff.ToUniversalTime().ToString("O"));
+        return command.ExecuteNonQuery();
+    }
+
     /// <summary>True while the worker is running a job. An idle runtime is safe to close.</summary>
     public volatile bool IsBusy;
 
