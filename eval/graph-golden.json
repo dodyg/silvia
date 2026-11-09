@@ -1,0 +1,39 @@
+[
+  { "id": "berg-duties", "kind": "entity", "question": "What is Tomas Berg responsible for?",
+    "facts": [
+      { "file": "security-policy.md", "terms": ["access review"] },
+      { "file": "meeting-2027-02.md", "terms": ["database keys"] }
+    ] },
+  { "id": "okafor-duties", "kind": "entity", "question": "What does Dana Okafor do?",
+    "facts": [
+      { "file": "vendor-review.md", "terms": ["procurement lead"] },
+      { "file": "meeting-2027-02.md", "terms": ["vendor list"] }
+    ] },
+  { "id": "carvalho-work", "kind": "entity", "question": "What is Ines Carvalho working on, and by when?",
+    "facts": [
+      { "file": "lumen-handbook.md", "terms": ["launch"] },
+      { "file": "meeting-2027-02.md", "terms": ["checklist", "20 February"] }
+    ] },
+  { "id": "ops-director", "kind": "entity", "question": "What does the operations director approve or oversee?",
+    "facts": [
+      { "file": "travel-policy.md", "terms": ["hotel"] },
+      { "file": "lumen-handbook.md", "terms": ["Ines Carvalho"] }
+    ] },
+  { "id": "lisbon", "kind": "entity", "question": "What is happening in Lisbon?",
+    "facts": [
+      { "file": "lumen-handbook.md", "terms": ["pilot", "training"] },
+      { "file": "meeting-2027-02.md", "terms": ["Rua da Prata"] }
+    ] },
+  { "id": "people", "kind": "global", "question": "Which people are named across these documents, and what role does each hold?",
+    "facts": [
+      { "file": "lumen-handbook.md", "terms": ["Ines Carvalho"] },
+      { "file": "security-policy.md", "terms": ["Tomas Berg"] },
+      { "file": "vendor-review.md", "terms": ["Dana Okafor"] }
+    ] },
+  { "id": "themes", "kind": "global", "question": "What are the main themes across these documents?",
+    "facts": [
+      { "file": "security-policy.md", "terms": ["security"] },
+      { "file": "travel-policy.md", "terms": ["travel"] },
+      { "file": "lumen-handbook.md", "terms": ["Lumen"] }
+    ] }
+]

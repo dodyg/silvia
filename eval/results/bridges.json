@@ -1,0 +1,400 @@
+[
+  {
+    "Query": "After how long is unapproved access revoked?",
+    "Searches": []
+  },
+  {
+    "Query": "And once the incident is closed, when is the write-up due?",
+    "Searches": []
+  },
+  {
+    "Query": "At what temperature should kits be stored?",
+    "Searches": []
+  },
+  {
+    "Query": "By when are monthly expense reports submitted?",
+    "Searches": []
+  },
+  {
+    "Query": "By when must sickness absence be reported?",
+    "Searches": []
+  },
+  {
+    "Query": "Can I install a firmware update while I\u0027m out in the field?",
+    "Searches": []
+  },
+  {
+    "Query": "Can I keep holiday I didn\u0027t take this year?",
+    "Searches": []
+  },
+  {
+    "Query": "Can a contractor look at payroll records?",
+    "Searches": []
+  },
+  {
+    "Query": "Dana is looking for a second charger supplier. Is she around in mid-May?",
+    "Searches": []
+  },
+  {
+    "Query": "Did the person who signs off access reviews rotate the database keys on time?",
+    "Searches": [
+      "Who rotated the production database keys on 25 February 2027?",
+      "What was the deadline for rotating the production database keys in February 2027?"
+    ]
+  },
+  {
+    "Query": "How does a contractor get access to the source repositories, and how long does it usually take?",
+    "Searches": []
+  },
+  {
+    "Query": "How far ahead do I have to ask for paid parental leave as a primary caregiver?",
+    "Searches": []
+  },
+  {
+    "Query": "How fast must suspected incidents be reported?",
+    "Searches": []
+  },
+  {
+    "Query": "How long are application logs kept?",
+    "Searches": []
+  },
+  {
+    "Query": "How long are backups kept?",
+    "Searches": []
+  },
+  {
+    "Query": "How long does the radio battery last on one charge?",
+    "Searches": [
+      "Lumen kit radio battery runtime per charge"
+    ]
+  },
+  {
+    "Query": "How long is paid parental leave for primary caregivers?",
+    "Searches": []
+  },
+  {
+    "Query": "How many amp hours does the main battery of a Lumen kit hold?",
+    "Searches": []
+  },
+  {
+    "Query": "How many amp hours is the spare battery pack?",
+    "Searches": []
+  },
+  {
+    "Query": "How many approvals does a code change need?",
+    "Searches": []
+  },
+  {
+    "Query": "How many days a week can I work from home?",
+    "Searches": [
+      "work from home policy days per week",
+      "remote work policy"
+    ]
+  },
+  {
+    "Query": "How many days of annual leave does every employee get?",
+    "Searches": []
+  },
+  {
+    "Query": "How many people are in a field team?",
+    "Searches": []
+  },
+  {
+    "Query": "How much does one solar charger cost?",
+    "Searches": []
+  },
+  {
+    "Query": "How much does the Enterprise plan cost?",
+    "Searches": [
+      "Enterprise plan cost per user per month"
+    ]
+  },
+  {
+    "Query": "How much higher is the Zurich hotel cap than the standard nightly cap?",
+    "Searches": [
+      "standard nightly cap hotel bookings"
+    ]
+  },
+  {
+    "Query": "How much is the meal allowance on a trip abroad?",
+    "Searches": []
+  },
+  {
+    "Query": "How much is the next plan up from the Basic plan?",
+    "Searches": []
+  },
+  {
+    "Query": "How much notice is needed to terminate the supplier agreement?",
+    "Searches": []
+  },
+  {
+    "Query": "How often are backups tested?",
+    "Searches": []
+  },
+  {
+    "Query": "How often do field teams radio the depot, and on which channel?",
+    "Searches": []
+  },
+  {
+    "Query": "How often is the status page updated during an incident?",
+    "Searches": []
+  },
+  {
+    "Query": "How often should the light sensor be recalibrated?",
+    "Searches": []
+  },
+  {
+    "Query": "How quickly are contractor invoices paid?",
+    "Searches": []
+  },
+  {
+    "Query": "How quickly must damaged kits go back to the depot?",
+    "Searches": []
+  },
+  {
+    "Query": "How short is a passphrase allowed to be?",
+    "Searches": [
+      "passphrase minimum length security policy"
+    ]
+  },
+  {
+    "Query": "How should I handle a file that has no sensitivity marking on it?",
+    "Searches": []
+  },
+  {
+    "Query": "If I\u0027m on call, how long do I have to react to an alert before it goes to someone else?",
+    "Searches": []
+  },
+  {
+    "Query": "If a customer cancels, can we still recover their stuff?",
+    "Searches": []
+  },
+  {
+    "Query": "Is a picture of my receipt good enough?",
+    "Searches": [
+      "receipt purchase date"
+    ]
+  },
+  {
+    "Query": "List everything Dana Okafor is responsible for.",
+    "Searches": []
+  },
+  {
+    "Query": "Should I plug in the solar charger or the battery first?",
+    "Searches": []
+  },
+  {
+    "Query": "The Nairobi chargers are held at customs. Who has to pay for clearing them?",
+    "Searches": []
+  },
+  {
+    "Query": "Up to what flight length do we fly economy?",
+    "Searches": [
+      "travel-policy-2025.md effective date and whether it supersedes travel-policy.md",
+      "current travel policy for 2027 economy class flight length six hours or eight hours"
+    ]
+  },
+  {
+    "Query": "What about flights longer than six hours?",
+    "Searches": []
+  },
+  {
+    "Query": "What did the board approve for the field budget?",
+    "Searches": []
+  },
+  {
+    "Query": "What does it mean when the beacon blinks amber?",
+    "Searches": []
+  },
+  {
+    "Query": "What does the Team plan cost per user?",
+    "Searches": []
+  },
+  {
+    "Query": "What happens if a vendor has no current SOC 2 report?",
+    "Searches": []
+  },
+  {
+    "Query": "What if a library we depend on hasn\u0027t shipped anything in years?",
+    "Searches": []
+  },
+  {
+    "Query": "What is Tomas Berg responsible for, now and after April?",
+    "Searches": []
+  },
+  {
+    "Query": "What is the Wi-Fi password at the Lisbon office?",
+    "Searches": [
+      "Wi-Fi password Lisbon office Rua da Prata"
+    ]
+  },
+  {
+    "Query": "What is the daily meal allowance abroad?",
+    "Searches": []
+  },
+  {
+    "Query": "What is the daily meal allowance in Oslo?",
+    "Searches": []
+  },
+  {
+    "Query": "What is the hotel cap in Zurich?",
+    "Searches": []
+  },
+  {
+    "Query": "What is the liability cap in the Brightfield contract?",
+    "Searches": []
+  },
+  {
+    "Query": "What is the meal allowance when I am abroad?",
+    "Searches": [
+      "travel-policy-2025.md vs travel-policy.md which policy is current for meal allowance abroad",
+      "destination city per-diem-rates.xlsx meal allowance per day abroad"
+    ]
+  },
+  {
+    "Query": "What is the mileage reimbursement rate?",
+    "Searches": []
+  },
+  {
+    "Query": "What is the minimum password length?",
+    "Searches": [
+      "minimum password length"
+    ]
+  },
+  {
+    "Query": "What is the nightly hotel cap?",
+    "Searches": [
+      "travel-policy-2025.md effective date",
+      "travel-policy.md superseded by travel-policy-2025.md"
+    ]
+  },
+  {
+    "Query": "What is the target for automated test coverage?",
+    "Searches": []
+  },
+  {
+    "Query": "What must administrators use to sign in to production?",
+    "Searches": []
+  },
+  {
+    "Query": "What notice period do I have to give if I resign?",
+    "Searches": [
+      "resignation notice period employment contract",
+      "leave-policy.md notice period resignation"
+    ]
+  },
+  {
+    "Query": "What rating are the spare fuses?",
+    "Searches": []
+  },
+  {
+    "Query": "What usually makes a fuse blow?",
+    "Searches": []
+  },
+  {
+    "Query": "What was churn in the first quarter?",
+    "Searches": []
+  },
+  {
+    "Query": "What was net revenue retention last quarter?",
+    "Searches": []
+  },
+  {
+    "Query": "What\u0027s the most I can spend per night on a hotel?",
+    "Searches": []
+  },
+  {
+    "Query": "When do I need a doctor\u0027s note for being ill?",
+    "Searches": []
+  },
+  {
+    "Query": "When do contractors hand back their laptops?",
+    "Searches": []
+  },
+  {
+    "Query": "When does the Lumen pilot launch in Accra?",
+    "Searches": [
+      "Lumen pilot Accra launch date"
+    ]
+  },
+  {
+    "Query": "When does the Lumen pilot launch in Nairobi?",
+    "Searches": []
+  },
+  {
+    "Query": "When does the Lumen pilot launch?",
+    "Searches": []
+  },
+  {
+    "Query": "When does the on-call rotation change?",
+    "Searches": []
+  },
+  {
+    "Query": "When is Dana Okafor away?",
+    "Searches": []
+  },
+  {
+    "Query": "Where do I pick up my badge on my first day?",
+    "Searches": []
+  },
+  {
+    "Query": "Where is the field lead training held?",
+    "Searches": []
+  },
+  {
+    "Query": "Which command promotes the standby database?",
+    "Searches": []
+  },
+  {
+    "Query": "Which data level must never leave the European Union?",
+    "Searches": []
+  },
+  {
+    "Query": "Which flights are booked in economy class?",
+    "Searches": []
+  },
+  {
+    "Query": "Which health insurance provider do employees use?",
+    "Searches": [
+      "health insurance provider employees"
+    ]
+  },
+  {
+    "Query": "Which office is moving to Rua da Prata?",
+    "Searches": []
+  },
+  {
+    "Query": "Which rules set a deadline counted in working days?",
+    "Searches": []
+  },
+  {
+    "Query": "Which sign-in option does the Team plan add?",
+    "Searches": []
+  },
+  {
+    "Query": "Which travel exception can Ines Carvalho\u0027s manager approve?",
+    "Searches": [
+      "Ines Carvalho manager"
+    ]
+  },
+  {
+    "Query": "Who approves new vendors?",
+    "Searches": []
+  },
+  {
+    "Query": "Who has to OK a reimbursement over 500?",
+    "Searches": []
+  },
+  {
+    "Query": "Who owns the Lumen launch?",
+    "Searches": []
+  },
+  {
+    "Query": "Who signs off the quarterly access reviews?",
+    "Searches": []
+  },
+  {
+    "Query": "Who will sign off access reviews from April 2027?",
+    "Searches": []
+  }
+]

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" dir="auto">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Silvia</title>
+    <script>
+      // Applies the last known appearance before React mounts, so a dark window never flashes light.
+      // The host reconciles with the saved settings right after the first render.
+      (function () {
+        try {
+          var raw = localStorage.getItem("silvia.appearance.v1");
+          var a = raw ? JSON.parse(raw) : null;
+          var root = document.documentElement;
+          if (a && (a.theme === "light" || a.theme === "dark")) root.setAttribute("data-theme", a.theme);
+          if (a && typeof a.uiSize === "number") root.style.setProperty("--font-size-ui", a.uiSize + "px");
+          if (a && typeof a.readingSize === "number") root.style.setProperty("--font-size-reading", a.readingSize + "px");
+          if (a && typeof a.fontUi === "string") root.style.setProperty("--font-ui", a.fontUi);
+          if (a && typeof a.fontReading === "string") root.style.setProperty("--font-reading", a.fontReading);
+          if (a && typeof a.fontMono === "string") root.style.setProperty("--font-mono", a.fontMono);
+        } catch (_ignored) {
+          // Storage can be blocked; the defaults in tokens.css still render correctly.
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="./src/main.tsx"></script>
+  </body>
+</html>

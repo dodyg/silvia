@@ -1,0 +1,144 @@
+/*
+ * Design tokens. Every color in the app comes from these variables: components never use a literal
+ * color. Each color is defined for light and dark themes, and the contrast test checks the text pairs.
+ *
+ * --border is a quiet divider between regions and rows; it carries no meaning on its own, so it is
+ * exempt from the 3:1 rule. --border-strong outlines form controls and must reach 3:1.
+ */
+
+:root {
+  --bg: #f5f0e6;
+  --surface: #fffdf8;
+  --surface-2: #ede6d8;
+  --sidebar: #ebe3d3;
+  --text: #1d1b17;
+  --text-muted: #5e574c;
+  --border: #e0d7c5;
+  --border-strong: #8a7f6e;
+  --accent: #1d2433;
+  --accent-hover: #33405a;
+  --accent-text: #fffdf8;
+  --accent-soft: #e8e1d1;
+  --rubric: #b93d1f;
+  --citation: #a8351b;
+  --citation-bg: #f7e4da;
+  --success: #2c6a3f;
+  --success-bg: #e2efdf;
+  --danger: #9e1c3c;
+  --danger-bg: #f9e3e6;
+  --code-bg: #efe8da;
+  --focus: #b93d1f;
+  --score: #a8351b;
+  --selection: #f2d6c6;
+  --warn: #7f4d00;
+  --warn-bg: #fbefd2;
+
+  --shadow-sm: 0 1px 2px rgb(20 22 28 / 0.06);
+  --shadow-md: 0 1px 2px rgb(20 22 28 / 0.06), 0 4px 12px rgb(20 22 28 / 0.06);
+  --shadow-pop: 0 2px 6px rgb(20 22 28 / 0.08), 0 12px 32px rgb(20 22 28 / 0.14);
+
+  /* Headings and the wordmark. Reading and interface text keep the fonts chosen in Settings. */
+  --font-display: "Source Serif 4", "Noto Naskh Arabic", Georgia, serif;
+  --font-size-ui: 14px;
+  --font-size-reading: 16px;
+  --line-height: 1.55;
+  --reading-width: 72ch;
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --space: 0.75rem;
+  --sidebar-width: 15rem;
+  /* Map colors: three categorical hues that stay apart for every reader, and a neutral for the rest. */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-other: #b4b7bd;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #171512;
+  --surface: #1f1c18;
+  --surface-2: #2a2621;
+  --sidebar: #110f0d;
+  --text: #ede6d8;
+  --text-muted: #aaa091;
+  --border: #302b25;
+  --border-strong: #7a7062;
+  --accent: #ede3cf;
+  --accent-hover: #fff7e6;
+  --accent-text: #171512;
+  --accent-soft: #2e2921;
+  --rubric: #ff8a5c;
+  --citation: #ff9a72;
+  --citation-bg: #3b2119;
+  --success: #8fd19e;
+  --success-bg: #1d3323;
+  --danger: #ff8fa3;
+  --danger-bg: #3b1a22;
+  --code-bg: #110f0d;
+  --focus: #ff8a5c;
+  --score: #ff9a72;
+  --selection: #4a3226;
+  --warn: #f0c26b;
+  --warn-bg: #3a2e14;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px rgb(0 0 0 / 0.25);
+  --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.35), 0 12px 32px rgb(0 0 0 / 0.45);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-other: #6b6f79;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #171512;
+    --surface: #1f1c18;
+    --surface-2: #2a2621;
+    --sidebar: #110f0d;
+    --text: #ede6d8;
+    --text-muted: #aaa091;
+    --border: #302b25;
+    --border-strong: #7a7062;
+    --accent: #ede3cf;
+    --accent-hover: #fff7e6;
+    --accent-text: #171512;
+    --accent-soft: #2e2921;
+    --rubric: #ff8a5c;
+    --citation: #ff9a72;
+    --citation-bg: #3b2119;
+    --success: #8fd19e;
+  --success-bg: #1d3323;
+  --danger: #ff8fa3;
+    --danger-bg: #3b1a22;
+    --code-bg: #110f0d;
+    --focus: #ff8a5c;
+    --score: #ff9a72;
+    --selection: #4a3226;
+    --warn: #f0c26b;
+    --warn-bg: #3a2e14;
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px rgb(0 0 0 / 0.25);
+    --shadow-pop: 0 2px 6px rgb(0 0 0 / 0.35), 0 12px 32px rgb(0 0 0 / 0.45);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-other: #6b6f79;
+    color-scheme: dark;
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    --border: CanvasText;
+    --border-strong: CanvasText;
+    --focus: Highlight;
+    --score: Highlight;
+    --rubric: Highlight;
+    --citation: LinkText;
+  }
+}

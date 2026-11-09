@@ -55,3 +55,15 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Silvia
+/models/
+/projects/
+*.db
+*.db-wal
+*.db-shm
+*.silvia
+node_modules/
+dist/
+dist-mock/
+/publish/

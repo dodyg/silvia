@@ -1,0 +1,281 @@
+using System.Diagnostics;
+using NeoAstra.Rpc;
+using Silvia.App.Hosting;
+using Silvia.Core.Ingestion;
+using Silvia.Core.Projects;
+
+namespace Silvia.App.Rpc;
+
+/// <summary>Library, activity, and opening documents. Every call names a project and resolves through it.</summary>
+[NeoRpcService("library", Version = 1)]
+public sealed class LibraryService(AppHost host)
+{
+    [NeoRpcMethod("listSources")]
+    public ValueTask<SourceDto[]> ListSourcesAsync(ProjectIdScoped request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        return ValueTask.FromResult(runtime.Sources().Select(ToDto).ToArray());
+    }
+
+    [NeoRpcMethod("addSource")]
+    public ValueTask<SourceDto> AddSourceAsync(AddSourceRequest request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        try
+        {
+            var id = runtime.AddSource(request.Path, request.IncludeGlobs ?? "**/*", request.ExcludeGlobs ?? string.Empty);
+            return ValueTask.FromResult(ToDto(runtime.Sources().Single(s => s.Id == id)));
+        }
+        catch (DirectoryNotFoundException)
+        {
+            throw Scope.Invalid("That folder does not exist.");
+        }
+    }
+
+    /// <summary>
+    /// Shows the native folder dialog and returns the chosen folder. It does not add the folder: the page
+    /// calls <c>addSource</c> with it, so a typed path and a picked one go through the same checks.
+    /// </summary>
+    [NeoRpcMethod("pickFolder", TimeoutMilliseconds = 600_000)]
+    public async ValueTask<FolderPickDto> PickFolderAsync(EmptyRequest request, CancellationToken cancellationToken)
+    {
+        var (status, path) = await host.FolderPicker.PickAsync("Choose a folder to index", cancellationToken);
+        return new FolderPickDto(status, path);
+    }
+
+    [NeoRpcMethod("removeSource")]
+    public ValueTask<EmptyRequest> RemoveSourceAsync(SourceIdRequest request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        try
+        {
+            runtime.RemoveSource(Scope.ParseId(request.SourceId));
+        }
+        catch (KeyNotFoundException)
+        {
+            throw Scope.NotFound("folder");
+        }
+
+        return ValueTask.FromResult(new EmptyRequest());
+    }
+
+    [NeoRpcMethod("rescan")]
+    public ValueTask<EmptyRequest> RescanAsync(RescanRequest request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        runtime.Rescan(request.SourceId is null ? null : Scope.ParseId(request.SourceId));
+        return ValueTask.FromResult(new EmptyRequest());
+    }
+
+    /// <summary>Continues building overviews and the knowledge graph for the documents still missing them.</summary>
+    [NeoRpcMethod("resume")]
+    public ValueTask<EmptyRequest> ResumeAsync(ProjectIdScoped request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        runtime.Resume();
+        return ValueTask.FromResult(new EmptyRequest());
+    }
+
+    [NeoRpcMethod("listDocuments")]
+    public ValueTask<DocumentDto[]> ListDocumentsAsync(ProjectIdScoped request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        return ValueTask.FromResult(runtime.Documents()
+            .Select(d => new DocumentDto(d.DocumentId, Path.GetFileName(d.DocumentId), Path.GetDirectoryName(d.DocumentId) ?? string.Empty, d.Chunks))
+            .ToArray());
+    }
+
+    /// <summary>Which local models this project uses now. Both are optional; without the embedder, search is by keyword.</summary>
+    [NeoRpcMethod("modelStatus")]
+    public ValueTask<ModelStatusDto> ModelStatusAsync(ProjectIdScoped request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        return ValueTask.FromResult(new ModelStatusDto(runtime.CanEmbed, runtime.CanRerank));
+    }
+
+    [NeoRpcMethod("activity")]
+    public ValueTask<JobSummaryDto> ActivityAsync(ProjectIdScoped request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        var counts = runtime.JobCounts();
+        var failures = runtime.RecentFailures(20)
+            .Select(f => new FailureDto(f.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), f.Path, f.Error, f.FinishedUtc))
+            .ToArray();
+        return ValueTask.FromResult(new JobSummaryDto(
+            Pending: counts.GetValueOrDefault("pending"),
+            Running: counts.GetValueOrDefault("running"),
+            Done: counts.GetValueOrDefault("done"),
+            Failed: counts.GetValueOrDefault("failed"),
+            RecentFailures: failures));
+    }
+
+    /// <summary>Removes one failed file from the activity log. The file itself and its index are untouched.</summary>
+    [NeoRpcMethod("clearFailure")]
+    public ValueTask<EmptyRequest> ClearFailureAsync(FailureIdRequest request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        if (runtime.ClearFailures(Scope.ParseId(request.Id)) == 0)
+        {
+            throw Scope.NotFound("failed file");
+        }
+
+        return ValueTask.FromResult(new EmptyRequest());
+    }
+
+    /// <summary>Removes every failed file from the activity log.</summary>
+    [NeoRpcMethod("clearFailures")]
+    public ValueTask<EmptyRequest> ClearFailuresAsync(ProjectIdScoped request, CancellationToken cancellationToken)
+    {
+        Scope.Runtime(host.Manager, request.ProjectId).ClearFailures();
+        return ValueTask.FromResult(new EmptyRequest());
+    }
+
+    /// <summary>
+    /// Opens a document's file, but only a file this project indexed, under a folder it watches or as the saved
+    /// copy of one of its web pages.
+    /// </summary>
+    [NeoRpcMethod("openDocument")]
+    public ValueTask<ShellResult> OpenDocumentAsync(OpenDocumentRequest request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        var path = AllowedPath(runtime, request.DocumentId);
+        Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+        return ValueTask.FromResult(new ShellResult(true, "Opened."));
+    }
+
+    [NeoRpcMethod("revealDocument")]
+    public ValueTask<ShellResult> RevealDocumentAsync(OpenDocumentRequest request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        var path = AllowedPath(runtime, request.DocumentId);
+        Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true });
+        return ValueTask.FromResult(new ShellResult(true, "Revealed."));
+    }
+
+    [NeoRpcMethod("listWebPages")]
+    public ValueTask<WebPageDto[]> ListWebPagesAsync(ProjectIdScoped request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        return ValueTask.FromResult(runtime.WebPages().Select(p => ToDto(runtime, p)).ToArray());
+    }
+
+    /// <summary>Adds one address or a pasted list and queues their download. Texts that are not web addresses come back as rejected.</summary>
+    [NeoRpcMethod("addWebPages")]
+    public ValueTask<AddWebPagesDto> AddWebPagesAsync(AddWebPagesRequest request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        var texts = (request.Urls ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        if (texts.Length == 0)
+        {
+            throw Scope.Invalid("Enter a web address first.");
+        }
+
+        if (texts.Length > MaxPagesPerAdd)
+        {
+            throw Scope.Invalid($"Add at most {MaxPagesPerAdd} addresses at a time.");
+        }
+
+        var (added, rejected) = runtime.AddWebPages(texts);
+        return ValueTask.FromResult(new AddWebPagesDto(added.Select(p => ToDto(runtime, p)).ToArray(), rejected));
+    }
+
+    /// <summary>
+    /// A cap on one paste. Each page can cost an overview and graph calls; a few hundred at a time keeps a stray
+    /// paste from queuing thousands.
+    /// </summary>
+    private const int MaxPagesPerAdd = 200;
+
+    [NeoRpcMethod("refreshWebPage")]
+    public ValueTask<EmptyRequest> RefreshWebPageAsync(WebPageIdRequest request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        try
+        {
+            runtime.RefreshWebPage(Scope.ParseId(request.Id));
+        }
+        catch (KeyNotFoundException)
+        {
+            throw Scope.NotFound("web page");
+        }
+
+        return ValueTask.FromResult(new EmptyRequest());
+    }
+
+    [NeoRpcMethod("refreshWebPages")]
+    public ValueTask<EmptyRequest> RefreshWebPagesAsync(ProjectIdScoped request, CancellationToken cancellationToken)
+    {
+        Scope.Runtime(host.Manager, request.ProjectId).RefreshAllWebPages();
+        return ValueTask.FromResult(new EmptyRequest());
+    }
+
+    [NeoRpcMethod("removeWebPage")]
+    public ValueTask<EmptyRequest> RemoveWebPageAsync(WebPageIdRequest request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        try
+        {
+            runtime.RemoveWebPage(Scope.ParseId(request.Id));
+        }
+        catch (KeyNotFoundException)
+        {
+            throw Scope.NotFound("web page");
+        }
+
+        return ValueTask.FromResult(new EmptyRequest());
+    }
+
+    /// <summary>Opens a web page in the browser, but only an address that is one of this project's pages.</summary>
+    [NeoRpcMethod("openUrl")]
+    public ValueTask<ShellResult> OpenUrlAsync(OpenUrlRequest request, CancellationToken cancellationToken)
+    {
+        var runtime = Scope.Runtime(host.Manager, request.ProjectId);
+        var url = AllowedUrl(runtime, request.Url);
+        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        return ValueTask.FromResult(new ShellResult(true, "Opened."));
+    }
+
+    /// <summary>
+    /// The address if it is one of the project's pages and a web address; anything else is not found, so a call
+    /// cannot make the app open an arbitrary address or program.
+    /// </summary>
+    internal static string AllowedUrl(Silvia.Core.Runtime.ProjectRuntime runtime, string url)
+    {
+        if (string.IsNullOrWhiteSpace(url) ||
+            !Uri.TryCreate(url, UriKind.Absolute, out var parsed) ||
+            !WebFetcher.IsWebAddress(parsed) ||
+            !runtime.IsWebPageAddress(url))
+        {
+            throw Scope.NotFound("web page");
+        }
+
+        return parsed.AbsoluteUri;
+    }
+
+    private static WebPageDto ToDto(Silvia.Core.Runtime.ProjectRuntime runtime, WebPage page) => new(
+        page.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        page.Url,
+        page.FinalUrl,
+        page.Title,
+        page.HasContent ? Path.Combine(runtime.WebFolder, page.FileName) : null,
+        page.FetchedUtc?.ToString("O"),
+        page.Status,
+        page.Error);
+
+    private static SourceDto ToDto(SourceRow s) =>
+        new(s.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), s.Path, s.IncludeGlobs, s.ExcludeGlobs, s.Enabled);
+
+    private static string AllowedPath(Silvia.Core.Runtime.ProjectRuntime runtime, string documentId)
+    {
+        var indexed = runtime.Documents().Any(d => string.Equals(d.DocumentId, documentId, StringComparison.OrdinalIgnoreCase));
+        // A web page's saved copy lives in the project's own web folder, which is not a watched folder.
+        var underSource = runtime.Sources().Any(s =>
+            documentId.StartsWith(s.Path.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            || runtime.WebPageOf(documentId) is not null;
+        if (!indexed || !underSource || !File.Exists(documentId) || !ContentTypes.IsSupported(documentId))
+        {
+            throw Scope.NotFound("document");
+        }
+
+        return documentId;
+    }
+}
